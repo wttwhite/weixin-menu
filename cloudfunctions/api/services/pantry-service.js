@@ -1,5 +1,5 @@
 const { ERROR_CODES } = require('../shared/constants/error-codes')
-const { toIsoDate, isValidIsoDate } = require('../shared/utils/time')
+const { isValidIsoDate } = require('../shared/utils/time')
 const {
   derivePantryStatus,
   matchesPantryFilters,
@@ -17,12 +17,26 @@ function normalizeId(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function normalizeNow(now) {
-  return typeof now === 'string' && now.trim() ? now.trim() : new Date().toISOString().slice(0, 10)
-}
+const DEFAULT_BUSINESS_TIMEZONE = 'Asia/Shanghai'
+const DEFAULT_LIST_LIMIT = 100
 
-function createTimestamp(now) {
-  return `${normalizeNow(now)}T00:00:00.000Z`
+function toBusinessDate(input, timeZone = DEFAULT_BUSINESS_TIMEZONE) {
+  const date = input instanceof Date ? input : new Date(input)
+  if (Number.isNaN(date.getTime())) {
+    throw toAppError('Invalid server clock date', ERROR_CODES.UNKNOWN)
+  }
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+  const parts = formatter.formatToParts(date)
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  const day = parts.find((part) => part.type === 'day')?.value
+  return `${year}-${month}-${day}`
 }
 
 function resolveClock(options = {}) {
@@ -36,7 +50,33 @@ function resolveClock(options = {}) {
 }
 
 function resolveServerNow(options = {}) {
-  return toIsoDate(resolveClock(options).now())
+  return toBusinessDate(resolveClock(options).now(), options.businessTimezone)
+}
+
+function resolveServerTime(options = {}) {
+  const now = resolveClock(options).now()
+  return {
+    businessDate: toBusinessDate(now, options.businessTimezone),
+    instant: now.toISOString()
+  }
+}
+
+function normalizeListFilters(filters = {}) {
+  const category = typeof filters.category === 'string' ? filters.category.trim() : ''
+  const location = typeof filters.location === 'string' ? filters.location.trim() : ''
+  return {
+    category,
+    location,
+    status: typeof filters.status === 'string' ? filters.status.trim() : ''
+  }
+}
+
+function normalizeListLimit(limit) {
+  const parsed = Number(limit)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_LIST_LIMIT
+  }
+  return Math.min(Math.floor(parsed), DEFAULT_LIST_LIMIT)
 }
 
 function resolveReadNow(eventNow, options = {}) {
@@ -83,8 +123,12 @@ async function listPantry(event = {}, context = {}, repository = {}, options = {
   validateSpaceId(event.spaceId)
 
   const now = resolveReadNow(event.now, options)
-  const filters = event.filters || {}
-  const items = await repository.listPantryItems(event.spaceId)
+  const filters = normalizeListFilters(event.filters || {})
+  const items = await repository.listPantryItems(event.spaceId, {
+    category: filters.category,
+    location: filters.location,
+    limit: normalizeListLimit(event.limit)
+  })
 
   return {
     items: (items || [])
@@ -97,7 +141,9 @@ async function listPantry(event = {}, context = {}, repository = {}, options = {
 async function createPantryItem(event = {}, context = {}, repository = {}, options = {}) {
   validateSpaceId(event.spaceId)
 
-  const now = resolveServerNow(options)
+  const serverTime = resolveServerTime(options)
+  const now = serverTime.businessDate
+  const serverInstant = serverTime.instant
   const normalizedItem = normalizePantryItemWrite({
     ...(event.item || {}),
     now
@@ -107,8 +153,8 @@ async function createPantryItem(event = {}, context = {}, repository = {}, optio
   const created = await repository.createPantryItem({
     spaceId: event.spaceId,
     ...normalizedItem,
-    createdAt: createTimestamp(now),
-    updatedAt: createTimestamp(now),
+    createdAt: serverInstant,
+    updatedAt: serverInstant,
     deletedAt: '',
     createdBy: context.openid || '',
     updatedBy: context.openid || '',
@@ -129,7 +175,9 @@ async function updatePantryItem(event = {}, context = {}, repository = {}, optio
     throw toAppError('Pantry item not found', ERROR_CODES.NOT_FOUND)
   }
 
-  const now = resolveServerNow(options)
+  const serverTime = resolveServerTime(options)
+  const now = serverTime.businessDate
+  const serverInstant = serverTime.instant
   const normalizedItem = normalizePantryItemWrite({
     ...(event.item || {}),
     now
@@ -138,7 +186,7 @@ async function updatePantryItem(event = {}, context = {}, repository = {}, optio
 
   const updated = await repository.updatePantryItem(event.spaceId, event.pantryItemId, {
     ...normalizedItem,
-    updatedAt: createTimestamp(now),
+    updatedAt: serverInstant,
     updatedBy: context.openid || ''
   })
 
@@ -160,11 +208,13 @@ async function deletePantryItem(event = {}, context = {}, repository = {}, optio
     throw toAppError('Pantry item not found', ERROR_CODES.NOT_FOUND)
   }
 
-  const now = resolveServerNow(options)
+  const serverTime = resolveServerTime(options)
+  const now = serverTime.businessDate
+  const serverInstant = serverTime.instant
   const deleted = await repository.updatePantryItem(event.spaceId, event.pantryItemId, {
-    deletedAt: createTimestamp(now),
+    deletedAt: serverInstant,
     deletedBy: context.openid || '',
-    updatedAt: createTimestamp(now),
+    updatedAt: serverInstant,
     updatedBy: context.openid || ''
   })
 

@@ -44,12 +44,22 @@ function createRepository(options = {}) {
     return result.data[0]
   }
 
-  async function listPantryItems(spaceId) {
+  async function listPantryItems(spaceId, query = {}) {
+    const where = {
+      spaceId
+    }
+    if (query.category) {
+      where.category = query.category
+    }
+    if (query.location) {
+      where.location = query.location
+    }
+
+    const limit = typeof query.limit === 'number' && query.limit > 0 ? query.limit : 100
     const result = await db
       .collection(COLLECTIONS.PANTRY_ITEMS)
-      .where({
-        spaceId
-      })
+      .where(where)
+      .limit(limit)
       .get()
 
     return result.data || []

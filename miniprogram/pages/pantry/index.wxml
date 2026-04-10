@@ -23,7 +23,7 @@
 
   <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
 
-  <view wx:if="{{loading}}" class="feedback-card">正在加载库存...</view>
+  <view wx:elif="{{loading}}" class="feedback-card">正在加载库存...</view>
 
   <view wx:elif="{{visibleItems.length}}" class="pantry-list">
     <pantry-card
@@ -34,7 +34,7 @@
     />
   </view>
 
-  <view wx:else class="empty-card">
+  <view wx:elif="{{showEmptyState}}" class="empty-card">
     <view class="empty-card__title">暂无库存项</view>
     <view class="empty-card__text">{{emptyMessage}}</view>
     <button class="empty-card__button" bindtap="goCreate">立即添加</button>

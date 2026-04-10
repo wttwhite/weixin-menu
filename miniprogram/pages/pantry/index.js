@@ -43,6 +43,7 @@ Page({
     activeSpaceId: '',
     items: [],
     visibleItems: [],
+    showEmptyState: false,
     errorMessage: '',
     summary: '正在读取库存...',
     emptyMessage: '这个空间还没有库存项，先添加常用食材吧。',
@@ -76,6 +77,7 @@ Page({
         loading: false,
         items: [],
         visibleItems: [],
+        showEmptyState: false,
         summary: '请先选择一个空间，再查看共享库存。'
       })
       return
@@ -103,6 +105,7 @@ Page({
         loading: false,
         items: [],
         visibleItems: [],
+        showEmptyState: false,
         errorMessage: getErrorMessage(error),
         summary: '库存加载失败，请稍后重试。'
       })
@@ -129,6 +132,7 @@ Page({
 
     this.setData({
       visibleItems,
+      showEmptyState: !this.data.errorMessage && visibleItems.length === 0,
       emptyMessage: this.data.items.length
         ? '当前筛选条件下没有匹配的库存项。'
         : '这个空间还没有库存项，先添加常用食材吧。'

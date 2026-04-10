@@ -11,9 +11,35 @@ import { ERROR_CODES } from '../../shared/constants/error-codes'
 function createRepository() {
   const items = []
   let nextId = 1
+  let lastListQuery = null
 
   return {
-    async listPantryItems(spaceId) {
+    async listPantryItems(spaceId, query = {}) {
+      lastListQuery = {
+        spaceId,
+        ...query
+      }
+
+      const filtered = items.filter((item) => {
+        if (item.spaceId !== spaceId || item.deletedAt !== '') {
+          return false
+        }
+        if (query.category && item.category !== query.category) {
+          return false
+        }
+        if (query.location && item.location !== query.location) {
+          return false
+        }
+        return true
+      })
+
+      const limit = typeof query.limit === 'number' ? query.limit : filtered.length
+      return filtered.slice(0, limit).map((item) => ({ ...item }))
+    },
+    getLastListQuery() {
+      return lastListQuery
+    },
+    async listPantryItemsLegacy(spaceId) {
       return items
         .filter((item) => item.spaceId === spaceId && item.deletedAt === '')
         .map((item) => ({ ...item }))
@@ -123,8 +149,38 @@ describe('pantry service', () => {
 
     expect(created.item).toEqual(
       expect.objectContaining({
-        createdAt: '2026-04-10T00:00:00.000Z',
-        updatedAt: '2026-04-10T00:00:00.000Z'
+        createdAt: '2026-04-10T06:30:00.000Z',
+        updatedAt: '2026-04-10T06:30:00.000Z'
+      })
+    )
+  })
+
+  it('uses business timezone date for pantry status near +08:00 midnight boundaries', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    const created = await createPantryItem(
+      {
+        spaceId: 'space-1',
+        item: {
+          name: 'Boundary Milk',
+          expirationDate: '2026-04-09'
+        }
+      },
+      context,
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-09T16:30:00.000Z')
+        }
+      }
+    )
+
+    expect(created.item).toEqual(
+      expect.objectContaining({
+        status: 'expired',
+        createdAt: '2026-04-09T16:30:00.000Z',
+        updatedAt: '2026-04-09T16:30:00.000Z'
       })
     )
   })
@@ -230,6 +286,12 @@ describe('pantry service', () => {
       repository
     )
 
+    expect(repository.getLastListQuery()).toEqual({
+      spaceId: 'space-1',
+      category: 'dairy',
+      location: '',
+      limit: 100
+    })
     expect(filtered.items).toHaveLength(1)
     expect(filtered.items[0]).toEqual(
       expect.objectContaining({
