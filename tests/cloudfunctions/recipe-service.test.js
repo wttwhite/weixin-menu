@@ -266,22 +266,43 @@ describe('recipe service', () => {
   it('does not persist denormalized tags array on recipe create and update writes', async () => {
     const repository = createRepository()
     const context = { openid: 'user-1' }
-
-    const created = await createRecipe(
+    const createdTag = await createRecipeTag(
       {
         spaceId: 'space-1',
-        recipe: {
-          name: 'Tomato Egg',
-          tags: [{ id: 'tag-1', name: '家常' }],
-          tagIds: ['tag-1']
+        tag: {
+          name: '家常'
         }
       },
       context,
       repository
     )
 
-    expect(created.item.tagIds).toEqual(['tag-1'])
+    const created = await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Tomato Egg',
+          tags: [{ id: createdTag.item._id, name: '家常' }],
+          tagIds: [createdTag.item._id]
+        }
+      },
+      context,
+      repository
+    )
+
+    expect(created.item.tagIds).toEqual([createdTag.item._id])
     expect(Object.prototype.hasOwnProperty.call(created.item, 'tags')).toBe(false)
+
+    const secondTag = await createRecipeTag(
+      {
+        spaceId: 'space-1',
+        tag: {
+          name: '快手'
+        }
+      },
+      context,
+      repository
+    )
 
     const updated = await updateRecipe(
       {
@@ -289,15 +310,150 @@ describe('recipe service', () => {
         recipeId: created.item._id,
         recipe: {
           name: 'Tomato Egg 2',
-          tags: [{ id: 'tag-2', name: '快手' }],
-          tagIds: ['tag-2']
+          tags: [{ id: secondTag.item._id, name: '快手' }],
+          tagIds: [secondTag.item._id]
         }
       },
       context,
       repository
     )
 
-    expect(updated.item.tagIds).toEqual(['tag-2'])
+    expect(updated.item.tagIds).toEqual([secondTag.item._id])
     expect(Object.prototype.hasOwnProperty.call(updated.item, 'tags')).toBe(false)
+  })
+
+  it('rejects invalid, stale, and foreign tagIds on recipe create and update', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    const homeTag = await createRecipeTag(
+      {
+        spaceId: 'space-1',
+        tag: {
+          name: '家常'
+        }
+      },
+      context,
+      repository
+    )
+    const foreignTag = await createRecipeTag(
+      {
+        spaceId: 'space-2',
+        tag: {
+          name: '异空间'
+        }
+      },
+      context,
+      repository
+    )
+
+    await expect(
+      createRecipe(
+        {
+          spaceId: 'space-1',
+          recipe: {
+            name: 'Bad Foreign Tag',
+            tagIds: [foreignTag.item._id]
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+
+    await expect(
+      createRecipe(
+        {
+          spaceId: 'space-1',
+          recipe: {
+            name: 'Bad Missing Tag',
+            tagIds: ['not-exist-tag']
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Safe Tag Recipe',
+          tagIds: []
+        }
+      },
+      context,
+      repository
+    )
+    await deleteRecipeTag(
+      {
+        spaceId: 'space-1',
+        tagId: homeTag.item._id
+      },
+      context,
+      repository
+    )
+
+    await expect(
+      updateRecipe(
+        {
+          spaceId: 'space-1',
+          recipeId: 'recipe-1',
+          recipe: {
+            name: 'Use Stale Tag',
+            tagIds: [homeTag.item._id]
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+  })
+
+  it('rejects deleting a recipe tag when active recipes still reference it', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    const createdTag = await createRecipeTag(
+      {
+        spaceId: 'space-1',
+        tag: {
+          name: '快手'
+        }
+      },
+      context,
+      repository
+    )
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Mapo',
+          tagIds: [createdTag.item._id]
+        }
+      },
+      context,
+      repository
+    )
+
+    await expect(
+      deleteRecipeTag(
+        {
+          spaceId: 'space-1',
+          tagId: createdTag.item._id
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.CONFLICT
+    })
   })
 })

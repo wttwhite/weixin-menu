@@ -42,6 +42,22 @@ function validateTagWrite(tag) {
   }
 }
 
+async function assertRecipeTagIdsValid(spaceId, tagIds = [], repository = {}) {
+  const normalizedTagIds = Array.isArray(tagIds) ? tagIds.filter(Boolean) : []
+  if (!normalizedTagIds.length) {
+    return
+  }
+
+  const tags = await repository.listRecipeTags(spaceId, {
+    deletedAt: ''
+  })
+  const activeTagIdSet = new Set((tags || []).map((tag) => tag._id))
+  const hasInvalidTagId = normalizedTagIds.some((tagId) => !activeTagIdSet.has(tagId))
+  if (hasInvalidTagId) {
+    throw toAppError('Invalid recipe tagIds', ERROR_CODES.INVALID_INPUT)
+  }
+}
+
 function resolveClock(options = {}) {
   if (options.clock && typeof options.clock.now === 'function') {
     return options.clock
@@ -107,6 +123,7 @@ async function createRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
+  await assertRecipeTagIdsValid(event.spaceId, recipe.tagIds, repository)
   const { tags: ignoredTags, ...recipeWrite } = recipe
   void ignoredTags
 
@@ -137,6 +154,7 @@ async function updateRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
+  await assertRecipeTagIdsValid(event.spaceId, recipe.tagIds, repository)
   const { tags: ignoredTags, ...recipeWrite } = recipe
   void ignoredTags
 
@@ -218,6 +236,19 @@ async function deleteRecipeTag(event = {}, context = {}, repository = {}, option
   const existing = await repository.getRecipeTag(event.spaceId, event.tagId)
   if (!existing || existing.deletedAt) {
     throw toAppError('Recipe tag not found', ERROR_CODES.NOT_FOUND)
+  }
+  const recipes = await repository.listRecipes(event.spaceId, {
+    deletedAt: ''
+  })
+  const hasReferencedRecipe = (recipes || []).some((recipe) => {
+    if (recipe.deletedAt) {
+      return false
+    }
+    const tagIds = Array.isArray(recipe.tagIds) ? recipe.tagIds : []
+    return tagIds.indexOf(event.tagId) !== -1
+  })
+  if (hasReferencedRecipe) {
+    throw toAppError('Recipe tag is still referenced by recipes', ERROR_CODES.CONFLICT)
   }
 
   const now = resolveServerInstant(options)

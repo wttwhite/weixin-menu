@@ -78,9 +78,7 @@
         text="{{item.name}}"
         color="{{item.color}}"
         selected="{{item.selected}}"
-        removable="{{true}}"
         bindselect="handleTagToggle"
-        bindremove="deleteTag"
       />
     </view>
     <view class="inline-row">

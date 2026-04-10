@@ -57,6 +57,7 @@ function buildTagViewItems(tags = [], selectedTagIds = []) {
 Page({
   data: {
     loading: true,
+    hasBootstrapped: false,
     submitting: false,
     deleting: false,
     activeSpaceId: '',
@@ -73,11 +74,15 @@ Page({
     const recipeId = options && options.recipeId ? options.recipeId : ''
     this.setData({
       recipeId,
-      isEdit: Boolean(recipeId)
+      isEdit: Boolean(recipeId),
+      hasBootstrapped: false
     })
   },
 
   onShow() {
+    if (this.data.hasBootstrapped) {
+      return
+    }
     this.bootstrap()
   },
 
@@ -86,6 +91,7 @@ Page({
     this.setData({
       activeSpaceId,
       loading: true,
+      hasBootstrapped: true,
       loadErrorMessage: ''
     })
 
@@ -235,29 +241,6 @@ Page({
       this.setData({
         'form.tagIds': nextTagIds,
         tagViewItems: buildTagViewItems(this.data.availableTags, nextTagIds)
-      })
-    } catch (error) {
-      wx.showToast({
-        title: getErrorMessage(error),
-        icon: 'none'
-      })
-    }
-  },
-
-  async deleteTag(event) {
-    const tagId = event.detail.tagId
-    if (!tagId) {
-      return
-    }
-
-    try {
-      await createRecipeService().deleteRecipeTag(this.data.activeSpaceId, tagId)
-      const availableTags = this.data.availableTags.filter((tag) => tag._id !== tagId)
-      const nextTagIds = this.data.form.tagIds.filter((id) => id !== tagId)
-      this.setData({
-        availableTags,
-        'form.tagIds': nextTagIds,
-        tagViewItems: buildTagViewItems(availableTags, nextTagIds)
       })
     } catch (error) {
       wx.showToast({
