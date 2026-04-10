@@ -101,20 +101,20 @@ describe('memberOps.main', () => {
 })
 
 describe('space-service invite code guarantees', () => {
-  it('retries invite-code generation when create-space hits a collision', async () => {
+  it('retries create-space when repository reports invite-code conflict during write', async () => {
     const generatedCodes = ['AAAAAA', 'BBBBBB']
     const attemptedCodes = []
     let codeIndex = 0
 
     const repository = {
-      async findSpaceByInviteCode(code) {
-        attemptedCodes.push(code)
-        if (code === 'AAAAAA') {
-          return { _id: 'space-existing', inviteCode: code }
-        }
-        return null
-      },
       async createSpace(payload) {
+        attemptedCodes.push(payload.inviteCode)
+        if (payload.inviteCode === 'AAAAAA') {
+          const error = new Error('Invite code already in use')
+          error.code = ERROR_CODES.CONFLICT
+          error.data = { reason: 'INVITE_CODE_TAKEN' }
+          throw error
+        }
         return { _id: 'space-2', ...payload }
       }
     }
@@ -132,11 +132,10 @@ describe('space-service invite code guarantees', () => {
     expect(result.inviteCode).toBe('BBBBBB')
   })
 
-  it('retries invite-code generation when rotate hits a collision', async () => {
-    const generatedCodes = ['AAAAAA', 'BBBBBB']
+  it('rotate-invite-code always chooses a new code and retries write conflicts', async () => {
+    const generatedCodes = ['AAAAAA', 'BBBBBB', 'CCCCCC']
     const attemptedCodes = []
     let codeIndex = 0
-    let updatedInviteCode = ''
 
     const repository = {
       async findMembership(spaceId, openid) {
@@ -147,15 +146,20 @@ describe('space-service invite code guarantees', () => {
           status: 'active'
         }
       },
-      async findSpaceByInviteCode(code) {
-        attemptedCodes.push(code)
-        if (code === 'AAAAAA') {
-          return { _id: 'space-other', inviteCode: code }
+      async getSpaceById(spaceId) {
+        return {
+          _id: spaceId,
+          inviteCode: 'AAAAAA'
         }
-        return null
       },
       async rotateInviteCode(spaceId, inviteCode) {
-        updatedInviteCode = inviteCode
+        attemptedCodes.push(inviteCode)
+        if (inviteCode === 'BBBBBB') {
+          const error = new Error('Invite code already in use')
+          error.code = ERROR_CODES.CONFLICT
+          error.data = { reason: 'INVITE_CODE_TAKEN' }
+          throw error
+        }
         return {
           _id: spaceId,
           inviteCode
@@ -172,13 +176,40 @@ describe('space-service invite code guarantees', () => {
       }
     )
 
-    expect(attemptedCodes).toEqual(['AAAAAA', 'BBBBBB'])
-    expect(updatedInviteCode).toBe('BBBBBB')
-    expect(result.inviteCode).toBe('BBBBBB')
+    expect(attemptedCodes).toEqual(['BBBBBB', 'CCCCCC'])
+    expect(result.inviteCode).toBe('CCCCCC')
   })
 })
 
 describe('memberOps repository createSpace', () => {
+  it('blocks duplicate invite-code writes at repository level', async () => {
+    const fakeCloud = createFakeCloudDbAdapter()
+    const repository = createRepository({
+      cloudSdk: fakeCloud.cloudSdk,
+      db: fakeCloud.db
+    })
+
+    const first = await repository.createSpace({
+      name: 'Family',
+      inviteCode: 'ABC123',
+      ownerOpenid: 'owner-1'
+    })
+    expect(first.inviteCode).toBe('ABC123')
+
+    await expect(
+      repository.createSpace({
+        name: 'Second',
+        inviteCode: 'ABC123',
+        ownerOpenid: 'owner-2'
+      })
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.CONFLICT,
+      data: { reason: 'INVITE_CODE_TAKEN' }
+    })
+
+    expect(fakeCloud.snapshot().spaces).toHaveLength(1)
+  })
+
   it('rolls back the space document when owner-membership insert fails', async () => {
     const fakeCloud = createFakeCloudDbAdapter({ failNextMemberAdd: true })
     const repository = createRepository({

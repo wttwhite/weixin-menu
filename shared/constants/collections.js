@@ -1,5 +1,6 @@
 const COLLECTIONS = Object.freeze({
   SPACES: 'spaces',
+  INVITE_CODE_CLAIMS: 'invite_code_claims',
   SPACE_MEMBERS: 'space_members',
   RECIPES: 'recipes',
   RECIPE_TAGS: 'recipe_tags',

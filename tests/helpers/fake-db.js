@@ -144,6 +144,7 @@ export function createFakeDb(seed = {}) {
 export function createFakeCloudDbAdapter(seed = {}) {
   const spaces = new Map()
   const memberships = new Map()
+  const inviteCodeClaims = new Map()
   const calls = []
   let nextSpaceId = 1
   let nextMembershipId = 1
@@ -155,6 +156,10 @@ export function createFakeCloudDbAdapter(seed = {}) {
 
   for (const membership of seed.memberships || []) {
     memberships.set(membership._id, clone(membership))
+  }
+
+  for (const claim of seed.inviteCodeClaims || []) {
+    inviteCodeClaims.set(claim._id, clone(claim))
   }
 
   function matchesWhere(record, where = {}) {
@@ -262,6 +267,56 @@ export function createFakeCloudDbAdapter(seed = {}) {
       }
     }
 
+    if (name === 'invite_code_claims') {
+      return {
+        where(query) {
+          return {
+            async get() {
+              const data = Array.from(inviteCodeClaims.values())
+                .filter((item) => matchesWhere(item, query))
+                .map((item) => clone(item))
+              return { data }
+            }
+          }
+        },
+        async add({ data }) {
+          const id = data._id
+          if (!id) {
+            throw new Error('invite-code claim _id is required')
+          }
+          if (inviteCodeClaims.has(id)) {
+            const error = new Error('duplicate key')
+            error.code = 'DUPLICATE_KEY'
+            throw error
+          }
+          inviteCodeClaims.set(id, { _id: id, ...clone(data) })
+          calls.push({ type: 'add', collection: 'invite_code_claims', id })
+          return { _id: id }
+        },
+        doc(id) {
+          return {
+            async update({ data }) {
+              const existing = inviteCodeClaims.get(id)
+              if (!existing) {
+                return { stats: { updated: 0 } }
+              }
+              inviteCodeClaims.set(id, { ...existing, ...clone(data) })
+              calls.push({ type: 'update', collection: 'invite_code_claims', id })
+              return { stats: { updated: 1 } }
+            },
+            async get() {
+              return { data: clone(inviteCodeClaims.get(id) || null) }
+            },
+            async remove() {
+              const existed = inviteCodeClaims.delete(id)
+              calls.push({ type: 'remove', collection: 'invite_code_claims', id, existed })
+              return { stats: { removed: existed ? 1 : 0 } }
+            }
+          }
+        }
+      }
+    }
+
     throw new Error(`Unsupported collection: ${name}`)
   }
 
@@ -290,7 +345,8 @@ export function createFakeCloudDbAdapter(seed = {}) {
   function snapshot() {
     return {
       spaces: Array.from(spaces.values()).map((item) => clone(item)),
-      memberships: Array.from(memberships.values()).map((item) => clone(item))
+      memberships: Array.from(memberships.values()).map((item) => clone(item)),
+      inviteCodeClaims: Array.from(inviteCodeClaims.values()).map((item) => clone(item))
     }
   }
 

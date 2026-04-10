@@ -16,23 +16,38 @@ async function assertOwner(spaceId, openid, repository) {
   }
 }
 
-function resolveSpaceId(space) {
-  return space && (space._id || space.spaceId)
+function createInviteCodeTakenError() {
+  return toAppError('Invite code already in use', ERROR_CODES.CONFLICT, {
+    reason: 'INVITE_CODE_TAKEN'
+  })
 }
 
-async function createUniqueInviteCode(repository, options = {}) {
+function isInviteCodeTakenError(error) {
+  return Boolean(
+    error &&
+      error.code === ERROR_CODES.CONFLICT &&
+      error.data &&
+      error.data.reason === 'INVITE_CODE_TAKEN'
+  )
+}
+
+async function withInviteCodeRetry(operation, options = {}) {
   const inviteCodeFactory = options.inviteCodeFactory || createInviteCode
-  const spaceIdToIgnore = options.spaceIdToIgnore || ''
   for (let attempt = 0; attempt < INVITE_CODE_MAX_ATTEMPTS; attempt += 1) {
     const inviteCode = inviteCodeFactory()
-    const existingSpace = await repository.findSpaceByInviteCode(inviteCode)
-    const existingSpaceId = resolveSpaceId(existingSpace)
-    if (!existingSpace || existingSpaceId === spaceIdToIgnore) {
-      return inviteCode
+    try {
+      return await operation(inviteCode)
+    } catch (error) {
+      if (isInviteCodeTakenError(error)) {
+        continue
+      }
+      throw error
     }
   }
 
-  throw toAppError('Failed to generate unique invite code', ERROR_CODES.CONFLICT)
+  throw toAppError('Failed to generate unique invite code', ERROR_CODES.CONFLICT, {
+    reason: 'INVITE_CODE_RETRY_EXHAUSTED'
+  })
 }
 
 async function createSpace(event, context, repository, options = {}) {
@@ -41,20 +56,26 @@ async function createSpace(event, context, repository, options = {}) {
     throw toAppError('Space name is required', ERROR_CODES.INVALID_INPUT)
   }
 
-  const inviteCode = await createUniqueInviteCode(repository, {
+  const created = await withInviteCodeRetry(async (inviteCode) => {
+    const space = await repository.createSpace({
+      name,
+      inviteCode,
+      ownerOpenid: context.openid
+    })
+    return {
+      space,
+      inviteCode
+    }
+  }, {
     inviteCodeFactory: options.inviteCodeFactory
   })
-  const space = await repository.createSpace({
-    name,
-    inviteCode,
-    ownerOpenid: context.openid
-  })
+  const space = created.space
   const spaceId = space._id || space.spaceId
 
   return {
     spaceId,
     name: space.name,
-    inviteCode,
+    inviteCode: created.inviteCode,
     role: ROLES.OWNER,
     activeSpaceId: spaceId
   }
@@ -115,19 +136,28 @@ async function rotateInviteCode(event, context, repository, options = {}) {
   }
 
   await assertOwner(spaceId, context.openid, repository)
-  const inviteCode = await createUniqueInviteCode(repository, {
-    inviteCodeFactory: options.inviteCodeFactory,
-    spaceIdToIgnore: spaceId
-  })
-  const updated = await repository.rotateInviteCode(spaceId, inviteCode)
-  if (!updated) {
+  const currentSpace = await repository.getSpaceById(spaceId)
+  if (!currentSpace) {
     throw toAppError('Space not found', ERROR_CODES.NOT_FOUND)
   }
 
-  return {
-    spaceId,
-    inviteCode
-  }
+  return withInviteCodeRetry(async (inviteCode) => {
+    if (inviteCode === currentSpace.inviteCode) {
+      throw createInviteCodeTakenError()
+    }
+
+    const updated = await repository.rotateInviteCode(spaceId, inviteCode)
+    if (!updated) {
+      throw toAppError('Space not found', ERROR_CODES.NOT_FOUND)
+    }
+
+    return {
+      spaceId,
+      inviteCode
+    }
+  }, {
+    inviteCodeFactory: options.inviteCodeFactory
+  })
 }
 
 module.exports = {

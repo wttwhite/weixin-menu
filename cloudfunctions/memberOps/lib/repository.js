@@ -1,4 +1,5 @@
 const { COLLECTIONS } = require('../shared/constants/collections')
+const { ERROR_CODES } = require('../shared/constants/error-codes')
 
 let hasInitialized = false
 
@@ -23,6 +24,27 @@ function firstRow(result) {
   }
 
   return result.data[0]
+}
+
+function createConflictError(message, reason) {
+  const error = new Error(message)
+  error.code = ERROR_CODES.CONFLICT
+  error.data = reason ? { reason } : null
+  return error
+}
+
+function isDuplicateKeyError(error) {
+  if (!error) {
+    return false
+  }
+
+  const errorCode = error.errCode || error.code
+  if (errorCode === 'DUPLICATE_KEY' || errorCode === -502005) {
+    return true
+  }
+
+  const message = String(error.message || '').toLowerCase()
+  return message.includes('duplicate')
 }
 
 function createRepository(options = {}) {
@@ -67,16 +89,32 @@ function createRepository(options = {}) {
   }
 
   async function createSpace({ name, inviteCode, ownerOpenid }) {
-    const addResult = await db.collection(COLLECTIONS.SPACES).add({
-      data: {
-        name,
-        inviteCode,
-        ownerOpenid
-      }
-    })
-
-    const spaceId = addResult._id
     try {
+      await db.collection(COLLECTIONS.INVITE_CODE_CLAIMS).add({
+        data: {
+          _id: inviteCode,
+          spaceId: '',
+          status: 'active'
+        }
+      })
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw createConflictError('Invite code already in use', 'INVITE_CODE_TAKEN')
+      }
+      throw error
+    }
+
+    let spaceId = ''
+    try {
+      const addResult = await db.collection(COLLECTIONS.SPACES).add({
+        data: {
+          name,
+          inviteCode,
+          ownerOpenid
+        }
+      })
+
+      spaceId = addResult._id
       await db.collection(COLLECTIONS.SPACE_MEMBERS).add({
         data: {
           spaceId,
@@ -87,10 +125,25 @@ function createRepository(options = {}) {
       })
     } catch (error) {
       try {
-        await db.collection(COLLECTIONS.SPACES).doc(spaceId).remove()
+        if (spaceId) {
+          await db.collection(COLLECTIONS.SPACES).doc(spaceId).remove()
+        }
+      } catch (_rollbackError) {
+      }
+      try {
+        await db.collection(COLLECTIONS.INVITE_CODE_CLAIMS).doc(inviteCode).remove()
       } catch (_rollbackError) {
       }
       throw error
+    }
+
+    try {
+      await db.collection(COLLECTIONS.INVITE_CODE_CLAIMS).doc(inviteCode).update({
+        data: {
+          spaceId
+        }
+      })
+    } catch (_claimUpdateError) {
     }
 
     return {
@@ -110,6 +163,11 @@ function createRepository(options = {}) {
       .get()
 
     return firstRow(result)
+  }
+
+  async function getSpaceById(spaceId) {
+    const result = await db.collection(COLLECTIONS.SPACES).doc(spaceId).get()
+    return result.data || null
   }
 
   async function findMembership(spaceId, openid) {
@@ -216,24 +274,67 @@ function createRepository(options = {}) {
   }
 
   async function rotateInviteCode(spaceId, inviteCode) {
-    const updateResult = await db.collection(COLLECTIONS.SPACES).doc(spaceId).update({
-      data: {
-        inviteCode
-      }
-    })
-
-    if (!updateResult.stats || updateResult.stats.updated <= 0) {
+    const currentSpace = await getSpaceById(spaceId)
+    if (!currentSpace) {
       return null
     }
 
-    const getResult = await db.collection(COLLECTIONS.SPACES).doc(spaceId).get()
-    return getResult.data || null
+    if (currentSpace.inviteCode === inviteCode) {
+      throw createConflictError('Invite code already in use', 'INVITE_CODE_TAKEN')
+    }
+
+    try {
+      await db.collection(COLLECTIONS.INVITE_CODE_CLAIMS).add({
+        data: {
+          _id: inviteCode,
+          spaceId,
+          status: 'active'
+        }
+      })
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw createConflictError('Invite code already in use', 'INVITE_CODE_TAKEN')
+      }
+      throw error
+    }
+
+    try {
+      const updateResult = await db.collection(COLLECTIONS.SPACES).where({
+        _id: spaceId,
+        inviteCode: currentSpace.inviteCode
+      }).update({
+        data: {
+          inviteCode
+        }
+      })
+
+      if (!updateResult.stats || updateResult.stats.updated <= 0) {
+        throw createConflictError('Space changed during invite code rotation', 'SPACE_VERSION_CONFLICT')
+      }
+
+      if (currentSpace.inviteCode) {
+        try {
+          await db.collection(COLLECTIONS.INVITE_CODE_CLAIMS).doc(currentSpace.inviteCode).remove()
+        } catch (_rollbackError) {
+        }
+      }
+
+      const getResult = await db.collection(COLLECTIONS.SPACES).doc(spaceId).get()
+      return getResult.data || null
+    } catch (error) {
+      try {
+        await db.collection(COLLECTIONS.INVITE_CODE_CLAIMS).doc(inviteCode).remove()
+      } catch (_rollbackError) {
+      }
+      throw error
+    }
   }
 
   return {
     listMemberships,
     createSpace,
     findSpaceByInviteCode,
+    getSpaceById,
     findMembership,
     addOrActivateMembership,
     listMembers,
