@@ -37,6 +37,19 @@ function buildDisplayItems(items) {
   }))
 }
 
+function buildServerFilters(data) {
+  const category = data.categoryOptions[data.selectedCategoryIndex]
+  const location = data.locationOptions[data.selectedLocationIndex]
+  const filters = {}
+  if (category && category !== '全部分类') {
+    filters.category = category
+  }
+  if (location && location !== '全部位置') {
+    filters.location = location
+  }
+  return filters
+}
+
 Page({
   data: {
     loading: true,
@@ -56,15 +69,17 @@ Page({
   },
 
   onShow() {
-    this.loadPantry()
+    this.loadPantry({ refreshOptions: true, filters: {} })
   },
 
   async onPullDownRefresh() {
-    await this.loadPantry()
+    await this.loadPantry({ refreshOptions: true, filters: {} })
     wx.stopPullDownRefresh()
   },
 
-  async loadPantry() {
+  async loadPantry(options = {}) {
+    const refreshOptions = Boolean(options.refreshOptions)
+    const filters = options.filters || {}
     const activeSpaceId = getActiveSpaceId()
     this.setData({
       loading: true,
@@ -84,21 +99,25 @@ Page({
     }
 
     try {
-      const result = await createPantryService().listPantry(activeSpaceId, {})
+      const result = await createPantryService().listPantry(activeSpaceId, filters)
       const items = buildDisplayItems(result.items || [])
-
-      this.setData({
+      const nextData = {
         loading: false,
         items,
-        categoryOptions: buildFilterOptions(items, 'category', '全部分类'),
-        locationOptions: buildFilterOptions(items, 'location', '全部位置'),
-        selectedCategoryIndex: 0,
-        selectedLocationIndex: 0,
-        selectedStatusIndex: 0,
         summary: items.length
           ? '按分类、位置和状态快速筛选当前空间库存。'
           : '这个空间还没有库存项，先添加常用食材吧。'
-      })
+      }
+
+      if (refreshOptions) {
+        nextData.categoryOptions = buildFilterOptions(items, 'category', '全部分类')
+        nextData.locationOptions = buildFilterOptions(items, 'location', '全部位置')
+        nextData.selectedCategoryIndex = 0
+        nextData.selectedLocationIndex = 0
+        nextData.selectedStatusIndex = 0
+      }
+
+      this.setData(nextData)
       this.applyFilters()
     } catch (error) {
       this.setData({
@@ -139,18 +158,24 @@ Page({
     })
   },
 
-  handleCategoryChange(event) {
+  async handleCategoryChange(event) {
     this.setData({
       selectedCategoryIndex: Number(event.detail.value)
     })
-    this.applyFilters()
+    await this.loadPantry({
+      filters: buildServerFilters(this.data),
+      refreshOptions: false
+    })
   },
 
-  handleLocationChange(event) {
+  async handleLocationChange(event) {
     this.setData({
       selectedLocationIndex: Number(event.detail.value)
     })
-    this.applyFilters()
+    await this.loadPantry({
+      filters: buildServerFilters(this.data),
+      refreshOptions: false
+    })
   },
 
   handleStatusChange(event) {

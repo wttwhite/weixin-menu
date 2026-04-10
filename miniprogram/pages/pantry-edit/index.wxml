@@ -40,7 +40,7 @@
 
     <view class="field-label">到期日期</view>
     <view class="date-row">
-      <picker mode="date" value="{{form.expirationDate || today}}" start="{{today}}" bindchange="handleExpirationChange">
+      <picker mode="date" value="{{form.expirationDate || today}}" bindchange="handleExpirationChange">
         <view class="field-input">{{form.expirationDate || '选择日期'}}</view>
       </picker>
       <button class="date-clear" bindtap="clearExpirationDate">清空</button>

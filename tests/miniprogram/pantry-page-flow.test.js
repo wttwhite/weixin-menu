@@ -45,6 +45,53 @@ beforeEach(() => {
 })
 
 describe('pantry edit page flow', () => {
+  it('builds today value from local date components instead of ISO UTC slicing', async () => {
+    const RealDate = Date
+    class MockDate extends RealDate {
+      constructor(...args) {
+        if (args.length) {
+          super(...args)
+          return
+        }
+        super('2026-04-09T16:30:00.000Z')
+      }
+
+      getFullYear() {
+        return 2026
+      }
+
+      getMonth() {
+        return 3
+      }
+
+      getDate() {
+        return 10
+      }
+
+      toISOString() {
+        return '2026-04-09T16:30:00.000Z'
+      }
+    }
+    global.Date = MockDate
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      redirectTo: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry-edit/index.js')
+    expect(page.data.today).toBe('2026-04-10')
+  })
+
   it('loads edit item via getPantryItem action', async () => {
     const callFunction = vi.fn().mockResolvedValue({
       result: {
