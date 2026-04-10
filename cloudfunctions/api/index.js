@@ -4,6 +4,7 @@ const { ERROR_CODES } = require('./shared/constants/error-codes')
 const { createContext } = require('./lib/context')
 const { createApiRouter } = require('./lib/router')
 const pantryHandlers = require('./handlers/pantry')
+const recipeHandlers = require('./handlers/recipes')
 
 let hasInitialized = false
 
@@ -148,13 +149,134 @@ function createRepository(options = {}) {
     }
   }
 
+  async function listRecipes(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    const limit = typeof query.limit === 'number' && query.limit > 0 ? query.limit : 100
+    const result = await db
+      .collection(COLLECTIONS.RECIPES)
+      .where(where)
+      .limit(limit)
+      .get()
+
+    return result.data || []
+  }
+
+  async function getRecipe(spaceId, recipeId) {
+    const result = await db
+      .collection(COLLECTIONS.RECIPES)
+      .where({
+        _id: recipeId,
+        spaceId
+      })
+      .get()
+
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+
+    return result.data[0]
+  }
+
+  async function createRecipe(data) {
+    const created = await db.collection(COLLECTIONS.RECIPES).add({
+      data
+    })
+
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function updateRecipe(spaceId, recipeId, data) {
+    const existing = await getRecipe(spaceId, recipeId)
+    if (!existing) {
+      return null
+    }
+
+    await db.collection(COLLECTIONS.RECIPES).doc(recipeId).update({
+      data
+    })
+
+    return {
+      ...existing,
+      ...data
+    }
+  }
+
+  async function listRecipeTags(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    const result = await db
+      .collection(COLLECTIONS.RECIPE_TAGS)
+      .where(where)
+      .get()
+    return result.data || []
+  }
+
+  async function getRecipeTag(spaceId, tagId) {
+    const result = await db
+      .collection(COLLECTIONS.RECIPE_TAGS)
+      .where({
+        _id: tagId,
+        spaceId
+      })
+      .get()
+
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+
+    return result.data[0]
+  }
+
+  async function createRecipeTag(data) {
+    const created = await db.collection(COLLECTIONS.RECIPE_TAGS).add({
+      data
+    })
+
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function updateRecipeTag(spaceId, tagId, data) {
+    const existing = await getRecipeTag(spaceId, tagId)
+    if (!existing) {
+      return null
+    }
+
+    await db.collection(COLLECTIONS.RECIPE_TAGS).doc(tagId).update({
+      data
+    })
+
+    return {
+      ...existing,
+      ...data
+    }
+  }
+
   return {
     createPantryItem,
+    createRecipe,
+    createRecipeTag,
     findMembership,
     getPantryItem,
     getPantryListMetadata,
+    getRecipe,
+    getRecipeTag,
     listPantryItems,
-    updatePantryItem
+    listRecipeTags,
+    listRecipes,
+    updatePantryItem,
+    updateRecipe,
+    updateRecipeTag
   }
 }
 
@@ -164,7 +286,15 @@ function createDefaultHandlers() {
     getPantryItem: pantryHandlers.getPantryItem,
     createPantryItem: pantryHandlers.createPantryItem,
     updatePantryItem: pantryHandlers.updatePantryItem,
-    deletePantryItem: pantryHandlers.deletePantryItem
+    deletePantryItem: pantryHandlers.deletePantryItem,
+    listRecipes: recipeHandlers.listRecipes,
+    getRecipeDetail: recipeHandlers.getRecipeDetail,
+    createRecipe: recipeHandlers.createRecipe,
+    updateRecipe: recipeHandlers.updateRecipe,
+    deleteRecipe: recipeHandlers.deleteRecipe,
+    listRecipeTags: recipeHandlers.listRecipeTags,
+    createRecipeTag: recipeHandlers.createRecipeTag,
+    deleteRecipeTag: recipeHandlers.deleteRecipeTag
   }
 }
 

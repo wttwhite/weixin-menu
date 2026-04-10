@@ -1,0 +1,116 @@
+.detail-page {
+  min-height: 100vh;
+  padding: 36rpx 28rpx 60rpx;
+}
+
+.detail-content {
+  display: grid;
+  gap: 20rpx;
+}
+
+.hero-card,
+.card {
+  border-radius: 30rpx;
+  padding: 30rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.hero-title {
+  font-size: 42rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hero-favorite {
+  margin-top: 10rpx;
+  color: #b56a15;
+  font-size: 24rpx;
+}
+
+.hero-meta {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.hero-summary {
+  margin-top: 14rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.hero-tags {
+  margin-top: 18rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-text {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.card--error {
+  color: #8c2f2f;
+}
+
+.card-button,
+.primary-button {
+  margin-top: 18rpx;
+  padding: 22rpx 0;
+  background: var(--brand);
+  color: #fff;
+  font-size: 28rpx;
+}
+
+.list-row {
+  margin-top: 16rpx;
+}
+
+.list-row__main {
+  font-size: 28rpx;
+  color: var(--text-primary);
+}
+
+.list-row__sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.step-row {
+  margin-top: 18rpx;
+  padding: 18rpx;
+  border-radius: 20rpx;
+  background: #fff;
+}
+
+.step-row__title {
+  font-size: 26rpx;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.step-row__content {
+  margin-top: 10rpx;
+  font-size: 25rpx;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.step-row__tips {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+}

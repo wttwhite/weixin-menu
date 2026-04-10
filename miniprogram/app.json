@@ -5,6 +5,8 @@
     "pages/space-create/index",
     "pages/space-join/index",
     "pages/recipes/index",
+    "pages/recipe-detail/index",
+    "pages/recipe-edit/index",
     "pages/pantry/index",
     "pages/pantry-edit/index",
     "pages/meal-plans/index",

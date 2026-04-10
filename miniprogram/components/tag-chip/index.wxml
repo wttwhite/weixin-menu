@@ -1,0 +1,8 @@
+<view
+  class="tag-chip {{selected ? 'tag-chip--selected' : ''}} {{plain ? 'tag-chip--plain' : ''}}"
+  style="--chip-color: {{color || '#E6A23C'}}"
+  bindtap="handleTap"
+>
+  <text class="tag-chip__text">{{text}}</text>
+  <text wx:if="{{removable}}" class="tag-chip__remove" catchtap="handleRemoveTap">×</text>
+</view>

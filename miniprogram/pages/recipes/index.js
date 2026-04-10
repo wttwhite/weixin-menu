@@ -1,20 +1,81 @@
+const { createRecipeService } = require('../../services/recipe')
 const { getActiveSpaceId } = require('../../utils/app-session')
+const { getErrorMessage } = require('../../utils/error')
+
+function buildTagSummary(tags = []) {
+  return (tags || [])
+    .map((tag) => tag.name)
+    .filter(Boolean)
+    .join(' / ')
+}
+
+function buildCategorySummary(item = {}) {
+  const parts = [item.category, item.cuisine, item.difficulty].filter(Boolean)
+  return parts.join(' · ') || '未分类'
+}
 
 Page({
   data: {
+    loading: true,
     activeSpaceId: '',
-    sections: [
-      { title: '食谱库', detail: 'Task 4 will build recipe CRUD and filters.', path: '/pages/recipes/index' },
-      { title: '库存', detail: 'Task 5 will add pantry items and expiry tracking.', path: '/pages/pantry/index' },
-      { title: '计划', detail: 'Task 6 will connect meal plans to your space.', path: '/pages/meal-plans/index' },
-      { title: '采购', detail: 'Task 7 will generate shopping lists from plans and pantry.', path: '/pages/shopping/index' },
-      { title: '统计', detail: 'Task 8 will bring usage and budget metrics here.', path: '/pages/statistics/index' }
-    ]
+    items: [],
+    errorMessage: '',
+    summary: '正在读取菜谱...'
   },
 
   onShow() {
+    this.loadRecipes()
+  },
+
+  async onPullDownRefresh() {
+    await this.loadRecipes()
+    wx.stopPullDownRefresh()
+  },
+
+  async loadRecipes() {
+    const activeSpaceId = getActiveSpaceId()
     this.setData({
-      activeSpaceId: getActiveSpaceId()
+      loading: true,
+      activeSpaceId,
+      errorMessage: ''
+    })
+
+    if (!activeSpaceId) {
+      this.setData({
+        loading: false,
+        items: [],
+        summary: '请先选择一个空间，再开始管理共享菜谱。'
+      })
+      return
+    }
+
+    try {
+      const result = await createRecipeService().listRecipes(activeSpaceId)
+      const items = (result.items || []).map((item) => ({
+        ...item,
+        tagSummary: buildTagSummary(item.tags || []),
+        categorySummary: buildCategorySummary(item)
+      }))
+      this.setData({
+        loading: false,
+        items,
+        summary: items.length
+          ? `当前空间共 ${items.length} 道菜谱，可按分类和标签快速浏览。`
+          : '这个空间还没有菜谱，先创建第一道拿手菜吧。'
+      })
+    } catch (error) {
+      this.setData({
+        loading: false,
+        items: [],
+        errorMessage: getErrorMessage(error),
+        summary: '菜谱加载失败，请稍后重试。'
+      })
+    }
+  },
+
+  goCreate() {
+    wx.navigateTo({
+      url: '/pages/recipe-edit/index'
     })
   },
 
@@ -24,14 +85,31 @@ Page({
     })
   },
 
-  openSection(event) {
-    const path = event.currentTarget.dataset.path
-    if (!path || path === '/pages/recipes/index') {
+  handleSelectRecipe(event) {
+    const recipeId = event.detail.recipeId
+    if (!recipeId) {
       return
     }
 
     wx.navigateTo({
-      url: path
+      url: `/pages/recipe-detail/index?recipeId=${recipeId}`
+    })
+  },
+
+  handleEditRecipe(event) {
+    const recipeId = event.detail.recipeId
+    if (!recipeId) {
+      return
+    }
+
+    wx.navigateTo({
+      url: `/pages/recipe-edit/index?recipeId=${recipeId}`
+    })
+  },
+
+  goPantry() {
+    wx.navigateTo({
+      url: '/pages/pantry/index'
     })
   }
 })

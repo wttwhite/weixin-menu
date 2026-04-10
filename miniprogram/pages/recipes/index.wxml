@@ -1,21 +1,41 @@
-<view class="shell-page">
-  <view class="shell-hero">
-    <view class="shell-kicker">Current Space</view>
-    <view class="shell-title">{{activeSpaceId || '尚未选择空间'}}</view>
-    <view class="shell-text">当前空间已绑定到本地会话。后续任务会在这个空间下补齐完整的菜谱、库存、计划和采购流程。</view>
-    <button class="shell-button" bindtap="openSpace">切换空间</button>
+<view class="recipes-page">
+  <view class="recipes-hero">
+    <view class="recipes-kicker">Recipe Library</view>
+    <view class="recipes-title">{{activeSpaceId || '尚未选择空间'}}</view>
+    <view class="recipes-text">{{summary}}</view>
+    <view class="recipes-actions">
+      <button class="recipes-button recipes-button--ghost" bindtap="openSpace">切换空间</button>
+      <button class="recipes-button" bindtap="goCreate">新建菜谱</button>
+    </view>
   </view>
 
-  <view class="section-list">
-    <button
-      wx:for="{{sections}}"
-      wx:key="title"
-      class="section-card"
-      data-path="{{item.path}}"
-      bindtap="openSection"
-    >
-      <view class="section-title">{{item.title}}</view>
-      <view class="section-detail">{{item.detail}}</view>
-    </button>
+  <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
+
+  <view wx:if="{{!errorMessage && loading}}" class="feedback-card">正在加载菜谱...</view>
+
+  <view wx:elif="{{items.length}}" class="recipe-list">
+    <recipe-card
+      wx:for="{{items}}"
+      wx:key="_id"
+      item="{{item}}"
+      bindselect="handleSelectRecipe"
+      bindedit="handleEditRecipe"
+    />
+  </view>
+
+  <view wx:elif="{{activeSpaceId}}" class="empty-card">
+    <view class="empty-card__title">还没有菜谱</view>
+    <view class="empty-card__text">添加第一道菜并维护配料、步骤和标签。</view>
+    <button class="empty-card__button" bindtap="goCreate">立即添加</button>
+  </view>
+
+  <view wx:elif="{{!activeSpaceId}}" class="empty-card">
+    <view class="empty-card__title">先选择一个空间</view>
+    <view class="empty-card__text">空间用于团队共享菜谱、库存、计划和采购数据。</view>
+    <button class="empty-card__button" bindtap="openSpace">前往选择空间</button>
+  </view>
+
+  <view class="quick-links">
+    <button class="quick-link" bindtap="goPantry">查看库存</button>
   </view>
 </view>

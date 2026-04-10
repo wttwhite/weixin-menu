@@ -1,0 +1,31 @@
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  color: var(--chip-color);
+  border: 2rpx solid var(--chip-color);
+}
+
+.tag-chip--selected {
+  background: var(--chip-color);
+  color: #fff;
+  border-color: var(--chip-color);
+}
+
+.tag-chip--plain {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.tag-chip__text {
+  font-size: 22rpx;
+}
+
+.tag-chip__remove {
+  font-size: 24rpx;
+  line-height: 1;
+}
