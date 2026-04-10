@@ -66,7 +66,7 @@ function createRepository(options = {}) {
     return result.data || []
   }
 
-  async function getPantryListMetadata(spaceId) {
+  async function getPantryListMetadata(spaceId, query = {}) {
     const result = await db
       .collection(COLLECTIONS.PANTRY_ITEMS)
       .where({
@@ -88,8 +88,18 @@ function createRepository(options = {}) {
       }
     })
 
+    const filteredTotal = data.filter((item) => {
+      if (query.category && item.category !== query.category) {
+        return false
+      }
+      if (query.location && item.location !== query.location) {
+        return false
+      }
+      return true
+    }).length
+
     return {
-      total: data.length,
+      total: filteredTotal,
       categories,
       locations
     }

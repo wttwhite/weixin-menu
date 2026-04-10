@@ -132,7 +132,10 @@ async function listPantry(event = {}, context = {}, repository = {}, options = {
     limit
   })
   const metadata = repository.getPantryListMetadata
-    ? await repository.getPantryListMetadata(event.spaceId)
+    ? await repository.getPantryListMetadata(event.spaceId, {
+        category: filters.category,
+        location: filters.location
+      })
     : null
   const total = metadata && typeof metadata.total === 'number' ? metadata.total : (items || []).length
   const hasMore = total > limit

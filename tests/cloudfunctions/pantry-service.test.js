@@ -36,8 +36,17 @@ function createRepository() {
       const limit = typeof query.limit === 'number' ? query.limit : filtered.length
       return filtered.slice(0, limit).map((item) => ({ ...item }))
     },
-    async getPantryListMetadata(spaceId) {
+    async getPantryListMetadata(spaceId, query = {}) {
       const activeItems = items.filter((item) => item.spaceId === spaceId && item.deletedAt === '')
+      const filteredItems = activeItems.filter((item) => {
+        if (query.category && item.category !== query.category) {
+          return false
+        }
+        if (query.location && item.location !== query.location) {
+          return false
+        }
+        return true
+      })
       const categories = []
       const locations = []
 
@@ -51,7 +60,7 @@ function createRepository() {
       })
 
       return {
-        total: activeItems.length,
+        total: filteredItems.length,
         categories,
         locations
       }
