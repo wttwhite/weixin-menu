@@ -1,0 +1,15 @@
+<view class="boot-page">
+  <view class="boot-card">
+    <view class="boot-badge">Menu Space</view>
+    <view class="boot-title">{{title}}</view>
+    <view class="boot-detail">{{detail}}</view>
+
+    <view wx:if="{{loading}}" class="boot-loading">
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+    </view>
+
+    <button wx:else class="boot-action" bindtap="runBootstrap">重新尝试</button>
+  </view>
+</view>

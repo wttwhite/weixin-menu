@@ -1,0 +1,68 @@
+.shell-page {
+  min-height: 100vh;
+  padding: 36rpx 28rpx 60rpx;
+}
+
+.shell-hero {
+  border-radius: 36rpx;
+  padding: 40rpx 34rpx;
+  background:
+    linear-gradient(140deg, rgba(63, 50, 38, 0.96), rgba(98, 74, 50, 0.92)),
+    var(--surface-strong);
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.shell-kicker {
+  font-size: 24rpx;
+  letter-spacing: 3rpx;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.shell-title {
+  margin-top: 18rpx;
+  font-size: 42rpx;
+  font-weight: 600;
+}
+
+.shell-text {
+  margin-top: 18rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.shell-button {
+  margin-top: 28rpx;
+  width: 240rpx;
+  padding: 22rpx 0;
+  background: #fff;
+  color: var(--surface-strong);
+  font-size: 28rpx;
+}
+
+.section-list {
+  margin-top: 26rpx;
+}
+
+.section-card {
+  display: block;
+  margin-bottom: 18rpx;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+  text-align: left;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.section-detail {
+  margin-top: 14rpx;
+  color: var(--text-secondary);
+  font-size: 26rpx;
+  line-height: 1.7;
+}

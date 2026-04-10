@@ -1,19 +1,39 @@
-// app.js
+const { envList } = require('./envList')
+
+function resolveEnv() {
+  const firstEnv = envList[0]
+  if (firstEnv && typeof firstEnv.envId === 'string') {
+    return firstEnv.envId
+  }
+
+  return ''
+}
+
 App({
-  onLaunch: function () {
-    this.globalData = {
-      // env 参数说明：
-      // env 参数决定接下来小程序发起的云开发调用（wx.cloud.xxx）会请求到哪个云环境的资源
-      // 此处请填入环境 ID, 环境 ID 可在微信开发者工具右上顶部工具栏点击云开发按钮打开获取
-      env: "",
-    };
-    if (!wx.cloud) {
-      console.error("请使用 2.2.3 或以上的基础库以使用云能力");
-    } else {
-      wx.cloud.init({
-        env: this.globalData.env,
-        traceUser: true,
-      });
-    }
+  globalData: {
+    env: resolveEnv(),
+    activeSpaceId: '',
+    session: null
   },
-});
+
+  onLaunch() {
+    if (!wx.cloud) {
+      console.error('Please use WeChat base library 2.2.3 or above for cloud support')
+      return
+    }
+
+    wx.cloud.init({
+      env: this.globalData.env,
+      traceUser: true
+    })
+  },
+
+  setActiveSpaceId(activeSpaceId) {
+    this.globalData.activeSpaceId = activeSpaceId || ''
+  },
+
+  setSession(session) {
+    this.globalData.session = session || null
+    this.setActiveSpaceId((session && session.activeSpaceId) || '')
+  }
+})

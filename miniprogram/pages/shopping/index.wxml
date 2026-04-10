@@ -1,0 +1,8 @@
+<view class="placeholder-page">
+  <view class="placeholder-card">
+    <view class="placeholder-title">{{title}}</view>
+    <view class="placeholder-space">当前空间：{{activeSpaceId || '尚未选择'}}</view>
+    <view class="placeholder-text">{{description}}</view>
+    <button class="placeholder-button" bindtap="openSpace">管理空间</button>
+  </view>
+</view>

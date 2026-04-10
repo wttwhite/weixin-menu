@@ -1,13 +1,20 @@
 {
   "pages": [
-    "pages/index/index",
-    "pages/example/index"
+    "pages/boot/index",
+    "pages/space/index",
+    "pages/space-create/index",
+    "pages/space-join/index",
+    "pages/recipes/index",
+    "pages/pantry/index",
+    "pages/meal-plans/index",
+    "pages/shopping/index",
+    "pages/statistics/index"
   ],
   "window": {
-    "backgroundColor": "#F6F6F6",
+    "backgroundColor": "#F5F1E8",
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#F6F6F6",
-    "navigationBarTitleText": "云开发 QuickStart",
+    "navigationBarBackgroundColor": "#F5F1E8",
+    "navigationBarTitleText": "Menu Space",
     "navigationBarTextStyle": "black"
   },
   "sitemapLocation": "sitemap.json",

@@ -1,0 +1,21 @@
+<view class="shell-page">
+  <view class="shell-hero">
+    <view class="shell-kicker">Current Space</view>
+    <view class="shell-title">{{activeSpaceId || '尚未选择空间'}}</view>
+    <view class="shell-text">当前空间已绑定到本地会话。后续任务会在这个空间下补齐完整的菜谱、库存、计划和采购流程。</view>
+    <button class="shell-button" bindtap="openSpace">切换空间</button>
+  </view>
+
+  <view class="section-list">
+    <button
+      wx:for="{{sections}}"
+      wx:key="title"
+      class="section-card"
+      data-path="{{item.path}}"
+      bindtap="openSection"
+    >
+      <view class="section-title">{{item.title}}</view>
+      <view class="section-detail">{{item.detail}}</view>
+    </button>
+  </view>
+</view>

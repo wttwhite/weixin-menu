@@ -1,0 +1,37 @@
+.placeholder-page {
+  min-height: 100vh;
+  padding: 40rpx 28rpx;
+}
+
+.placeholder-card {
+  border-radius: 32rpx;
+  padding: 40rpx 32rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.placeholder-title {
+  font-size: 40rpx;
+  font-weight: 600;
+}
+
+.placeholder-space {
+  margin-top: 18rpx;
+  color: var(--brand-strong);
+  font-size: 28rpx;
+}
+
+.placeholder-text {
+  margin-top: 20rpx;
+  color: var(--text-secondary);
+  font-size: 28rpx;
+  line-height: 1.7;
+}
+
+.placeholder-button {
+  margin-top: 30rpx;
+  padding: 22rpx 0;
+  background: var(--brand);
+  color: #fff;
+  font-size: 28rpx;
+}

@@ -1,0 +1,127 @@
+.space-page {
+  min-height: 100vh;
+  padding: 36rpx 28rpx 60rpx;
+}
+
+.hero-card,
+.status-card,
+.empty-card,
+.space-item {
+  border-radius: 32rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.hero-card {
+  padding: 40rpx 34rpx;
+  background:
+    linear-gradient(135deg, rgba(197, 106, 61, 0.16), rgba(255, 250, 240, 0.95)),
+    var(--surface-bg);
+}
+
+.hero-kicker {
+  color: var(--brand-strong);
+  font-size: 24rpx;
+  letter-spacing: 3rpx;
+}
+
+.hero-title {
+  margin-top: 18rpx;
+  font-size: 44rpx;
+  font-weight: 600;
+}
+
+.hero-text {
+  margin-top: 16rpx;
+  color: var(--text-secondary);
+  font-size: 28rpx;
+  line-height: 1.7;
+}
+
+.action-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 26rpx;
+}
+
+.primary-action,
+.secondary-action {
+  flex: 1;
+  padding: 24rpx 0;
+  font-size: 28rpx;
+}
+
+.primary-action {
+  background: var(--brand);
+  color: #fff;
+}
+
+.secondary-action {
+  border: 2rpx solid var(--border-soft);
+  background: rgba(255, 250, 240, 0.75);
+  color: var(--text-primary);
+}
+
+.status-card,
+.empty-card {
+  margin-top: 28rpx;
+  padding: 30rpx;
+  color: var(--text-secondary);
+  font-size: 28rpx;
+  line-height: 1.7;
+}
+
+.status-error {
+  color: var(--danger);
+}
+
+.space-list {
+  margin-top: 28rpx;
+}
+
+.space-item {
+  display: block;
+  margin-bottom: 20rpx;
+  padding: 30rpx;
+  text-align: left;
+}
+
+.space-item-active {
+  background: #fff2de;
+}
+
+.space-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.space-name {
+  font-size: 34rpx;
+  font-weight: 600;
+}
+
+.space-role {
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: var(--surface-muted);
+  color: var(--brand-strong);
+  font-size: 24rpx;
+}
+
+.space-state {
+  margin-top: 16rpx;
+  color: var(--text-secondary);
+  font-size: 26rpx;
+}
+
+.empty-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.empty-text {
+  margin-top: 14rpx;
+}

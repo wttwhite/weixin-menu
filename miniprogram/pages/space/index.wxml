@@ -1,0 +1,36 @@
+<view class="space-page">
+  <view class="hero-card">
+    <view class="hero-kicker">Space Hub</view>
+    <view class="hero-title">切换你的菜单空间</view>
+    <view class="hero-text">{{summary}}</view>
+  </view>
+
+  <view class="action-row">
+    <button class="primary-action" bindtap="goCreate">创建空间</button>
+    <button class="secondary-action" bindtap="goJoin">加入空间</button>
+  </view>
+
+  <view wx:if="{{loading}}" class="status-card">正在加载空间列表...</view>
+  <view wx:elif="{{errorMessage}}" class="status-card status-error">{{errorMessage}}</view>
+
+  <view wx:elif="{{spaces.length}}" class="space-list">
+    <button
+      wx:for="{{spaces}}"
+      wx:key="id"
+      class="space-item {{item.isActive ? 'space-item-active' : ''}}"
+      data-space-id="{{item.id}}"
+      bindtap="handleSwitchSpace"
+    >
+      <view class="space-item-top">
+        <view class="space-name">{{item.name}}</view>
+        <view class="space-role">{{item.roleLabel}}</view>
+      </view>
+      <view class="space-state">{{item.isActive ? '当前使用中' : '点击切换到这个空间'}}</view>
+    </button>
+  </view>
+
+  <view wx:else class="empty-card">
+    <view class="empty-title">先建立你的第一个空间</view>
+    <view class="empty-text">创建后会保存到本地，下次打开小程序会自动回到最近使用的空间。</view>
+  </view>
+</view>

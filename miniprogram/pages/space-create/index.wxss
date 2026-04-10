@@ -1,0 +1,45 @@
+.form-page {
+  min-height: 100vh;
+  padding: 40rpx 28rpx;
+}
+
+.form-card {
+  border-radius: 32rpx;
+  padding: 40rpx 32rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.form-title {
+  font-size: 42rpx;
+  font-weight: 600;
+}
+
+.form-text {
+  margin-top: 16rpx;
+  color: var(--text-secondary);
+  font-size: 28rpx;
+  line-height: 1.7;
+}
+
+.field-label {
+  margin-top: 40rpx;
+  color: var(--text-secondary);
+  font-size: 26rpx;
+}
+
+.field-input {
+  margin-top: 16rpx;
+  padding: 24rpx 22rpx;
+  border-radius: 24rpx;
+  background: #fff;
+  font-size: 30rpx;
+}
+
+.submit-button {
+  margin-top: 34rpx;
+  padding: 24rpx 0;
+  background: var(--brand);
+  color: #fff;
+  font-size: 28rpx;
+}
