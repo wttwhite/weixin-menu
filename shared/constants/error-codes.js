@@ -1,0 +1,13 @@
+const ERROR_CODES = Object.freeze({
+  OK: 0,
+  UNKNOWN: 1,
+  INVALID_INPUT: 400,
+  UNAUTHORIZED: 401,
+  SPACE_FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409
+})
+
+module.exports = {
+  ERROR_CODES
+}

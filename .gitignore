@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+dist/
+
+miniprogram/shared/
+cloudfunctions/api/shared/
+cloudfunctions/memberOps/shared/
+cloudfunctions/fileOps/shared/

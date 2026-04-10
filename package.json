@@ -1,0 +1,13 @@
+{
+  "name": "weixin-menu",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sync:shared": "node scripts/sync-shared.cjs",
+    "deploy:functions": "node scripts/deploy-cloudfunctions.cjs"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.0"
+  }
+}
