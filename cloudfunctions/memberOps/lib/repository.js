@@ -245,7 +245,7 @@ function createRepository(options = {}) {
       })
       .get()
     const existing = firstRow(existingResult)
-    if (!existing) {
+    if (!existing || existing.status === 'removed') {
       return false
     }
 

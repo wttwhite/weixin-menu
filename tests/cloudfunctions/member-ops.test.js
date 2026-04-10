@@ -98,6 +98,84 @@ describe('memberOps.main', () => {
 
     expect(repositoryCalls).toBe(0)
   })
+
+  it('forbids list-members when current user is not in the space', async () => {
+    const fakeDb = createFakeDb({
+      spaces: [{ _id: 'space-1', name: 'Family', inviteCode: 'ABC123', ownerOpenid: 'owner-1' }],
+      memberships: [{ spaceId: 'space-1', openid: 'owner-1', role: 'owner', status: 'active' }]
+    })
+
+    const handler = createMemberOpsHandler({
+      createContext: () => ({ openid: 'user-2' }),
+      createRepository: () => fakeDb.repository()
+    })
+
+    const response = await handler({ action: 'listMembers', spaceId: 'space-1' })
+    expect(response.code).toBe(ERROR_CODES.SPACE_FORBIDDEN)
+    expect(response.message).toBe('SPACE_FORBIDDEN')
+  })
+
+  it('forbids rename-space and remove-member when caller is not owner', async () => {
+    const fakeDb = createFakeDb({
+      spaces: [{ _id: 'space-1', name: 'Family', inviteCode: 'ABC123', ownerOpenid: 'owner-1' }],
+      memberships: [
+        { spaceId: 'space-1', openid: 'owner-1', role: 'owner', status: 'active' },
+        { spaceId: 'space-1', openid: 'member-1', role: 'member', status: 'active' },
+        { spaceId: 'space-1', openid: 'member-2', role: 'member', status: 'active' }
+      ]
+    })
+
+    const handler = createMemberOpsHandler({
+      createContext: () => ({ openid: 'member-1' }),
+      createRepository: () => fakeDb.repository()
+    })
+
+    const renameResponse = await handler({
+      action: 'renameSpace',
+      spaceId: 'space-1',
+      name: 'Renamed'
+    })
+    expect(renameResponse.code).toBe(ERROR_CODES.SPACE_FORBIDDEN)
+    expect(renameResponse.message).toBe('SPACE_FORBIDDEN')
+
+    const removeResponse = await handler({
+      action: 'removeMember',
+      spaceId: 'space-1',
+      memberOpenid: 'member-2'
+    })
+    expect(removeResponse.code).toBe(ERROR_CODES.SPACE_FORBIDDEN)
+    expect(removeResponse.message).toBe('SPACE_FORBIDDEN')
+  })
+
+  it('returns NOT_FOUND when removing the same member twice', async () => {
+    const fakeDb = createFakeDb({
+      spaces: [{ _id: 'space-1', name: 'Family', inviteCode: 'ABC123', ownerOpenid: 'owner-1' }],
+      memberships: [
+        { spaceId: 'space-1', openid: 'owner-1', role: 'owner', status: 'active' },
+        { spaceId: 'space-1', openid: 'member-1', role: 'member', status: 'active' }
+      ]
+    })
+
+    const handler = createMemberOpsHandler({
+      createContext: () => ({ openid: 'owner-1' }),
+      createRepository: () => fakeDb.repository()
+    })
+
+    const first = await handler({
+      action: 'removeMember',
+      spaceId: 'space-1',
+      memberOpenid: 'member-1'
+    })
+    expect(first.code).toBe(ERROR_CODES.OK)
+
+    const second = await handler({
+      action: 'removeMember',
+      spaceId: 'space-1',
+      memberOpenid: 'member-1'
+    })
+    expect(second.code).toBe(ERROR_CODES.NOT_FOUND)
+    expect(second.message).toBe('Member not found')
+  })
 })
 
 describe('space-service invite code guarantees', () => {
@@ -231,6 +309,52 @@ describe('memberOps repository createSpace', () => {
         expect.objectContaining({
           type: 'remove',
           collection: 'spaces'
+        })
+      ])
+    )
+  })
+})
+
+describe('memberOps repository rotateInviteCode', () => {
+  it('updates invite code through compare-and-swap where().update path', async () => {
+    const fakeCloud = createFakeCloudDbAdapter({
+      spaces: [
+        {
+          _id: 'space-1',
+          name: 'Family',
+          inviteCode: 'AAAAAA',
+          ownerOpenid: 'owner-1'
+        }
+      ],
+      inviteCodeClaims: [{ _id: 'AAAAAA', spaceId: 'space-1', status: 'active' }]
+    })
+    const repository = createRepository({
+      cloudSdk: fakeCloud.cloudSdk,
+      db: fakeCloud.db
+    })
+
+    const updated = await repository.rotateInviteCode('space-1', 'BBBBBB')
+    expect(updated).toEqual(
+      expect.objectContaining({
+        _id: 'space-1',
+        inviteCode: 'BBBBBB'
+      })
+    )
+
+    const snapshot = fakeCloud.snapshot()
+    expect(snapshot.spaces).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          _id: 'space-1',
+          inviteCode: 'BBBBBB'
+        })
+      ])
+    )
+    expect(snapshot.inviteCodeClaims).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          _id: 'BBBBBB',
+          spaceId: 'space-1'
         })
       ])
     )

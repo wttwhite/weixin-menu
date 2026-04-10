@@ -3,6 +3,7 @@ const { buildErrorResponse } = require('./shared/utils/response')
 const { ERROR_CODES } = require('./shared/constants/error-codes')
 const { createContext } = require('./lib/context')
 const { createApiRouter } = require('./lib/router')
+const pantryHandlers = require('./handlers/pantry')
 
 let hasInitialized = false
 
@@ -43,13 +44,76 @@ function createRepository(options = {}) {
     return result.data[0]
   }
 
+  async function listPantryItems(spaceId) {
+    const result = await db
+      .collection(COLLECTIONS.PANTRY_ITEMS)
+      .where({
+        spaceId
+      })
+      .get()
+
+    return result.data || []
+  }
+
+  async function createPantryItem(data) {
+    const created = await db.collection(COLLECTIONS.PANTRY_ITEMS).add({
+      data
+    })
+
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function getPantryItem(spaceId, pantryItemId) {
+    const result = await db
+      .collection(COLLECTIONS.PANTRY_ITEMS)
+      .where({
+        _id: pantryItemId,
+        spaceId
+      })
+      .get()
+
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+
+    return result.data[0]
+  }
+
+  async function updatePantryItem(spaceId, pantryItemId, data) {
+    const existing = await getPantryItem(spaceId, pantryItemId)
+    if (!existing) {
+      return null
+    }
+
+    await db.collection(COLLECTIONS.PANTRY_ITEMS).doc(pantryItemId).update({
+      data
+    })
+
+    return {
+      ...existing,
+      ...data
+    }
+  }
+
   return {
-    findMembership
+    createPantryItem,
+    findMembership,
+    getPantryItem,
+    listPantryItems,
+    updatePantryItem
   }
 }
 
 function createDefaultHandlers() {
-  return {}
+  return {
+    listPantry: pantryHandlers.listPantry,
+    createPantryItem: pantryHandlers.createPantryItem,
+    updatePantryItem: pantryHandlers.updatePantryItem,
+    deletePantryItem: pantryHandlers.deletePantryItem
+  }
 }
 
 function normalizeError(error) {
@@ -65,6 +129,13 @@ function normalizeError(error) {
   )
 }
 
+function toAppError(message, code, data = null) {
+  const error = new Error(message)
+  error.code = code
+  error.data = data
+  return error
+}
+
 function createApiHandler(options = {}) {
   const createContextFn = options.createContext || createContext
   const createRepositoryFn = options.createRepository || createRepository
@@ -77,6 +148,9 @@ function createApiHandler(options = {}) {
   return async function main(event = {}) {
     try {
       const context = await createContextFn(event)
+      if (!context.openid) {
+        throw toAppError('Missing current user', ERROR_CODES.UNAUTHORIZED)
+      }
       const repository = await createRepositoryFn(context)
       return await router.dispatch(event, context, repository)
     } catch (error) {

@@ -89,7 +89,7 @@ export function createFakeDb(seed = {}) {
 
   function removeMember(spaceId, openid) {
     const existing = memberships.find((item) => item.spaceId === spaceId && item.openid === openid)
-    if (!existing) {
+    if (!existing || existing.status === 'removed') {
       return false
     }
     existing.status = 'removed'
@@ -201,6 +201,18 @@ export function createFakeCloudDbAdapter(seed = {}) {
                 .filter((item) => matchesWhere(item, query))
                 .map((item) => clone(item))
               return { data }
+            },
+            async update({ data }) {
+              let updated = 0
+              for (const [id, existing] of spaces.entries()) {
+                if (!matchesWhere(existing, query)) {
+                  continue
+                }
+                spaces.set(id, { ...existing, ...clone(data) })
+                updated += 1
+                calls.push({ type: 'update', collection: 'spaces', id, viaWhere: true })
+              }
+              return { stats: { updated } }
             }
           }
         },

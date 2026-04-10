@@ -59,6 +59,34 @@ describe('createApiRouter', () => {
 })
 
 describe('createApiHandler', () => {
+  it('rejects requests when openid is missing before repository creation and dispatch', async () => {
+    let repositoryCalls = 0
+    let dispatchCalls = 0
+    const handler = createApiHandler({
+      createContext: async () => ({ openid: '' }),
+      createRepository: async () => {
+        repositoryCalls += 1
+        return {}
+      },
+      router: {
+        async dispatch() {
+          dispatchCalls += 1
+          return { code: ERROR_CODES.OK, message: 'OK', data: null, retryable: false }
+        }
+      }
+    })
+
+    const response = await handler({ action: 'noop' })
+    expect(response).toEqual({
+      code: ERROR_CODES.UNAUTHORIZED,
+      message: 'Missing current user',
+      data: null,
+      retryable: false
+    })
+    expect(repositoryCalls).toBe(0)
+    expect(dispatchCalls).toBe(0)
+  })
+
   it('normalizes async router dispatch rejections', async () => {
     const handler = createApiHandler({
       createContext: async () => ({ openid: 'user-1' }),
