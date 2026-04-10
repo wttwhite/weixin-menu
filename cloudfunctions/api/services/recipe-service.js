@@ -107,10 +107,12 @@ async function createRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
+  const { tags: ignoredTags, ...recipeWrite } = recipe
+  void ignoredTags
 
   const created = await repository.createRecipe({
     spaceId: event.spaceId,
-    ...recipe,
+    ...recipeWrite,
     createdAt: now,
     updatedAt: now,
     deletedAt: '',
@@ -135,9 +137,11 @@ async function updateRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
+  const { tags: ignoredTags, ...recipeWrite } = recipe
+  void ignoredTags
 
   const updated = await repository.updateRecipe(event.spaceId, event.recipeId, {
-    ...recipe,
+    ...recipeWrite,
     updatedAt: now,
     updatedBy: context.openid || ''
   })

@@ -28,6 +28,7 @@ function createEmptyForm() {
     category: '',
     cuisine: '',
     difficulty: '',
+    recommendationScore: '',
     servings: '',
     prepTimeMinutes: '',
     cookTimeMinutes: '',

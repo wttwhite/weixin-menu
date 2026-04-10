@@ -262,4 +262,42 @@ describe('recipe service', () => {
       code: ERROR_CODES.INVALID_INPUT
     })
   })
+
+  it('does not persist denormalized tags array on recipe create and update writes', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    const created = await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Tomato Egg',
+          tags: [{ id: 'tag-1', name: '家常' }],
+          tagIds: ['tag-1']
+        }
+      },
+      context,
+      repository
+    )
+
+    expect(created.item.tagIds).toEqual(['tag-1'])
+    expect(Object.prototype.hasOwnProperty.call(created.item, 'tags')).toBe(false)
+
+    const updated = await updateRecipe(
+      {
+        spaceId: 'space-1',
+        recipeId: created.item._id,
+        recipe: {
+          name: 'Tomato Egg 2',
+          tags: [{ id: 'tag-2', name: '快手' }],
+          tagIds: ['tag-2']
+        }
+      },
+      context,
+      repository
+    )
+
+    expect(updated.item.tagIds).toEqual(['tag-2'])
+    expect(Object.prototype.hasOwnProperty.call(updated.item, 'tags')).toBe(false)
+  })
 })

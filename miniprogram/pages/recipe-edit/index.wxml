@@ -41,6 +41,13 @@
         <input class="field-input" data-field="difficulty" value="{{form.difficulty}}" placeholder="简单/中等/困难" bindinput="handleInput" />
       </view>
       <view class="field-col">
+        <view class="field-label">推荐分</view>
+        <input class="field-input" data-field="recommendationScore" value="{{form.recommendationScore}}" placeholder="0-100" type="number" bindinput="handleInput" />
+      </view>
+    </view>
+
+    <view class="field-row">
+      <view class="field-col">
         <view class="field-label">份量</view>
         <input class="field-input" data-field="servings" value="{{form.servings}}" placeholder="2-3 人" bindinput="handleInput" />
       </view>
