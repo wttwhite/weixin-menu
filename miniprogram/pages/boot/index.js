@@ -1,5 +1,6 @@
 const { bootstrap } = require('../../services/session')
 const { getErrorMessage } = require('../../utils/error')
+const { setActiveSpaceId } = require('../../utils/app-session')
 
 Page({
   data: {
@@ -20,8 +21,7 @@ Page({
 
     try {
       const session = await bootstrap()
-      const app = getApp()
-      app.setActiveSpaceId(session.activeSpaceId)
+      setActiveSpaceId(session.activeSpaceId)
 
       if (session.activeSpaceId) {
         wx.redirectTo({

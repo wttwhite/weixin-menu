@@ -96,6 +96,49 @@ describe('bootstrap', () => {
       message: 'SPACE_FORBIDDEN'
     })
   })
+
+  it('throws when bootstrap response misses numeric code', async () => {
+    const callCloud = vi.fn().mockResolvedValue({
+      result: {
+        data: {
+          spaces: [{ id: 'space-1' }]
+        }
+      }
+    })
+    const clearActiveSpaceId = vi.fn()
+
+    await expect(
+      bootstrap({
+        callCloud,
+        getActiveSpaceId: () => 'space-1',
+        setActiveSpaceId: vi.fn(),
+        clearActiveSpaceId
+      })
+    ).rejects.toThrow(/响应格式无效/)
+    expect(clearActiveSpaceId).not.toHaveBeenCalled()
+  })
+
+  it('throws when bootstrap response data is malformed', async () => {
+    const callCloud = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          activeSpaceId: 'space-1'
+        }
+      }
+    })
+    const clearActiveSpaceId = vi.fn()
+
+    await expect(
+      bootstrap({
+        callCloud,
+        getActiveSpaceId: () => 'space-1',
+        setActiveSpaceId: vi.fn(),
+        clearActiveSpaceId
+      })
+    ).rejects.toThrow(/空间数据格式无效/)
+    expect(clearActiveSpaceId).not.toHaveBeenCalled()
+  })
 })
 
 describe('createSessionService', () => {
@@ -189,6 +232,24 @@ describe('createSessionService', () => {
       spaceId: 'space-1'
     })
     expect(result.members).toEqual([{ openid: 'user-1', role: 'owner' }])
+  })
+
+  it('throws when create-space success payload is malformed', async () => {
+    const service = createSessionService({
+      callCloud: vi.fn().mockResolvedValue({
+        result: {
+          code: 0,
+          data: null
+        }
+      }),
+      storage: {
+        getActiveSpaceId: vi.fn(() => ''),
+        setActiveSpaceId: vi.fn(),
+        clearActiveSpaceId: vi.fn()
+      }
+    })
+
+    await expect(service.createSpace('Family')).rejects.toThrow(/响应格式无效/)
   })
 
   it('updates storage when switching spaces', async () => {

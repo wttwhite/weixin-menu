@@ -1,7 +1,4 @@
-function getActiveSpaceId() {
-  const app = getApp()
-  return app.globalData.activeSpaceId || ''
-}
+const { getActiveSpaceId } = require('../../utils/app-session')
 
 Page({
   data: {

@@ -1,5 +1,6 @@
 const { createSessionService } = require('../../services/session')
 const { getErrorMessage } = require('../../utils/error')
+const { setActiveSpaceId } = require('../../utils/app-session')
 
 Page({
   data: {
@@ -24,13 +25,12 @@ Page({
 
     try {
       const result = await createSessionService().createSpace(this.data.name)
-      const app = getApp()
-      app.setActiveSpaceId(result.activeSpaceId)
+      setActiveSpaceId(result.activeSpaceId)
       wx.showToast({
         title: '空间创建成功',
         icon: 'success'
       })
-      wx.redirectTo({
+      wx.reLaunch({
         url: '/pages/recipes/index'
       })
     } catch (error) {

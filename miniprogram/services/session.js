@@ -1,5 +1,7 @@
 const { callCloud } = require('./cloud')
 const { createStorage } = require('../utils/storage')
+const MALFORMED_RESPONSE_MESSAGE = '云函数响应格式无效，请稍后重试'
+const MALFORMED_BOOTSTRAP_MESSAGE = '空间数据格式无效，请稍后重试'
 
 function getSpaceId(space) {
   if (!space) {
@@ -31,8 +33,8 @@ function resolveActiveSpaceId(storedSpaceId, spaces) {
 
 function unwrapResponse(response) {
   const result = response && response.result ? response.result : response
-  if (!result || typeof result.code !== 'number') {
-    return result || {}
+  if (!result || typeof result !== 'object' || typeof result.code !== 'number') {
+    throw new Error(MALFORMED_RESPONSE_MESSAGE)
   }
 
   if (result.code !== 0) {
@@ -42,7 +44,11 @@ function unwrapResponse(response) {
     throw error
   }
 
-  return result.data || {}
+  if (!result.data || typeof result.data !== 'object' || Array.isArray(result.data)) {
+    throw new Error(MALFORMED_RESPONSE_MESSAGE)
+  }
+
+  return result.data
 }
 
 function setStoredActiveSpace(storage, activeSpaceId) {
@@ -85,6 +91,10 @@ function createSessionService(dependencies = {}) {
           preferredSpaceId: storedSpaceId
         })
       )
+      if (!Array.isArray(data.spaces)) {
+        throw new Error(MALFORMED_BOOTSTRAP_MESSAGE)
+      }
+
       const spaces = (data.spaces || []).map(normalizeSpace)
       const activeSpaceId = resolveActiveSpaceId(data.activeSpaceId || storedSpaceId, spaces)
 

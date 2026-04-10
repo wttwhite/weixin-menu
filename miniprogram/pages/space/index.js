@@ -1,5 +1,6 @@
 const { createSessionService } = require('../../services/session')
 const { getErrorMessage } = require('../../utils/error')
+const { setActiveSpaceId } = require('../../utils/app-session')
 
 function buildSpaceCards(spaces, activeSpaceId) {
   return (spaces || []).map((space) => ({
@@ -31,8 +32,7 @@ Page({
 
     try {
       const session = await createSessionService().bootstrap()
-      const app = getApp()
-      app.setActiveSpaceId(session.activeSpaceId)
+      setActiveSpaceId(session.activeSpaceId)
 
       this.setData({
         loading: false,
@@ -59,9 +59,8 @@ Page({
 
     try {
       const result = await createSessionService().switchSpace(nextSpaceId)
-      const app = getApp()
-      app.setActiveSpaceId(result.activeSpaceId)
-      wx.redirectTo({
+      setActiveSpaceId(result.activeSpaceId)
+      wx.reLaunch({
         url: '/pages/recipes/index'
       })
     } catch (error) {
