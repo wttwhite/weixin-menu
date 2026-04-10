@@ -15,6 +15,8 @@ describe('isValidIsoDate', () => {
 
   it('returns false for invalid dates and non-iso format', () => {
     expect(isValidIsoDate('2026-02-30')).toBe(false)
+    expect(isValidIsoDate('2026-13-01')).toBe(false)
+    expect(isValidIsoDate('2026-01-00')).toBe(false)
     expect(isValidIsoDate('10-04-2026')).toBe(false)
   })
 })

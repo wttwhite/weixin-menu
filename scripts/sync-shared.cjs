@@ -23,4 +23,10 @@ function syncSharedDirectory() {
   }
 }
 
-syncSharedDirectory()
+if (require.main === module) {
+  syncSharedDirectory()
+}
+
+module.exports = {
+  syncSharedDirectory
+}
