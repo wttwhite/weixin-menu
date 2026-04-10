@@ -1,0 +1,11 @@
+{
+  "name": "memberOps",
+  "version": "1.0.0",
+  "description": "Space membership cloud operations",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.4.0"
+  }
+}
