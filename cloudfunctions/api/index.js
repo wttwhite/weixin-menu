@@ -78,7 +78,7 @@ function createApiHandler(options = {}) {
     try {
       const context = await createContextFn(event)
       const repository = await createRepositoryFn(context)
-      return router.dispatch(event, context, repository)
+      return await router.dispatch(event, context, repository)
     } catch (error) {
       return normalizeError(error)
     }

@@ -2,7 +2,7 @@ const { buildOkResponse, buildErrorResponse } = require('./shared/utils/response
 const { ERROR_CODES } = require('./shared/constants/error-codes')
 const { createContext } = require('./lib/context')
 const { createRepository } = require('./lib/repository')
-const { bootstrapSession } = require('./services/bootstrap-service')
+const { bootstrapSession, toAppError } = require('./services/bootstrap-service')
 const {
   createSpace,
   joinSpace,
@@ -30,9 +30,25 @@ function createMemberOpsHandler(options = {}) {
 
   return async function main(event = {}) {
     const action = event.action
+    const supportedActions = new Set([
+      'bootstrap',
+      'createSpace',
+      'joinSpace',
+      'listMembers',
+      'removeMember',
+      'renameSpace',
+      'rotateInviteCode'
+    ])
 
     try {
+      if (!supportedActions.has(action)) {
+        return buildErrorResponse('Unsupported action', ERROR_CODES.NOT_FOUND)
+      }
+
       const context = await createContextFn(event)
+      if (!context.openid) {
+        throw toAppError('Missing current user', ERROR_CODES.UNAUTHORIZED)
+      }
       const repository = await createRepositoryFn(context)
 
       switch (action) {
@@ -70,8 +86,6 @@ function createMemberOpsHandler(options = {}) {
           const data = await rotateInviteCode(event, context, repository)
           return buildOkResponse(data)
         }
-        default:
-          return buildErrorResponse('Unsupported action', ERROR_CODES.NOT_FOUND)
       }
     } catch (error) {
       return normalizeError(error)

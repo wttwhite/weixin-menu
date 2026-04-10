@@ -140,3 +140,167 @@ export function createFakeDb(seed = {}) {
     getSnapshot
   }
 }
+
+export function createFakeCloudDbAdapter(seed = {}) {
+  const spaces = new Map()
+  const memberships = new Map()
+  const calls = []
+  let nextSpaceId = 1
+  let nextMembershipId = 1
+  let failNextMemberAdd = Boolean(seed.failNextMemberAdd)
+
+  for (const space of seed.spaces || []) {
+    spaces.set(space._id, clone(space))
+  }
+
+  for (const membership of seed.memberships || []) {
+    memberships.set(membership._id, clone(membership))
+  }
+
+  function matchesWhere(record, where = {}) {
+    return Object.entries(where).every(([key, expected]) => {
+      const actual = record[key]
+      if (expected && typeof expected === 'object' && expected.__op === 'in') {
+        return expected.value.includes(actual)
+      }
+      return actual === expected
+    })
+  }
+
+  function addSpace(data) {
+    const id = data._id || `space-${nextSpaceId++}`
+    spaces.set(id, { _id: id, ...clone(data) })
+    calls.push({ type: 'add', collection: 'spaces', id })
+    return { _id: id }
+  }
+
+  function addMembership(data) {
+    if (failNextMemberAdd) {
+      failNextMemberAdd = false
+      throw new Error('member write failed')
+    }
+
+    const id = data._id || `member-${nextMembershipId++}`
+    memberships.set(id, { _id: id, ...clone(data) })
+    calls.push({ type: 'add', collection: 'space_members', id })
+    return { _id: id }
+  }
+
+  function collection(name) {
+    if (name === 'spaces') {
+      return {
+        where(query) {
+          return {
+            async get() {
+              const data = Array.from(spaces.values())
+                .filter((item) => matchesWhere(item, query))
+                .map((item) => clone(item))
+              return { data }
+            }
+          }
+        },
+        async add({ data }) {
+          return addSpace(data)
+        },
+        doc(id) {
+          return {
+            async update({ data }) {
+              const existing = spaces.get(id)
+              if (!existing) {
+                return { stats: { updated: 0 } }
+              }
+              spaces.set(id, { ...existing, ...clone(data) })
+              calls.push({ type: 'update', collection: 'spaces', id })
+              return { stats: { updated: 1 } }
+            },
+            async get() {
+              return { data: clone(spaces.get(id) || null) }
+            },
+            async remove() {
+              const existed = spaces.delete(id)
+              calls.push({ type: 'remove', collection: 'spaces', id, existed })
+              return { stats: { removed: existed ? 1 : 0 } }
+            }
+          }
+        }
+      }
+    }
+
+    if (name === 'space_members') {
+      return {
+        where(query) {
+          return {
+            async get() {
+              const data = Array.from(memberships.values())
+                .filter((item) => matchesWhere(item, query))
+                .map((item) => clone(item))
+              return { data }
+            }
+          }
+        },
+        async add({ data }) {
+          return addMembership(data)
+        },
+        doc(id) {
+          return {
+            async update({ data }) {
+              const existing = memberships.get(id)
+              if (!existing) {
+                return { stats: { updated: 0 } }
+              }
+              memberships.set(id, { ...existing, ...clone(data) })
+              calls.push({ type: 'update', collection: 'space_members', id })
+              return { stats: { updated: 1 } }
+            },
+            async remove() {
+              const existed = memberships.delete(id)
+              calls.push({ type: 'remove', collection: 'space_members', id, existed })
+              return { stats: { removed: existed ? 1 : 0 } }
+            }
+          }
+        }
+      }
+    }
+
+    throw new Error(`Unsupported collection: ${name}`)
+  }
+
+  const db = {
+    command: {
+      in(values) {
+        return {
+          __op: 'in',
+          value: values
+        }
+      }
+    },
+    collection
+  }
+
+  const cloudSdk = {
+    DYNAMIC_CURRENT_ENV: 'test-env',
+    init() {
+      calls.push({ type: 'init' })
+    },
+    database() {
+      return db
+    }
+  }
+
+  function snapshot() {
+    return {
+      spaces: Array.from(spaces.values()).map((item) => clone(item)),
+      memberships: Array.from(memberships.values()).map((item) => clone(item))
+    }
+  }
+
+  return {
+    cloudSdk,
+    db,
+    calls,
+    snapshot,
+    setFailNextMemberAdd(value) {
+      failNextMemberAdd = Boolean(value)
+    }
+  }
+}

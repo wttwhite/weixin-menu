@@ -3,6 +3,8 @@ const { ERROR_CODES } = require('../shared/constants/error-codes')
 const { createInviteCode } = require('../shared/utils/invite-code')
 const { toAppError } = require('./bootstrap-service')
 
+const INVITE_CODE_MAX_ATTEMPTS = 8
+
 function normalizeName(name) {
   return typeof name === 'string' ? name.trim() : ''
 }
@@ -14,14 +16,34 @@ async function assertOwner(spaceId, openid, repository) {
   }
 }
 
+function resolveSpaceId(space) {
+  return space && (space._id || space.spaceId)
+}
+
+async function createUniqueInviteCode(repository, options = {}) {
+  const inviteCodeFactory = options.inviteCodeFactory || createInviteCode
+  const spaceIdToIgnore = options.spaceIdToIgnore || ''
+  for (let attempt = 0; attempt < INVITE_CODE_MAX_ATTEMPTS; attempt += 1) {
+    const inviteCode = inviteCodeFactory()
+    const existingSpace = await repository.findSpaceByInviteCode(inviteCode)
+    const existingSpaceId = resolveSpaceId(existingSpace)
+    if (!existingSpace || existingSpaceId === spaceIdToIgnore) {
+      return inviteCode
+    }
+  }
+
+  throw toAppError('Failed to generate unique invite code', ERROR_CODES.CONFLICT)
+}
+
 async function createSpace(event, context, repository, options = {}) {
   const name = normalizeName(event.name)
   if (!name) {
     throw toAppError('Space name is required', ERROR_CODES.INVALID_INPUT)
   }
 
-  const inviteCodeFactory = options.inviteCodeFactory || createInviteCode
-  const inviteCode = inviteCodeFactory()
+  const inviteCode = await createUniqueInviteCode(repository, {
+    inviteCodeFactory: options.inviteCodeFactory
+  })
   const space = await repository.createSpace({
     name,
     inviteCode,
@@ -93,8 +115,10 @@ async function rotateInviteCode(event, context, repository, options = {}) {
   }
 
   await assertOwner(spaceId, context.openid, repository)
-  const inviteCodeFactory = options.inviteCodeFactory || createInviteCode
-  const inviteCode = inviteCodeFactory()
+  const inviteCode = await createUniqueInviteCode(repository, {
+    inviteCodeFactory: options.inviteCodeFactory,
+    spaceIdToIgnore: spaceId
+  })
   const updated = await repository.rotateInviteCode(spaceId, inviteCode)
   if (!updated) {
     throw toAppError('Space not found', ERROR_CODES.NOT_FOUND)

@@ -76,14 +76,22 @@ function createRepository(options = {}) {
     })
 
     const spaceId = addResult._id
-    await db.collection(COLLECTIONS.SPACE_MEMBERS).add({
-      data: {
-        spaceId,
-        openid: ownerOpenid,
-        role: 'owner',
-        status: 'active'
+    try {
+      await db.collection(COLLECTIONS.SPACE_MEMBERS).add({
+        data: {
+          spaceId,
+          openid: ownerOpenid,
+          role: 'owner',
+          status: 'active'
+        }
+      })
+    } catch (error) {
+      try {
+        await db.collection(COLLECTIONS.SPACES).doc(spaceId).remove()
+      } catch (_rollbackError) {
       }
-    })
+      throw error
+    }
 
     return {
       _id: spaceId,
