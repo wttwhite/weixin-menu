@@ -6,6 +6,10 @@ describe('toIsoDate', () => {
     const utcDate = new Date(Date.UTC(2026, 3, 10, 12, 0, 0))
     expect(toIsoDate(utcDate)).toBe('2026-04-10')
   })
+
+  it('normalizes timezone offsets to UTC dates', () => {
+    expect(toIsoDate('2026-04-10T23:30:00-05:00')).toBe('2026-04-11')
+  })
 })
 
 describe('isValidIsoDate', () => {
@@ -24,5 +28,14 @@ describe('isValidIsoDate', () => {
 describe('daysBetween', () => {
   it('returns whole-day difference between two iso dates', () => {
     expect(daysBetween('2026-04-10', '2026-04-13')).toBe(3)
+  })
+
+  it('throws on invalid ISO date input', () => {
+    expect(() => daysBetween('2026-02-30', '2026-04-13')).toThrow(
+      'Invalid ISO date input for daysBetween'
+    )
+    expect(() => daysBetween('2026-04-10', 'nope')).toThrow(
+      'Invalid ISO date input for daysBetween'
+    )
   })
 })

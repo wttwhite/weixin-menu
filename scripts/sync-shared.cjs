@@ -1,25 +1,24 @@
 const fs = require('fs')
 const path = require('path')
+const { getSharedSyncTargets } = require('./cloudfunctions-manifest.cjs')
 
 const rootDir = path.resolve(__dirname, '..')
-const sourceDir = path.join(rootDir, 'shared')
-const targets = [
-  path.join(rootDir, 'miniprogram', 'shared'),
-  path.join(rootDir, 'cloudfunctions', 'api', 'shared'),
-  path.join(rootDir, 'cloudfunctions', 'memberOps', 'shared'),
-  path.join(rootDir, 'cloudfunctions', 'fileOps', 'shared')
-]
 
-function syncSharedDirectory() {
-  if (!fs.existsSync(sourceDir)) {
+function syncSharedDirectory(options = {}) {
+  const workingRoot = options.rootDir || rootDir
+  const sourceDir = options.sourceDir || path.join(workingRoot, 'shared')
+  const targets = options.targets || getSharedSyncTargets(workingRoot)
+  const fsImpl = options.fsImpl || fs
+
+  if (!fsImpl.existsSync(sourceDir)) {
     throw new Error(`Shared source directory not found: ${sourceDir}`)
   }
 
   for (const target of targets) {
-    fs.rmSync(target, { recursive: true, force: true })
-    fs.mkdirSync(path.dirname(target), { recursive: true })
-    fs.cpSync(sourceDir, target, { recursive: true })
-    console.log(`Synced: ${path.relative(rootDir, target)}`)
+    fsImpl.rmSync(target, { recursive: true, force: true })
+    fsImpl.mkdirSync(path.dirname(target), { recursive: true })
+    fsImpl.cpSync(sourceDir, target, { recursive: true })
+    console.log(`Synced: ${path.relative(workingRoot, target)}`)
   }
 }
 

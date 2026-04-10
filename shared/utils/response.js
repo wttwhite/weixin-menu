@@ -1,8 +1,15 @@
+const { ERROR_CODES } = require('../constants/error-codes')
+
 function buildOkResponse(data, message = '') {
-  return { code: 0, message, data, retryable: false }
+  return { code: ERROR_CODES.OK, message, data, retryable: false }
 }
 
-function buildErrorResponse(message, code = 1, retryable = false, data = null) {
+function buildErrorResponse(
+  message,
+  code = ERROR_CODES.UNKNOWN,
+  retryable = false,
+  data = null
+) {
   return { code, message, data, retryable }
 }
 

@@ -3,11 +3,12 @@ import {
   buildOkResponse,
   buildErrorResponse
 } from '../../shared/utils/response'
+import { ERROR_CODES } from '../../shared/constants/error-codes'
 
 describe('buildOkResponse', () => {
   it('wraps payloads with code 0/message empty/retryable false', () => {
     expect(buildOkResponse({ ok: true })).toEqual({
-      code: 0,
+      code: ERROR_CODES.OK,
       message: '',
       data: { ok: true },
       retryable: false
@@ -16,7 +17,7 @@ describe('buildOkResponse', () => {
 
   it('supports custom message', () => {
     expect(buildOkResponse({ ok: true }, 'done')).toEqual({
-      code: 0,
+      code: ERROR_CODES.OK,
       message: 'done',
       data: { ok: true },
       retryable: false
@@ -38,7 +39,7 @@ describe('buildErrorResponse', () => {
 
   it('uses default error fields when omitted', () => {
     expect(buildErrorResponse('failed')).toEqual({
-      code: 1,
+      code: ERROR_CODES.UNKNOWN,
       message: 'failed',
       data: null,
       retryable: false

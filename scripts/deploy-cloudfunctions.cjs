@@ -1,31 +1,12 @@
 const { spawnSync } = require('child_process')
-const fs = require('fs')
 const path = require('path')
 const { syncSharedDirectory } = require('./sync-shared.cjs')
+const { resolveDeployFunctionNames } = require('./cloudfunctions-manifest.cjs')
 
 const rootDir = path.resolve(__dirname, '..')
 
-const NEXT_GEN_FUNCTIONS = ['api', 'memberOps', 'fileOps']
-const LEGACY_FUNCTIONS = ['quickstartFunctions']
-
 function resolveFunctionNames(options = {}) {
-  const workingRoot = options.rootDir || rootDir
-  const existsSync = options.existsSync || fs.existsSync
-  const cloudFunctionsDir = path.join(workingRoot, 'cloudfunctions')
-  const isDeployableFunction = (name) =>
-    existsSync(path.join(cloudFunctionsDir, name, 'index.js'))
-
-  const nextGenExisting = NEXT_GEN_FUNCTIONS.filter((name) => isDeployableFunction(name))
-  if (nextGenExisting.length > 0) {
-    return nextGenExisting
-  }
-
-  const legacyExisting = LEGACY_FUNCTIONS.filter((name) => isDeployableFunction(name))
-  if (legacyExisting.length > 0) {
-    return legacyExisting
-  }
-
-  return []
+  return resolveDeployFunctionNames(options)
 }
 
 function deployCloudFunctions(options) {
