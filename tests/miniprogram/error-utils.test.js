@@ -19,4 +19,23 @@ describe('getErrorMessage', () => {
       })
     ).toBe('Something failed')
   })
+
+  it('reads mapped messages from the error.result shape', () => {
+    expect(
+      getErrorMessage({
+        result: {
+          code: 401,
+          message: 'Missing current user'
+        }
+      })
+    ).toBe('当前登录状态已失效，请重新进入小程序')
+  })
+
+  it('maps code-only not-found errors to Chinese copy', () => {
+    expect(
+      getErrorMessage({
+        code: 404
+      })
+    ).toBe('没有找到对应的数据')
+  })
 })

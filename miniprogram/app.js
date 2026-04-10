@@ -12,8 +12,7 @@ function resolveEnv() {
 App({
   globalData: {
     env: resolveEnv(),
-    activeSpaceId: '',
-    session: null
+    activeSpaceId: ''
   },
 
   onLaunch() {
@@ -30,10 +29,5 @@ App({
 
   setActiveSpaceId(activeSpaceId) {
     this.globalData.activeSpaceId = activeSpaceId || ''
-  },
-
-  setSession(session) {
-    this.globalData.session = session || null
-    this.setActiveSpaceId((session && session.activeSpaceId) || '')
   }
 })

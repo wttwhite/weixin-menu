@@ -32,7 +32,7 @@ Page({
     try {
       const session = await createSessionService().bootstrap()
       const app = getApp()
-      app.setSession(session)
+      app.setActiveSpaceId(session.activeSpaceId)
 
       this.setData({
         loading: false,

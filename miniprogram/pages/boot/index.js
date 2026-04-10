@@ -21,7 +21,7 @@ Page({
     try {
       const session = await bootstrap()
       const app = getApp()
-      app.setSession(session)
+      app.setActiveSpaceId(session.activeSpaceId)
 
       if (session.activeSpaceId) {
         wx.redirectTo({
