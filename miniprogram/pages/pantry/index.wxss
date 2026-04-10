@@ -1,35 +1,115 @@
-.placeholder-page {
+.pantry-page {
   min-height: 100vh;
-  padding: 40rpx 28rpx;
+  padding: 36rpx 28rpx 60rpx;
 }
 
-.placeholder-card {
-  border-radius: 32rpx;
-  padding: 40rpx 32rpx;
+.pantry-hero {
+  border-radius: 36rpx;
+  padding: 40rpx 34rpx;
+  background:
+    linear-gradient(150deg, rgba(41, 63, 48, 0.96), rgba(84, 112, 83, 0.92)),
+    var(--surface-strong);
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.pantry-kicker {
+  font-size: 24rpx;
+  letter-spacing: 3rpx;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pantry-title {
+  margin-top: 16rpx;
+  font-size: 42rpx;
+  font-weight: 600;
+}
+
+.pantry-text {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.pantry-actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 28rpx;
+}
+
+.pantry-button {
+  flex: 1;
+  padding: 22rpx 0;
+  background: #fff;
+  color: #294030;
+  font-size: 28rpx;
+}
+
+.pantry-button--ghost {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 2rpx solid rgba(255, 255, 255, 0.24);
+}
+
+.filters-card,
+.feedback-card,
+.empty-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  padding: 24rpx;
   background: var(--surface-bg);
   box-shadow: var(--shadow-soft);
 }
 
-.placeholder-title {
-  font-size: 40rpx;
-  font-weight: 600;
+.filters-card {
+  display: flex;
+  gap: 16rpx;
 }
 
-.placeholder-space {
-  margin-top: 18rpx;
-  color: var(--brand-strong);
-  font-size: 28rpx;
+.filter-picker {
+  flex: 1;
 }
 
-.placeholder-text {
-  margin-top: 20rpx;
+.filter-chip {
+  border-radius: 999rpx;
+  padding: 18rpx 22rpx;
+  background: #fff;
+  font-size: 24rpx;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.feedback-card {
+  font-size: 26rpx;
   color: var(--text-secondary);
+}
+
+.feedback-card--error {
+  color: #8c2f2f;
+}
+
+.pantry-list {
+  display: grid;
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+
+.empty-card__title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.empty-card__text {
+  margin-top: 14rpx;
   font-size: 28rpx;
   line-height: 1.7;
+  color: var(--text-secondary);
 }
 
-.placeholder-button {
-  margin-top: 30rpx;
+.empty-card__button {
+  margin-top: 26rpx;
   padding: 22rpx 0;
   background: var(--brand);
   color: #fff;

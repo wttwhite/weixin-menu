@@ -1,0 +1,16 @@
+<view class="pantry-card" bindtap="handleTap">
+  <view class="pantry-card__header">
+    <view>
+      <view class="pantry-card__title">{{item.name}}</view>
+      <view class="pantry-card__meta">{{item.quantity}}{{item.unit ? ' ' + item.unit : ''}} · {{item.location || '未设置位置'}}</view>
+    </view>
+    <view class="pantry-card__badge pantry-card__badge--{{item.status}}">{{item.statusLabel}}</view>
+  </view>
+
+  <view class="pantry-card__tags">
+    <view class="pantry-card__tag">{{item.category || '未分类'}}</view>
+    <view wx:if="{{item.expirationDate}}" class="pantry-card__tag">到期 {{item.expirationDate}}</view>
+  </view>
+
+  <view wx:if="{{item.notes}}" class="pantry-card__notes">{{item.notes}}</view>
+</view>

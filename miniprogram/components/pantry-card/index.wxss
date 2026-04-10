@@ -1,0 +1,69 @@
+.pantry-card {
+  border-radius: 28rpx;
+  padding: 28rpx;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.pantry-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.pantry-card__title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pantry-card__meta {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.pantry-card__badge {
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  line-height: 1;
+}
+
+.pantry-card__badge--fresh {
+  background: #e7f7ec;
+  color: #2f7d49;
+}
+
+.pantry-card__badge--expiring-soon {
+  background: #fff1de;
+  color: #b56a15;
+}
+
+.pantry-card__badge--expired {
+  background: #fde7e7;
+  color: #b44343;
+}
+
+.pantry-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.pantry-card__tag {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 22rpx;
+}
+
+.pantry-card__notes {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}

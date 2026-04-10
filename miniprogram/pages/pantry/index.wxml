@@ -1,8 +1,42 @@
-<view class="placeholder-page">
-  <view class="placeholder-card">
-    <view class="placeholder-title">{{title}}</view>
-    <view class="placeholder-space">当前空间：{{activeSpaceId || '尚未选择'}}</view>
-    <view class="placeholder-text">{{description}}</view>
-    <button class="placeholder-button" bindtap="openSpace">管理空间</button>
+<view class="pantry-page">
+  <view class="pantry-hero">
+    <view class="pantry-kicker">Shared Pantry</view>
+    <view class="pantry-title">{{activeSpaceId || '尚未选择空间'}}</view>
+    <view class="pantry-text">{{summary}}</view>
+    <view class="pantry-actions">
+      <button class="pantry-button pantry-button--ghost" bindtap="openSpace">切换空间</button>
+      <button class="pantry-button" bindtap="goCreate">添加库存</button>
+    </view>
+  </view>
+
+  <view wx:if="{{activeSpaceId}}" class="filters-card">
+    <picker class="filter-picker" range="{{categoryOptions}}" value="{{selectedCategoryIndex}}" bindchange="handleCategoryChange">
+      <view class="filter-chip">{{categoryOptions[selectedCategoryIndex]}}</view>
+    </picker>
+    <picker class="filter-picker" range="{{locationOptions}}" value="{{selectedLocationIndex}}" bindchange="handleLocationChange">
+      <view class="filter-chip">{{locationOptions[selectedLocationIndex]}}</view>
+    </picker>
+    <picker class="filter-picker" range="{{statusOptions}}" range-key="label" value="{{selectedStatusIndex}}" bindchange="handleStatusChange">
+      <view class="filter-chip">{{statusOptions[selectedStatusIndex].label}}</view>
+    </picker>
+  </view>
+
+  <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
+
+  <view wx:if="{{loading}}" class="feedback-card">正在加载库存...</view>
+
+  <view wx:elif="{{visibleItems.length}}" class="pantry-list">
+    <pantry-card
+      wx:for="{{visibleItems}}"
+      wx:key="_id"
+      item="{{item}}"
+      bindselect="handleSelectItem"
+    />
+  </view>
+
+  <view wx:else class="empty-card">
+    <view class="empty-card__title">暂无库存项</view>
+    <view class="empty-card__text">{{emptyMessage}}</view>
+    <button class="empty-card__button" bindtap="goCreate">立即添加</button>
   </view>
 </view>

@@ -1,0 +1,55 @@
+<view class="edit-page">
+  <view wx:if="{{!activeSpaceId}}" class="empty-card">
+    <view class="empty-card__title">还没有可用空间</view>
+    <view class="empty-card__text">请先创建或切换空间，再管理库存。</view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="empty-card">
+    <view class="empty-card__title">正在加载库存信息...</view>
+  </view>
+
+  <view wx:elif="{{loadErrorMessage}}" class="empty-card">
+    <view class="empty-card__title">库存项加载失败</view>
+    <view class="empty-card__text">{{loadErrorMessage}}</view>
+    <button class="back-button" bindtap="goBack">返回列表</button>
+  </view>
+
+  <view wx:else class="form-card">
+    <view class="form-title">{{isEdit ? '更新库存项' : '添加库存项'}}</view>
+    <view class="form-text">记录分类、位置和到期时间，方便家庭空间成员同步查看。</view>
+
+    <view class="field-label">名称</view>
+    <input class="field-input" data-field="name" value="{{form.name}}" placeholder="例如：牛奶" bindinput="handleInput" />
+
+    <view class="field-label">分类</view>
+    <input class="field-input" data-field="category" value="{{form.category}}" placeholder="例如：乳制品" bindinput="handleInput" />
+
+    <view class="field-row">
+      <view class="field-col">
+        <view class="field-label">数量</view>
+        <input class="field-input" data-field="quantity" value="{{form.quantity}}" placeholder="1" bindinput="handleInput" />
+      </view>
+      <view class="field-col">
+        <view class="field-label">单位</view>
+        <input class="field-input" data-field="unit" value="{{form.unit}}" placeholder="盒 / 瓶 / 袋" bindinput="handleInput" />
+      </view>
+    </view>
+
+    <view class="field-label">位置</view>
+    <input class="field-input" data-field="location" value="{{form.location}}" placeholder="例如：冰箱冷藏" bindinput="handleInput" />
+
+    <view class="field-label">到期日期</view>
+    <view class="date-row">
+      <picker mode="date" value="{{form.expirationDate || today}}" start="{{today}}" bindchange="handleExpirationChange">
+        <view class="field-input">{{form.expirationDate || '选择日期'}}</view>
+      </picker>
+      <button class="date-clear" bindtap="clearExpirationDate">清空</button>
+    </view>
+
+    <view class="field-label">备注</view>
+    <textarea class="field-textarea" data-field="notes" value="{{form.notes}}" placeholder="例如：早餐专用" bindinput="handleInput" />
+
+    <button class="submit-button" loading="{{submitting}}" bindtap="submit">{{isEdit ? '保存修改' : '创建库存项'}}</button>
+    <button wx:if="{{isEdit}}" class="delete-button" loading="{{deleting}}" bindtap="removeItem">移出库存</button>
+  </view>
+</view>

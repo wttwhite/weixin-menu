@@ -110,6 +110,7 @@ function createRepository(options = {}) {
 function createDefaultHandlers() {
   return {
     listPantry: pantryHandlers.listPantry,
+    getPantryItem: pantryHandlers.getPantryItem,
     createPantryItem: pantryHandlers.createPantryItem,
     updatePantryItem: pantryHandlers.updatePantryItem,
     deletePantryItem: pantryHandlers.deletePantryItem

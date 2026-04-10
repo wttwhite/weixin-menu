@@ -1,0 +1,101 @@
+.edit-page {
+  min-height: 100vh;
+  padding: 40rpx 28rpx 60rpx;
+}
+
+.form-card,
+.empty-card {
+  border-radius: 32rpx;
+  padding: 40rpx 32rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.form-title,
+.empty-card__title {
+  font-size: 42rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form-text,
+.empty-card__text {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.field-label {
+  margin-top: 28rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.field-row {
+  display: flex;
+  gap: 18rpx;
+}
+
+.field-col {
+  flex: 1;
+}
+
+.field-input,
+.field-textarea {
+  width: 100%;
+  margin-top: 14rpx;
+  padding: 24rpx 22rpx;
+  border-radius: 22rpx;
+  background: #fff;
+  box-sizing: border-box;
+  font-size: 28rpx;
+}
+
+.date-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.date-row picker {
+  flex: 1;
+}
+
+.field-textarea {
+  min-height: 180rpx;
+}
+
+.date-clear {
+  margin-top: 14rpx;
+  padding: 0 24rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 24rpx;
+}
+
+.submit-button {
+  margin-top: 34rpx;
+  padding: 24rpx 0;
+  background: var(--brand);
+  color: #fff;
+  font-size: 28rpx;
+}
+
+.delete-button {
+  margin-top: 18rpx;
+  padding: 24rpx 0;
+  background: #f4d8d8;
+  color: #8c2f2f;
+  font-size: 28rpx;
+}
+
+.back-button {
+  margin-top: 24rpx;
+  padding: 24rpx 0;
+  background: var(--brand);
+  color: #fff;
+  font-size: 28rpx;
+}
