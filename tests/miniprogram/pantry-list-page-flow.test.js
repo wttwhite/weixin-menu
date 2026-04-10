@@ -140,4 +140,77 @@ describe('pantry list page flow', () => {
       config: undefined
     })
   })
+
+  it('uses server-provided filter options so capped list does not hide categories/locations', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            { _id: 'pantry-1', name: 'Milk', category: 'dairy', location: 'fridge', status: 'fresh' }
+          ],
+          total: 2,
+          hasMore: true,
+          limit: 1,
+          filterOptions: {
+            categories: ['dairy', 'dry'],
+            locations: ['fridge', 'cabinet']
+          }
+        }
+      }
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.categoryOptions).toEqual(['全部分类', 'dairy', 'dry'])
+    expect(page.data.locationOptions).toEqual(['全部位置', 'fridge', 'cabinet'])
+  })
+
+  it('shows truncation hint when server indicates capped list has more items', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            { _id: 'pantry-1', name: 'Milk', category: 'dairy', location: 'fridge', status: 'fresh' }
+          ],
+          total: 3,
+          hasMore: true,
+          limit: 1
+        }
+      }
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.truncationMessage).toBe('当前仅显示前 1 条库存，请继续筛选以缩小范围。')
+  })
 })

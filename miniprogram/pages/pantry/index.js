@@ -37,6 +37,11 @@ function buildDisplayItems(items) {
   }))
 }
 
+function buildOptionsWithAll(values, allLabel) {
+  const normalized = (values || []).filter((value) => typeof value === 'string' && value)
+  return [allLabel].concat(normalized)
+}
+
 function buildServerFilters(data) {
   const category = data.categoryOptions[data.selectedCategoryIndex]
   const location = data.locationOptions[data.selectedLocationIndex]
@@ -57,6 +62,7 @@ Page({
     items: [],
     visibleItems: [],
     showEmptyState: false,
+    truncationMessage: '',
     errorMessage: '',
     summary: '正在读取库存...',
     emptyMessage: '这个空间还没有库存项，先添加常用食材吧。',
@@ -93,6 +99,7 @@ Page({
         items: [],
         visibleItems: [],
         showEmptyState: false,
+        truncationMessage: '',
         summary: '请先选择一个空间，再查看共享库存。'
       })
       return
@@ -101,20 +108,32 @@ Page({
     try {
       const result = await createPantryService().listPantry(activeSpaceId, filters)
       const items = buildDisplayItems(result.items || [])
+      const truncationMessage = result.hasMore
+        ? `当前仅显示前 ${result.limit} 条库存，请继续筛选以缩小范围。`
+        : ''
       const nextData = {
         loading: false,
         items,
+        truncationMessage,
         summary: items.length
           ? '按分类、位置和状态快速筛选当前空间库存。'
           : '这个空间还没有库存项，先添加常用食材吧。'
       }
 
       if (refreshOptions) {
-        nextData.categoryOptions = buildFilterOptions(items, 'category', '全部分类')
-        nextData.locationOptions = buildFilterOptions(items, 'location', '全部位置')
+        if (result.filterOptions) {
+          nextData.categoryOptions = buildOptionsWithAll(result.filterOptions.categories, '全部分类')
+          nextData.locationOptions = buildOptionsWithAll(result.filterOptions.locations, '全部位置')
+        } else {
+          nextData.categoryOptions = buildFilterOptions(items, 'category', '全部分类')
+          nextData.locationOptions = buildFilterOptions(items, 'location', '全部位置')
+        }
         nextData.selectedCategoryIndex = 0
         nextData.selectedLocationIndex = 0
         nextData.selectedStatusIndex = 0
+      } else if (result.filterOptions) {
+        nextData.categoryOptions = buildOptionsWithAll(result.filterOptions.categories, '全部分类')
+        nextData.locationOptions = buildOptionsWithAll(result.filterOptions.locations, '全部位置')
       }
 
       this.setData(nextData)
@@ -125,6 +144,7 @@ Page({
         items: [],
         visibleItems: [],
         showEmptyState: false,
+        truncationMessage: '',
         errorMessage: getErrorMessage(error),
         summary: '库存加载失败，请稍后重试。'
       })

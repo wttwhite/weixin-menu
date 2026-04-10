@@ -46,7 +46,8 @@ function createRepository(options = {}) {
 
   async function listPantryItems(spaceId, query = {}) {
     const where = {
-      spaceId
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
     }
     if (query.category) {
       where.category = query.category
@@ -63,6 +64,35 @@ function createRepository(options = {}) {
       .get()
 
     return result.data || []
+  }
+
+  async function getPantryListMetadata(spaceId) {
+    const result = await db
+      .collection(COLLECTIONS.PANTRY_ITEMS)
+      .where({
+        spaceId,
+        deletedAt: ''
+      })
+      .get()
+
+    const data = result.data || []
+    const categories = []
+    const locations = []
+
+    data.forEach((item) => {
+      if (item.category && categories.indexOf(item.category) === -1) {
+        categories.push(item.category)
+      }
+      if (item.location && locations.indexOf(item.location) === -1) {
+        locations.push(item.location)
+      }
+    })
+
+    return {
+      total: data.length,
+      categories,
+      locations
+    }
   }
 
   async function createPantryItem(data) {
@@ -112,6 +142,7 @@ function createRepository(options = {}) {
     createPantryItem,
     findMembership,
     getPantryItem,
+    getPantryListMetadata,
     listPantryItems,
     updatePantryItem
   }

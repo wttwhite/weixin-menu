@@ -124,17 +124,37 @@ async function listPantry(event = {}, context = {}, repository = {}, options = {
 
   const now = resolveReadNow(event.now, options)
   const filters = normalizeListFilters(event.filters || {})
+  const limit = normalizeListLimit(event.limit)
   const items = await repository.listPantryItems(event.spaceId, {
     category: filters.category,
     location: filters.location,
-    limit: normalizeListLimit(event.limit)
+    deletedAt: '',
+    limit
   })
+  const metadata = repository.getPantryListMetadata
+    ? await repository.getPantryListMetadata(event.spaceId)
+    : null
+  const total = metadata && typeof metadata.total === 'number' ? metadata.total : (items || []).length
+  const hasMore = total > limit
+  const filterOptions = metadata
+    ? {
+        categories: metadata.categories || [],
+        locations: metadata.locations || []
+      }
+    : {
+        categories: [],
+        locations: []
+      }
 
   return {
     items: (items || [])
       .filter((item) => !item.deletedAt)
       .map((item) => normalizeStoredItem(item, now))
-      .filter((item) => matchesPantryFilters(item, filters))
+      .filter((item) => matchesPantryFilters(item, filters)),
+    total,
+    hasMore,
+    limit,
+    filterOptions
   }
 }
 

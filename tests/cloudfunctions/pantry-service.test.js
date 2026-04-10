@@ -36,6 +36,26 @@ function createRepository() {
       const limit = typeof query.limit === 'number' ? query.limit : filtered.length
       return filtered.slice(0, limit).map((item) => ({ ...item }))
     },
+    async getPantryListMetadata(spaceId) {
+      const activeItems = items.filter((item) => item.spaceId === spaceId && item.deletedAt === '')
+      const categories = []
+      const locations = []
+
+      activeItems.forEach((item) => {
+        if (item.category && !categories.includes(item.category)) {
+          categories.push(item.category)
+        }
+        if (item.location && !locations.includes(item.location)) {
+          locations.push(item.location)
+        }
+      })
+
+      return {
+        total: activeItems.length,
+        categories,
+        locations
+      }
+    },
     getLastListQuery() {
       return lastListQuery
     },
@@ -72,6 +92,112 @@ function createRepository() {
 }
 
 describe('pantry service', () => {
+  it('returns truncation metadata and complete filter options from active items', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await createPantryItem(
+      {
+        spaceId: 'space-1',
+        item: {
+          name: 'Milk',
+          category: 'dairy',
+          location: 'fridge'
+        }
+      },
+      context,
+      repository
+    )
+    await createPantryItem(
+      {
+        spaceId: 'space-1',
+        item: {
+          name: 'Rice',
+          category: 'dry',
+          location: 'cabinet'
+        }
+      },
+      context,
+      repository
+    )
+
+    const limited = await listPantry(
+      {
+        spaceId: 'space-1',
+        filters: {},
+        limit: 1
+      },
+      context,
+      repository
+    )
+
+    expect(limited.items).toHaveLength(1)
+    expect(limited.total).toBe(2)
+    expect(limited.hasMore).toBe(true)
+    expect(limited.filterOptions).toEqual({
+      categories: ['dairy', 'dry'],
+      locations: ['fridge', 'cabinet']
+    })
+  })
+
+  it('pushes deleted filtering to repository query so deleted rows do not consume cap slots', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await createPantryItem(
+      {
+        spaceId: 'space-1',
+        item: {
+          name: 'Milk',
+          category: 'dairy',
+          location: 'fridge'
+        }
+      },
+      context,
+      repository
+    )
+    await createPantryItem(
+      {
+        spaceId: 'space-1',
+        item: {
+          name: 'Rice',
+          category: 'dry',
+          location: 'cabinet'
+        }
+      },
+      context,
+      repository
+    )
+    await deletePantryItem(
+      {
+        spaceId: 'space-1',
+        pantryItemId: 'pantry-1'
+      },
+      context,
+      repository
+    )
+
+    const limited = await listPantry(
+      {
+        spaceId: 'space-1',
+        filters: {},
+        limit: 1
+      },
+      context,
+      repository
+    )
+
+    expect(repository.getLastListQuery()).toEqual({
+      spaceId: 'space-1',
+      category: '',
+      location: '',
+      deletedAt: '',
+      limit: 1
+    })
+    expect(limited.items).toHaveLength(1)
+    expect(limited.items[0].name).toBe('Rice')
+  })
+
   it('reads a pantry item through getPantryItem', async () => {
     const repository = createRepository()
     const context = { openid: 'user-1' }
@@ -290,6 +416,7 @@ describe('pantry service', () => {
       spaceId: 'space-1',
       category: 'dairy',
       location: '',
+      deletedAt: '',
       limit: 100
     })
     expect(filtered.items).toHaveLength(1)
