@@ -4,11 +4,22 @@ const MALFORMED_RESPONSE_MESSAGE = '云函数响应格式无效，请稍后重�
 const MALFORMED_BOOTSTRAP_MESSAGE = '空间数据格式无效，请稍后重试'
 
 function getSpaceId(space) {
-  if (!space) {
+  if (!space || typeof space !== 'object') {
     return ''
   }
 
-  return space.id || space.spaceId || space._id || ''
+  const candidates = [space.id, space.spaceId, space._id]
+  for (let index = 0; index < candidates.length; index += 1) {
+    const current = candidates[index]
+    if (typeof current === 'string' && current.trim()) {
+      return current.trim()
+    }
+    if (typeof current === 'number' && Number.isFinite(current)) {
+      return String(current)
+    }
+  }
+
+  return ''
 }
 
 function normalizeSpace(space) {
@@ -92,6 +103,10 @@ function createSessionService(dependencies = {}) {
         })
       )
       if (!Array.isArray(data.spaces)) {
+        throw new Error(MALFORMED_BOOTSTRAP_MESSAGE)
+      }
+      const hasInvalidSpace = data.spaces.some((space) => !getSpaceId(space))
+      if (hasInvalidSpace) {
         throw new Error(MALFORMED_BOOTSTRAP_MESSAGE)
       }
 

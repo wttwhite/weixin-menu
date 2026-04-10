@@ -133,6 +133,38 @@ describe('navigation stack safety', () => {
     expect(redirectTo).not.toHaveBeenCalled()
   })
 
+  it('does not call backend when creating space with blank name', async () => {
+    const reLaunch = vi.fn()
+    const redirectTo = vi.fn()
+    const callFunction = vi.fn()
+    const showToast = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      reLaunch,
+      redirectTo,
+      showToast
+    }
+    const setActiveSpaceId = vi.fn()
+    global.getApp = () => ({
+      setActiveSpaceId
+    })
+
+    const page = await loadPage('../../miniprogram/pages/space-create/index.js')
+    page.data.name = '   '
+    await page.submit()
+
+    expect(showToast).toHaveBeenCalledWith({
+      title: '请输入空间名称',
+      icon: 'none'
+    })
+    expect(callFunction).not.toHaveBeenCalled()
+    expect(setActiveSpaceId).not.toHaveBeenCalled()
+    expect(reLaunch).not.toHaveBeenCalled()
+    expect(redirectTo).not.toHaveBeenCalled()
+  })
+
   it('reLaunches after joining a space', async () => {
     const reLaunch = vi.fn()
     const redirectTo = vi.fn()
@@ -173,6 +205,38 @@ describe('navigation stack safety', () => {
     expect(reLaunch).toHaveBeenCalledWith({
       url: '/pages/recipes/index'
     })
+    expect(redirectTo).not.toHaveBeenCalled()
+  })
+
+  it('does not call backend when joining with blank invite code', async () => {
+    const reLaunch = vi.fn()
+    const redirectTo = vi.fn()
+    const callFunction = vi.fn()
+    const showToast = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      reLaunch,
+      redirectTo,
+      showToast
+    }
+    const setActiveSpaceId = vi.fn()
+    global.getApp = () => ({
+      setActiveSpaceId
+    })
+
+    const page = await loadPage('../../miniprogram/pages/space-join/index.js')
+    page.data.inviteCode = '    '
+    await page.submit()
+
+    expect(showToast).toHaveBeenCalledWith({
+      title: '请输入空间邀请码',
+      icon: 'none'
+    })
+    expect(callFunction).not.toHaveBeenCalled()
+    expect(setActiveSpaceId).not.toHaveBeenCalled()
+    expect(reLaunch).not.toHaveBeenCalled()
     expect(redirectTo).not.toHaveBeenCalled()
   })
 })

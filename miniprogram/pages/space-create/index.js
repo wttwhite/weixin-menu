@@ -19,12 +19,21 @@ Page({
       return
     }
 
+    const name = (this.data.name || '').trim()
+    if (!name) {
+      wx.showToast({
+        title: '请输入空间名称',
+        icon: 'none'
+      })
+      return
+    }
+
     this.setData({
       submitting: true
     })
 
     try {
-      const result = await createSessionService().createSpace(this.data.name)
+      const result = await createSessionService().createSpace(name)
       setActiveSpaceId(result.activeSpaceId)
       wx.showToast({
         title: '空间创建成功',

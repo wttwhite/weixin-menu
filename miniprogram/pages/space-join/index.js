@@ -19,12 +19,21 @@ Page({
       return
     }
 
+    const inviteCode = (this.data.inviteCode || '').trim().toUpperCase()
+    if (!inviteCode) {
+      wx.showToast({
+        title: '请输入空间邀请码',
+        icon: 'none'
+      })
+      return
+    }
+
     this.setData({
       submitting: true
     })
 
     try {
-      const result = await createSessionService().joinSpace(this.data.inviteCode)
+      const result = await createSessionService().joinSpace(inviteCode)
       setActiveSpaceId(result.activeSpaceId)
       wx.showToast({
         title: '已加入空间',

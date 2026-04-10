@@ -139,6 +139,54 @@ describe('bootstrap', () => {
     ).rejects.toThrow(/空间数据格式无效/)
     expect(clearActiveSpaceId).not.toHaveBeenCalled()
   })
+
+  it('throws when bootstrap spaces contains entries without a usable id', async () => {
+    const callCloud = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          spaces: [{}],
+          activeSpaceId: '',
+          role: ''
+        }
+      }
+    })
+    const clearActiveSpaceId = vi.fn()
+
+    await expect(
+      bootstrap({
+        callCloud,
+        getActiveSpaceId: () => 'space-1',
+        setActiveSpaceId: vi.fn(),
+        clearActiveSpaceId
+      })
+    ).rejects.toThrow(/空间数据格式无效/)
+    expect(clearActiveSpaceId).not.toHaveBeenCalled()
+  })
+
+  it('throws when bootstrap spaces mixes valid and invalid entries', async () => {
+    const callCloud = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          spaces: [{ id: 'space-1' }, {}],
+          activeSpaceId: 'space-1',
+          role: 'owner'
+        }
+      }
+    })
+    const clearActiveSpaceId = vi.fn()
+
+    await expect(
+      bootstrap({
+        callCloud,
+        getActiveSpaceId: () => 'space-1',
+        setActiveSpaceId: vi.fn(),
+        clearActiveSpaceId
+      })
+    ).rejects.toThrow(/空间数据格式无效/)
+    expect(clearActiveSpaceId).not.toHaveBeenCalled()
+  })
 })
 
 describe('createSessionService', () => {
