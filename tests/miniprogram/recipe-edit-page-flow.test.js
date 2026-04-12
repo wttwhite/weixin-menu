@@ -653,4 +653,74 @@ describe('recipe edit page flow', () => {
       config: undefined
     })
   })
+
+  it('keeps recoverable discard-failed image when delayed cancel cleanup fails, then allows retry remove', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 500,
+          message: 'discard later failed'
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            discarded: true
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      cancelledPendingImageIds: ['local-1'],
+      form: {
+        ...page.data.form,
+        images: []
+      }
+    })
+
+    await page.handleImageUploaded({
+      detail: {
+        localId: 'local-1',
+        item: {
+          _id: 'img-retry',
+          imageRole: 'cover',
+          uploadStatus: 'confirmed',
+          fileId: 'cloud://img-retry'
+        }
+      }
+    })
+
+    expect(page.data.form.images).toEqual([
+      expect.objectContaining({
+        _id: 'img-retry',
+        uploadStatus: 'discard-failed'
+      })
+    ])
+
+    await page.handleImageRemove({
+      detail: {
+        imageId: 'img-retry'
+      }
+    })
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.form.images).toEqual([])
+  })
 })

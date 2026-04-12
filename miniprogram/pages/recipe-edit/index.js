@@ -397,10 +397,23 @@ Page({
           title: getErrorMessage(error),
           icon: 'none'
         })
-      } finally {
         this.setData({
+          form: {
+            ...this.data.form,
+            images: (this.data.form.images || []).concat({
+              ...uploadedItem,
+              uploadStatus: 'discard-failed'
+            })
+          },
           cancelledPendingImageIds: removeArrayValue(cancelledPendingImageIds, localId)
         })
+        return
+      } finally {
+        if (this.data.cancelledPendingImageIds.indexOf(localId) !== -1) {
+          this.setData({
+            cancelledPendingImageIds: removeArrayValue(this.data.cancelledPendingImageIds, localId)
+          })
+        }
       }
       return
     }

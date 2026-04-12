@@ -40,7 +40,32 @@ Component({
     uploading: false
   },
 
+  lifetimes: {
+    attached() {
+      this.__isDetached = false
+      this.__spaceVersion = 0
+    },
+    detached() {
+      this.__isDetached = true
+    }
+  },
+
+  observers: {
+    spaceId(nextValue, previousValue) {
+      if (previousValue !== undefined && nextValue !== previousValue) {
+        this.__spaceVersion = (this.__spaceVersion || 0) + 1
+      }
+    }
+  },
+
   methods: {
+    getUploadService() {
+      if (this.__uploadService) {
+        return this.__uploadService
+      }
+      return createUploadService()
+    },
+
     async chooseAndUpload() {
       if (this.data.uploading || this.properties.disabled || !this.properties.spaceId) {
         return
@@ -58,6 +83,8 @@ Component({
 
       const file = files[0]
       const localId = createLocalImageId()
+      const startedSpaceId = this.properties.spaceId
+      const startedSpaceVersion = this.__spaceVersion || 0
       this.triggerEvent('pendingadd', {
         item: {
           _id: localId,
@@ -70,9 +97,10 @@ Component({
       this.setData({
         uploading: true
       })
+      const uploadService = this.getUploadService()
       try {
-        const uploaded = await createUploadService().uploadRecipeImage({
-          spaceId: this.properties.spaceId,
+        const uploaded = await uploadService.uploadRecipeImage({
+          spaceId: startedSpaceId,
           recipeId: this.properties.recipeId || '',
           imageRole: this.properties.imageRole,
           filePath: file.tempFilePath,
@@ -80,6 +108,28 @@ Component({
           fileSize: file.size || 0,
           mimeType: file.type || ''
         })
+        const isStaleSuccess =
+          this.__isDetached ||
+          this.properties.spaceId !== startedSpaceId ||
+          (this.__spaceVersion || 0) !== startedSpaceVersion
+        if (isStaleSuccess) {
+          try {
+            await uploadService.discardRecipeImage(startedSpaceId, uploaded._id)
+            return
+          } catch (error) {
+            const message =
+              (error && error.message) || '图片上传成功但清理失败，请手动重试删除'
+            wx.showToast({
+              title: message,
+              icon: 'none'
+            })
+            this.triggerEvent('uploaderror', {
+              localId,
+              message
+            })
+            return
+          }
+        }
         this.triggerEvent('uploaded', {
           localId,
           item: {
@@ -98,9 +148,11 @@ Component({
           message
         })
       } finally {
-        this.setData({
-          uploading: false
-        })
+        if (!this.__isDetached) {
+          this.setData({
+            uploading: false
+          })
+        }
       }
     },
 
