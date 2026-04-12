@@ -69,6 +69,10 @@ function normalizeImageItems(images = []) {
     .filter((item) => item._id)
 }
 
+function removeArrayValue(values = [], value) {
+  return (values || []).filter((item) => item !== value)
+}
+
 Page({
   data: {
     loading: true,
@@ -83,6 +87,7 @@ Page({
     availableTags: [],
     tagViewItems: [],
     newTagName: '',
+    cancelledPendingImageIds: [],
     form: createEmptyForm()
   },
 
@@ -111,6 +116,7 @@ Page({
         loadErrorMessage: '',
         availableTags: [],
         tagViewItems: [],
+        cancelledPendingImageIds: [],
         form: createEmptyForm()
       })
     }
@@ -178,6 +184,7 @@ Page({
         isBootstrapping: false,
         loadErrorMessage: getErrorMessage(error),
         tagViewItems: [],
+        cancelledPendingImageIds: [],
         form: createEmptyForm()
       })
     }
@@ -308,16 +315,38 @@ Page({
       return
     }
 
+    const hasUploadingImages = (this.data.form.images || []).some(
+      (item) => item && item.uploadStatus === 'uploading'
+    )
+    if (hasUploadingImages) {
+      wx.showToast({
+        title: '图片仍在上传，请稍候再保存',
+        icon: 'none'
+      })
+      return
+    }
+
     this.setData({
       submitting: true
     })
 
     try {
+      const confirmedImages = (this.data.form.images || []).filter(
+        (item) => item && item.uploadStatus === 'confirmed' && item._id
+      )
+      const payload = {
+        ...this.data.form,
+        images: confirmedImages,
+        coverImageId:
+          confirmedImages.some((item) => item._id === this.data.form.coverImageId)
+            ? this.data.form.coverImageId
+            : null
+      }
       const service = createRecipeService()
       if (this.data.isEdit) {
-        await service.updateRecipe(this.data.activeSpaceId, this.data.recipeId, this.data.form)
+        await service.updateRecipe(this.data.activeSpaceId, this.data.recipeId, payload)
       } else {
-        await service.createRecipe(this.data.activeSpaceId, this.data.form)
+        await service.createRecipe(this.data.activeSpaceId, payload)
       }
 
       wx.showToast({
@@ -344,14 +373,35 @@ Page({
     }
 
     this.setData({
-      'form.images': (this.data.form.images || []).concat(pending)
+      form: {
+        ...this.data.form,
+        images: (this.data.form.images || []).concat(pending)
+      }
     })
   },
 
-  handleImageUploaded(event) {
+  async handleImageUploaded(event) {
     const localId = event.detail && event.detail.localId ? event.detail.localId : ''
     const uploadedItem = event.detail && event.detail.item ? event.detail.item : null
     if (!localId || !uploadedItem || !uploadedItem._id) {
+      return
+    }
+
+    const cancelledPendingImageIds = this.data.cancelledPendingImageIds || []
+    const isCancelled = cancelledPendingImageIds.indexOf(localId) !== -1
+    if (isCancelled) {
+      try {
+        await createUploadService().discardRecipeImage(this.data.activeSpaceId, uploadedItem._id)
+      } catch (error) {
+        wx.showToast({
+          title: getErrorMessage(error),
+          icon: 'none'
+        })
+      } finally {
+        this.setData({
+          cancelledPendingImageIds: removeArrayValue(cancelledPendingImageIds, localId)
+        })
+      }
       return
     }
 
@@ -370,8 +420,11 @@ Page({
         : this.data.form.coverImageId
 
     this.setData({
-      'form.images': nextImages,
-      'form.coverImageId': nextCoverImageId
+      form: {
+        ...this.data.form,
+        images: nextImages,
+        coverImageId: nextCoverImageId
+      }
     })
   },
 
@@ -382,7 +435,11 @@ Page({
     }
 
     this.setData({
-      'form.images': (this.data.form.images || []).filter((item) => item._id !== localId)
+      form: {
+        ...this.data.form,
+        images: (this.data.form.images || []).filter((item) => item._id !== localId)
+      },
+      cancelledPendingImageIds: removeArrayValue(this.data.cancelledPendingImageIds || [], localId)
     })
   },
 
@@ -398,7 +455,11 @@ Page({
       return
     }
 
-    if (targetImage.uploadStatus !== 'uploading') {
+    if (targetImage.uploadStatus === 'uploading') {
+      this.setData({
+        cancelledPendingImageIds: (this.data.cancelledPendingImageIds || []).concat(imageId)
+      })
+    } else {
       try {
         const uploadService = createUploadService()
         if (targetImage.uploadStatus === 'confirmed') {
@@ -422,8 +483,11 @@ Page({
         : this.data.form.coverImageId
 
     this.setData({
-      'form.images': nextImages,
-      'form.coverImageId': nextCoverImageId
+      form: {
+        ...this.data.form,
+        images: nextImages,
+        coverImageId: nextCoverImageId
+      }
     })
   },
 

@@ -338,4 +338,120 @@ describe('recipe edit page flow', () => {
       })
     ])
   })
+
+  it('auto-discards uploaded file when user removed pending image before upload completed', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          imageId: 'img-1',
+          discarded: true
+        }
+      }
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      form: {
+        ...page.data.form,
+        images: [
+          {
+            _id: 'local-1',
+            imageRole: 'cover',
+            uploadStatus: 'uploading',
+            localPath: '/tmp/cover.jpg'
+          }
+        ]
+      }
+    })
+
+    await page.handleImageRemove({
+      detail: {
+        imageId: 'local-1'
+      }
+    })
+    expect(page.data.form.images).toEqual([])
+
+    await page.handleImageUploaded({
+      detail: {
+        localId: 'local-1',
+        item: {
+          _id: 'img-1',
+          imageRole: 'cover',
+          uploadStatus: 'confirmed',
+          fileId: 'cloud://img-1'
+        }
+      }
+    })
+
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'fileOps',
+      data: {
+        action: 'discardRecipeImage',
+        spaceId: 'space-1',
+        imageId: 'img-1'
+      },
+      config: undefined
+    })
+    expect(page.data.form.images).toEqual([])
+  })
+
+  it('blocks submit while there are uploading images so placeholders are not persisted', async () => {
+    const callFunction = vi.fn()
+    const showToast = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast,
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      loading: false,
+      loadErrorMessage: '',
+      form: {
+        ...page.data.form,
+        name: 'Mapo Tofu',
+        images: [
+          {
+            _id: 'local-1',
+            imageRole: 'cover',
+            uploadStatus: 'uploading',
+            localPath: '/tmp/cover.jpg'
+          }
+        ]
+      }
+    })
+
+    await page.submit()
+
+    expect(showToast).toHaveBeenCalledWith({
+      title: '图片仍在上传，请稍候再保存',
+      icon: 'none'
+    })
+    expect(callFunction).not.toHaveBeenCalled()
+  })
 })
