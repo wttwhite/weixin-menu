@@ -794,4 +794,74 @@ describe('recipe edit page flow', () => {
     expect(page.data.activeSpaceId).toBe('space-2')
     expect(page.data.form.images).toEqual([])
   })
+
+  it('create-mode space switch keeps current draft when confirmed cleanup fails', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 500,
+        message: 'discard failed on switch'
+      }
+    })
+    const showToast = vi.fn()
+    const globalData = {
+      activeSpaceId: 'space-1'
+    }
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast,
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      hasBootstrapped: true,
+      activeSpaceId: 'space-1',
+      loading: false,
+      isEdit: false,
+      form: {
+        ...page.data.form,
+        name: 'Draft Recipe',
+        images: [
+          {
+            _id: 'img-switch-fail',
+            uploadStatus: 'confirmed',
+            imageRole: 'cover',
+            fileId: 'cloud://img-switch-fail'
+          }
+        ]
+      }
+    })
+
+    globalData.activeSpaceId = 'space-2'
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'fileOps',
+      data: {
+        action: 'discardRecipeImage',
+        spaceId: 'space-1',
+        imageId: 'img-switch-fail'
+      },
+      config: undefined
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: 'discard failed on switch',
+      icon: 'none'
+    })
+    expect(page.data.activeSpaceId).toBe('space-1')
+    expect(page.data.form.name).toBe('Draft Recipe')
+    expect(page.data.form.images).toEqual([
+      expect.objectContaining({
+        _id: 'img-switch-fail'
+      })
+    ])
+  })
 })

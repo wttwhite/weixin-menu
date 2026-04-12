@@ -124,10 +124,17 @@ Page({
         isBootstrapping: true
       })
       if (!this.data.isEdit) {
-        await this.cleanupCreateDraftImagesBeforeExit({
+        const cleaned = await this.cleanupCreateDraftImagesBeforeExit({
           blockOnUploading: false,
-          showFailureToast: false
+          showFailureToast: true
         })
+        if (!cleaned) {
+          this.setData({
+            loading: false,
+            isBootstrapping: false
+          })
+          return
+        }
       }
       this.setData({
         hasBootstrapped: false,
