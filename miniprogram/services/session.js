@@ -114,6 +114,7 @@ function createSessionService(dependencies = {}) {
       const activeSpaceId = resolveActiveSpaceId(data.activeSpaceId || storedSpaceId, spaces)
 
       return {
+        openid: data.openid || '',
         spaces,
         role: data.role || '',
         activeSpaceId: setStoredActiveSpace(storage, activeSpaceId)
@@ -197,5 +198,6 @@ module.exports = {
   joinSpace,
   switchSpace,
   listMembers,
-  resolveActiveSpaceId
+  resolveActiveSpaceId,
+  unwrapResponse
 }

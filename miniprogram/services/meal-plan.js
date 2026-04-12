@@ -29,6 +29,16 @@ function createMealPlanService(dependencies = {}) {
       )
     },
 
+    async getMealPlan(spaceId, mealPlanId) {
+      return unwrapResponse(
+        await cloudCall('api', {
+          action: 'getMealPlan',
+          spaceId,
+          mealPlanId
+        })
+      )
+    },
+
     async createMealPlan(spaceId, plan) {
       return unwrapResponse(
         await cloudCall('api', {
@@ -70,6 +80,10 @@ async function createMealPlan(spaceId, plan, dependencies = {}) {
   return createMealPlanService(dependencies).createMealPlan(spaceId, plan)
 }
 
+async function getMealPlan(spaceId, mealPlanId, dependencies = {}) {
+  return createMealPlanService(dependencies).getMealPlan(spaceId, mealPlanId)
+}
+
 async function updateMealPlan(spaceId, mealPlanId, plan, dependencies = {}) {
   return createMealPlanService(dependencies).updateMealPlan(spaceId, mealPlanId, plan)
 }
@@ -82,6 +96,7 @@ module.exports = {
   createMealPlan,
   createMealPlanService,
   deleteMealPlan,
+  getMealPlan,
   listMealPlans,
   updateMealPlan
 }

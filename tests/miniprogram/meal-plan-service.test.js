@@ -3,6 +3,7 @@ import {
   createMealPlan,
   createMealPlanService,
   deleteMealPlan,
+  getMealPlan,
   listMealPlans,
   updateMealPlan
 } from '../../miniprogram/services/meal-plan'
@@ -26,6 +27,12 @@ describe('createMealPlanService', () => {
       .mockResolvedValueOnce({
         result: {
           code: 0,
+          data: { item: { _id: 'meal-1' } }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
           data: { item: { _id: 'meal-1', notes: 'updated' } }
         }
       })
@@ -38,8 +45,17 @@ describe('createMealPlanService', () => {
 
     const service = createMealPlanService({ callCloud })
     await service.listMealPlans('space-1')
-    await service.createMealPlan('space-1', { recipeId: 'recipe-1' })
-    await service.updateMealPlan('space-1', 'meal-1', { servings: '3' })
+    await service.getMealPlan('space-1', 'meal-1')
+    await service.createMealPlan('space-1', {
+      planDate: '2026-04-10',
+      mealType: 'dinner',
+      recipes: [{ recipeId: 'recipe-1', servingsOverride: '2', notes: '' }]
+    })
+    await service.updateMealPlan('space-1', 'meal-1', {
+      planDate: '2026-04-11',
+      mealType: 'lunch',
+      recipes: [{ recipeId: 'recipe-1', servingsOverride: '3', notes: '' }]
+    })
     await service.deleteMealPlan('space-1', 'meal-1')
 
     expect(callCloud).toHaveBeenNthCalledWith(1, 'api', {
@@ -47,17 +63,30 @@ describe('createMealPlanService', () => {
       spaceId: 'space-1'
     })
     expect(callCloud).toHaveBeenNthCalledWith(2, 'api', {
-      action: 'createMealPlan',
+      action: 'getMealPlan',
       spaceId: 'space-1',
-      plan: { recipeId: 'recipe-1' }
+      mealPlanId: 'meal-1'
     })
     expect(callCloud).toHaveBeenNthCalledWith(3, 'api', {
+      action: 'createMealPlan',
+      spaceId: 'space-1',
+      plan: {
+        planDate: '2026-04-10',
+        mealType: 'dinner',
+        recipes: [{ recipeId: 'recipe-1', servingsOverride: '2', notes: '' }]
+      }
+    })
+    expect(callCloud).toHaveBeenNthCalledWith(4, 'api', {
       action: 'updateMealPlan',
       spaceId: 'space-1',
       mealPlanId: 'meal-1',
-      plan: { servings: '3' }
+      plan: {
+        planDate: '2026-04-11',
+        mealType: 'lunch',
+        recipes: [{ recipeId: 'recipe-1', servingsOverride: '3', notes: '' }]
+      }
     })
-    expect(callCloud).toHaveBeenNthCalledWith(4, 'api', {
+    expect(callCloud).toHaveBeenNthCalledWith(5, 'api', {
       action: 'deleteMealPlan',
       spaceId: 'space-1',
       mealPlanId: 'meal-1'
@@ -85,6 +114,7 @@ describe('createMealPlanService', () => {
 describe('meal-plan service helpers', () => {
   it('exposes convenience exports', () => {
     expect(typeof listMealPlans).toBe('function')
+    expect(typeof getMealPlan).toBe('function')
     expect(typeof createMealPlan).toBe('function')
     expect(typeof updateMealPlan).toBe('function')
     expect(typeof deleteMealPlan).toBe('function')

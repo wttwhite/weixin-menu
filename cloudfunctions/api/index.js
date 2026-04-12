@@ -6,6 +6,8 @@ const { createApiRouter } = require('./lib/router')
 const pantryHandlers = require('./handlers/pantry')
 const mealPlanHandlers = require('./handlers/meal-plans')
 const recipeHandlers = require('./handlers/recipes')
+const shoppingHandlers = require('./handlers/shopping')
+const statisticsHandlers = require('./handlers/statistics')
 
 let hasInitialized = false
 
@@ -155,11 +157,36 @@ function createRepository(options = {}) {
       spaceId,
       deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
     }
+    const limit = typeof query.limit === 'number' && query.limit > 0 ? query.limit : 100
+    let request = db
+      .collection(COLLECTIONS.MEAL_PLANS)
+      .where(where)
+
+    if (typeof request.orderBy === 'function') {
+      request = request
+        .orderBy('planDate', 'asc')
+        .orderBy('createdAt', 'asc')
+        .orderBy('_id', 'asc')
+    }
+
+    const result = await request
+      .limit(limit)
+      .get()
+    return result.data || []
+  }
+
+  async function getMealPlanListMetadata(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
     const result = await db
       .collection(COLLECTIONS.MEAL_PLANS)
       .where(where)
-      .get()
-    return result.data || []
+      .count()
+    return {
+      total: typeof result.total === 'number' ? result.total : 0
+    }
   }
 
   async function createMealPlan(data) {
@@ -197,6 +224,113 @@ function createRepository(options = {}) {
       data
     })
 
+    return {
+      ...existing,
+      ...data
+    }
+  }
+
+  async function listShoppingLists(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    const result = await db
+      .collection(COLLECTIONS.SHOPPING_LISTS)
+      .where(where)
+      .get()
+    return result.data || []
+  }
+
+  async function getShoppingList(spaceId, shoppingListId) {
+    const result = await db
+      .collection(COLLECTIONS.SHOPPING_LISTS)
+      .where({
+        _id: shoppingListId,
+        spaceId
+      })
+      .get()
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+    return result.data[0]
+  }
+
+  async function createShoppingList(data) {
+    const created = await db.collection(COLLECTIONS.SHOPPING_LISTS).add({
+      data
+    })
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function updateShoppingList(spaceId, shoppingListId, data) {
+    const existing = await getShoppingList(spaceId, shoppingListId)
+    if (!existing) {
+      return null
+    }
+    await db.collection(COLLECTIONS.SHOPPING_LISTS).doc(shoppingListId).update({
+      data
+    })
+    return {
+      ...existing,
+      ...data
+    }
+  }
+
+  async function listShoppingItems(spaceId, shoppingListId, query = {}) {
+    const where = {
+      spaceId,
+      shoppingListId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    let request = db
+      .collection(COLLECTIONS.SHOPPING_ITEMS)
+      .where(where)
+
+    if (typeof request.orderBy === 'function') {
+      request = request.orderBy('sortOrder', 'asc').orderBy('createdAt', 'asc')
+    }
+
+    const result = await request.get()
+    return result.data || []
+  }
+
+  async function getShoppingItem(spaceId, shoppingListId, shoppingItemId) {
+    const result = await db
+      .collection(COLLECTIONS.SHOPPING_ITEMS)
+      .where({
+        _id: shoppingItemId,
+        spaceId,
+        shoppingListId
+      })
+      .get()
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+    return result.data[0]
+  }
+
+  async function createShoppingItem(data) {
+    const created = await db.collection(COLLECTIONS.SHOPPING_ITEMS).add({
+      data
+    })
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function updateShoppingItem(spaceId, shoppingListId, shoppingItemId, data) {
+    const existing = await getShoppingItem(spaceId, shoppingListId, shoppingItemId)
+    if (!existing) {
+      return null
+    }
+    await db.collection(COLLECTIONS.SHOPPING_ITEMS).doc(shoppingItemId).update({
+      data
+    })
     return {
       ...existing,
       ...data
@@ -514,6 +648,34 @@ function createRepository(options = {}) {
     return result.data || []
   }
 
+  async function listSpaceMembers(spaceId) {
+    const result = await db
+      .collection(COLLECTIONS.SPACE_MEMBERS)
+      .where({
+        spaceId,
+        status: 'active'
+      })
+      .get()
+    return result.data || []
+  }
+
+  async function getRecentBackupRecord(spaceId) {
+    let request = db
+      .collection(COLLECTIONS.BACKUP_RECORDS)
+      .where({
+        spaceId
+      })
+    if (typeof request.orderBy === 'function') {
+      request = request.orderBy('updatedAt', 'desc').orderBy('createdAt', 'desc')
+    }
+
+    const result = await request.limit(1).get()
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+    return result.data[0]
+  }
+
   async function getRecipeTag(spaceId, tagId) {
     const result = await db
       .collection(COLLECTIONS.RECIPE_TAGS)
@@ -581,6 +743,7 @@ function createRepository(options = {}) {
     getPantryItem,
     getMealPlan,
     getPantryListMetadata,
+    getMealPlanListMetadata,
     getRecipe,
     listRecipeImagesByIds,
     listRecipeImagesByRecipeId,
@@ -588,16 +751,26 @@ function createRepository(options = {}) {
     getRecipeTag,
     listPantryItems,
     listMealPlans,
+    listShoppingLists,
+    listShoppingItems,
+    listSpaceMembers,
     listRecipeTags,
     listRecipes,
+    getRecentBackupRecord,
+    getShoppingItem,
+    getShoppingList,
     isRecipeTagInUse,
     updatePantryItem,
     updateMealPlan,
+    updateShoppingItem,
+    updateShoppingList,
     updateRecipe,
     updateRecipeImage,
     updateRecipeAtomic,
     updateRecipeTag,
-    deleteCloudFiles
+    deleteCloudFiles,
+    createShoppingItem,
+    createShoppingList
   }
 }
 
@@ -609,6 +782,7 @@ function createDefaultHandlers() {
     updatePantryItem: pantryHandlers.updatePantryItem,
     deletePantryItem: pantryHandlers.deletePantryItem,
     listMealPlans: mealPlanHandlers.listMealPlans,
+    getMealPlan: mealPlanHandlers.getMealPlan,
     createMealPlan: mealPlanHandlers.createMealPlan,
     updateMealPlan: mealPlanHandlers.updateMealPlan,
     deleteMealPlan: mealPlanHandlers.deleteMealPlan,
@@ -619,7 +793,14 @@ function createDefaultHandlers() {
     deleteRecipe: recipeHandlers.deleteRecipe,
     listRecipeTags: recipeHandlers.listRecipeTags,
     createRecipeTag: recipeHandlers.createRecipeTag,
-    deleteRecipeTag: recipeHandlers.deleteRecipeTag
+    deleteRecipeTag: recipeHandlers.deleteRecipeTag,
+    listShoppingLists: shoppingHandlers.listShoppingLists,
+    createShoppingList: shoppingHandlers.createShoppingList,
+    updateShoppingList: shoppingHandlers.updateShoppingList,
+    deleteShoppingList: shoppingHandlers.deleteShoppingList,
+    generateShoppingItemsFromPlan: shoppingHandlers.generateShoppingItemsFromPlan,
+    toggleShoppingItemChecked: shoppingHandlers.toggleShoppingItemChecked,
+    getStatisticsDashboard: statisticsHandlers.getStatisticsDashboard
   }
 }
 

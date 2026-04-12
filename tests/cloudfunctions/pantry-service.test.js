@@ -360,7 +360,12 @@ describe('pantry service', () => {
         now: '2026-04-10'
       },
       context,
-      repository
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
     )
 
     expect(created.item).toEqual(
@@ -395,7 +400,12 @@ describe('pantry service', () => {
         now: '2026-04-10'
       },
       context,
-      repository
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
     )
 
     expect(updated.item).toEqual(
@@ -418,7 +428,12 @@ describe('pantry service', () => {
         now: '2026-04-10'
       },
       context,
-      repository
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
     )
 
     expect(repository.getLastListQuery()).toEqual({
@@ -451,7 +466,12 @@ describe('pantry service', () => {
         now: '2026-04-10'
       },
       context,
-      repository
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
     )
 
     const beforeDelete = await listPantry(
@@ -461,7 +481,12 @@ describe('pantry service', () => {
         now: '2026-04-10'
       },
       context,
-      repository
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
     )
     expect(beforeDelete.items).toHaveLength(1)
 
@@ -472,7 +497,12 @@ describe('pantry service', () => {
         now: '2026-04-10'
       },
       context,
-      repository
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
     )
 
     expect(deleted).toEqual({
@@ -487,7 +517,12 @@ describe('pantry service', () => {
         now: '2026-04-10'
       },
       context,
-      repository
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
     )
 
     expect(afterDelete.items).toEqual([])

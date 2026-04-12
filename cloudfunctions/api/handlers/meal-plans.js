@@ -4,6 +4,10 @@ async function listMealPlans({ event, context, repository }) {
   return mealPlanService.listMealPlans(event, context, repository)
 }
 
+async function getMealPlan({ event, context, repository }) {
+  return mealPlanService.getMealPlan(event, context, repository)
+}
+
 async function createMealPlan({ event, context, repository }) {
   return mealPlanService.createMealPlan(event, context, repository)
 }
@@ -19,6 +23,7 @@ async function deleteMealPlan({ event, context, repository }) {
 module.exports = {
   createMealPlan,
   deleteMealPlan,
+  getMealPlan,
   listMealPlans,
   updateMealPlan
 }

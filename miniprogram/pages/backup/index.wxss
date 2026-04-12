@@ -1,0 +1,88 @@
+.backup-page {
+  min-height: 100vh;
+  padding: 36rpx 28rpx 60rpx;
+}
+
+.backup-hero {
+  border-radius: 36rpx;
+  padding: 40rpx 34rpx;
+  background:
+    linear-gradient(150deg, rgba(49, 61, 80, 0.96), rgba(95, 117, 156, 0.9)),
+    var(--surface-strong);
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.backup-title {
+  font-size: 42rpx;
+  font-weight: 600;
+}
+
+.backup-text {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.backup-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.backup-button {
+  flex: 1;
+  background: #fff;
+  color: #31405a;
+  font-size: 26rpx;
+}
+
+.backup-button--ghost {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 2rpx solid rgba(255, 255, 255, 0.28);
+}
+
+.feedback-card,
+.record-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  padding: 24rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.feedback-card {
+  color: var(--text-secondary);
+  font-size: 26rpx;
+}
+
+.feedback-card--error {
+  color: #8c2f2f;
+}
+
+.records-list {
+  display: grid;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.record-card__type {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.record-card__status,
+.record-card__time {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.record-card__button {
+  margin-top: 14rpx;
+  background: var(--brand);
+  color: #fff;
+  font-size: 24rpx;
+}

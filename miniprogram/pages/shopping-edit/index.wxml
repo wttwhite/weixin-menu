@@ -1,0 +1,26 @@
+<view class="shopping-edit-page">
+  <view class="card">
+    <view class="title">{{isEdit ? '编辑采购项' : '新增采购项'}}</view>
+    <view class="field">
+      <view class="label">名称</view>
+      <input class="input" value="{{form.name}}" data-field="name" placeholder="例如：鸡蛋" bindinput="handleInput" />
+    </view>
+    <view class="inline-fields">
+      <view class="field">
+        <view class="label">数量</view>
+        <input class="input" value="{{form.quantity}}" data-field="quantity" placeholder="例如：2" bindinput="handleInput" />
+      </view>
+      <view class="field">
+        <view class="label">单位</view>
+        <input class="input" value="{{form.unit}}" data-field="unit" placeholder="例如：盒" bindinput="handleInput" />
+      </view>
+    </view>
+    <view class="field">
+      <view class="label">备注</view>
+      <textarea class="textarea" value="{{form.notes}}" data-field="notes" maxlength="120" placeholder="可选" bindinput="handleInput" />
+    </view>
+    <button class="submit" loading="{{submitting}}" bindtap="submit">
+      {{isEdit ? '保存修改' : '添加采购项'}}
+    </button>
+  </view>
+</view>

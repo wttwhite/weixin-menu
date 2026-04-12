@@ -1,8 +1,49 @@
-<view class="placeholder-page">
-  <view class="placeholder-card">
-    <view class="placeholder-title">{{title}}</view>
-    <view class="placeholder-space">当前空间：{{activeSpaceId || '尚未选择'}}</view>
-    <view class="placeholder-text">{{description}}</view>
-    <button class="placeholder-button" bindtap="openSpace">管理空间</button>
+<view class="statistics-page">
+  <view class="statistics-hero">
+    <view class="statistics-kicker">Dashboard</view>
+    <view class="statistics-title">{{activeSpaceId || '尚未选择空间'}}</view>
+    <view class="statistics-text">查看空间内菜谱、库存与采购进展。</view>
+    <view class="statistics-actions">
+      <button class="statistics-button statistics-button--ghost" bindtap="openSpace">切换空间</button>
+      <button class="statistics-button" bindtap="openMembers">成员管理</button>
+      <button class="statistics-button" bindtap="openBackup">备份中心</button>
+    </view>
+  </view>
+
+  <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
+  <view wx:elif="{{loading}}" class="feedback-card">正在加载统计数据...</view>
+
+  <view wx:elif="{{activeSpaceId}}" class="dashboard-grid">
+    <view class="metric-card">
+      <view class="metric-label">菜谱总数</view>
+      <view class="metric-value">{{dashboard.recipeCount}}</view>
+    </view>
+    <view class="metric-card">
+      <view class="metric-label">库存项总数</view>
+      <view class="metric-value">{{dashboard.pantryCount}}</view>
+    </view>
+    <view class="metric-card">
+      <view class="metric-label">临期库存</view>
+      <view class="metric-value">{{dashboard.upcomingExpirations}}</view>
+    </view>
+    <view class="metric-card">
+      <view class="metric-label">空间成员</view>
+      <view class="metric-value">{{dashboard.memberCount}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{!loading && !errorMessage && activeSpaceId}}" class="progress-card">
+    <view class="metric-label">采购进度</view>
+    <view class="progress-value">
+      {{dashboard.shoppingProgress.checked}} / {{dashboard.shoppingProgress.total}} ({{dashboard.shoppingProgress.percent}}%)
+    </view>
+  </view>
+
+  <view wx:if="{{!loading && !errorMessage && activeSpaceId}}" class="backup-card">
+    <view class="metric-label">最近备份</view>
+    <view class="backup-text" wx:if="{{dashboard.recentBackup.status === 'available'}}">
+      最近更新时间：{{dashboard.recentBackup.updatedAt}}
+    </view>
+    <view class="backup-text" wx:else>当前空间还没有备份记录</view>
   </view>
 </view>

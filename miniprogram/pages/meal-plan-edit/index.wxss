@@ -48,6 +48,33 @@
   min-height: 140rpx;
 }
 
+.recipe-row {
+  margin-top: 12rpx;
+  padding: 18rpx;
+  border-radius: 18rpx;
+  background: #f9fbff;
+}
+
+.recipe-row__input {
+  margin-top: 12rpx;
+}
+
+.recipe-row__remove,
+.recipe-row__add {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+}
+
+.recipe-row__remove {
+  background: #fff2f2;
+  color: #a64d4d;
+}
+
+.recipe-row__add {
+  background: #eef4ff;
+  color: #2f5ba3;
+}
+
 .action-row {
   margin-top: 24rpx;
   display: flex;

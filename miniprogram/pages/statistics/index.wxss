@@ -1,30 +1,112 @@
-.placeholder-page {
+.statistics-page {
   min-height: 100vh;
-  padding: 40rpx 28rpx;
+  padding: 36rpx 28rpx 60rpx;
 }
 
-.placeholder-card {
-  border-radius: 32rpx;
-  padding: 40rpx 32rpx;
+.statistics-hero {
+  border-radius: 36rpx;
+  padding: 40rpx 34rpx;
+  background:
+    linear-gradient(160deg, rgba(81, 56, 37, 0.95), rgba(139, 103, 74, 0.88)),
+    var(--surface-strong);
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.statistics-kicker {
+  font-size: 24rpx;
+  letter-spacing: 3rpx;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.statistics-title {
+  margin-top: 16rpx;
+  font-size: 42rpx;
+  font-weight: 600;
+}
+
+.statistics-text {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.statistics-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 26rpx;
+}
+
+.statistics-button {
+  flex: 1;
+  background: #fff;
+  color: #543825;
+  padding: 20rpx 0;
+  font-size: 26rpx;
+}
+
+.statistics-button--ghost {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border: 2rpx solid rgba(255, 255, 255, 0.25);
+}
+
+.feedback-card,
+.progress-card,
+.backup-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  padding: 24rpx;
   background: var(--surface-bg);
   box-shadow: var(--shadow-soft);
 }
 
-.placeholder-title {
-  font-size: 40rpx;
-  font-weight: 600;
-}
-
-.placeholder-space {
-  margin-top: 18rpx;
-  color: var(--brand-strong);
-  font-size: 28rpx;
-}
-
-.placeholder-text {
-  margin-top: 20rpx;
+.feedback-card {
   color: var(--text-secondary);
-  font-size: 28rpx;
+  font-size: 26rpx;
+}
+
+.feedback-card--error {
+  color: #8c2f2f;
+}
+
+.dashboard-grid {
+  margin-top: 24rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.metric-card {
+  border-radius: 24rpx;
+  padding: 22rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.metric-label {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.metric-value {
+  margin-top: 10rpx;
+  font-size: 42rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progress-value {
+  margin-top: 10rpx;
+  font-size: 30rpx;
+  color: var(--text-primary);
+}
+
+.backup-text {
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 

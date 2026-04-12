@@ -32,6 +32,14 @@ Run shared tests:
 npm run test
 ```
 
+Current full-suite baseline:
+
+```bash
+npx vitest run
+```
+
+This should currently pass with the mini-program, cloud-function, and shared-domain tests together.
+
 ## Deploy Cloud Functions
 
 Use:
@@ -47,3 +55,25 @@ Required environment variables:
 Optional environment variables:
 - `PROJECT_PATH` (defaults to repo root)
 - `DRY_RUN=1` (or `DRY_RUN=true`) to print deploy commands without executing them
+
+Current cloud functions expected by the deploy script:
+- `api`
+- `memberOps`
+- `fileOps`
+
+## Manual Smoke Flow
+
+See [manual-smoke-checklist.md](/d:/a-code/wechat-code/docs/manual-smoke-checklist.md) for the full release verification flow.
+
+Recommended end-to-end verification:
+- create or join a space
+- verify pantry CRUD
+- verify recipe CRUD and image upload
+- verify meal-plan CRUD
+- verify shopping generation/toggle
+- verify statistics/member pages
+- verify backup export and import
+
+## Cloud Data
+
+Collection and document notes live in [cloud-collections.md](/d:/a-code/wechat-code/docs/cloud-collections.md).

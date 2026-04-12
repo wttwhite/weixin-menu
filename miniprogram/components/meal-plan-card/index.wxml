@@ -3,9 +3,12 @@
     <view class="meal-plan-card__chip">{{mealTypeLabel}}</view>
     <view class="meal-plan-card__servings" wx:if="{{servingsText}}">{{servingsText}}</view>
   </view>
-  <view class="meal-plan-card__name">{{mealPlan.recipe.name || '未关联菜谱'}}</view>
-  <view class="meal-plan-card__summary" wx:if="{{mealPlan.recipe.summary}}">
-    {{mealPlan.recipe.summary}}
+  <view class="meal-plan-card__name">{{recipeName}}</view>
+  <view class="meal-plan-card__summary" wx:if="{{recipeCountText}}">
+    {{recipeCountText}}
+  </view>
+  <view class="meal-plan-card__summary" wx:if="{{recipeSummary}}">
+    {{recipeSummary}}
   </view>
   <view class="meal-plan-card__notes" wx:if="{{mealPlan.notes}}">备注：{{mealPlan.notes}}</view>
 </view>

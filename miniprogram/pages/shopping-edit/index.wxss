@@ -1,0 +1,55 @@
+.shopping-edit-page {
+  min-height: 100vh;
+  padding: 36rpx 28rpx 60rpx;
+}
+
+.card {
+  border-radius: 30rpx;
+  padding: 30rpx;
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.field {
+  margin-top: 22rpx;
+}
+
+.label {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.input,
+.textarea {
+  margin-top: 10rpx;
+  border-radius: 18rpx;
+  background: #fff;
+  padding: 18rpx 20rpx;
+  font-size: 28rpx;
+}
+
+.textarea {
+  min-height: 140rpx;
+}
+
+.inline-fields {
+  display: flex;
+  gap: 16rpx;
+}
+
+.inline-fields .field {
+  flex: 1;
+}
+
+.submit {
+  margin-top: 26rpx;
+  background: var(--brand);
+  color: #fff;
+  padding: 22rpx 0;
+  font-size: 28rpx;
+}

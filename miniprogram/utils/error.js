@@ -5,7 +5,12 @@ const MESSAGE_BY_CODE = {
   [ERROR_CODES.UNAUTHORIZED]: '请重新进入小程序后再试',
   [ERROR_CODES.NOT_FOUND]: '没有找到对应的数据',
   [ERROR_CODES.CONFLICT]: '数据状态已变化，请刷新后重试',
-  [ERROR_CODES.INVALID_INPUT]: '请检查输入内容后再试'
+  [ERROR_CODES.INVALID_INPUT]: '请检查输入内容后再试',
+  [ERROR_CODES.BACKUP_EXPORT_FAILED]: '备份导出失败，请稍后重试',
+  [ERROR_CODES.BACKUP_IMPORT_INVALID]: '备份文件格式无效，请检查后重试',
+  [ERROR_CODES.BACKUP_VERSION_UNSUPPORTED]: '当前暂不支持该备份版本',
+  [ERROR_CODES.BACKUP_FILE_MISSING]: '备份缺少必要图片文件，无法导入',
+  [ERROR_CODES.BACKUP_RESTORE_FAILED]: '备份恢复失败，请稍后重试'
 }
 
 const MESSAGE_BY_TEXT = {

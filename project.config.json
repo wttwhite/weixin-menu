@@ -45,7 +45,7 @@
     "disableSWC": true
   },
   "appid": "wx2623e7bed3832d1f",
-  "projectname": "quickstart-wx-cloud",
+  "projectname": "weixin-menu",
   "libVersion": "2.20.1",
   "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
   "condition": {

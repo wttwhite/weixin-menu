@@ -16,6 +16,7 @@ async function bootstrapSession(input, repository) {
   const spaces = (memberships || []).filter((item) => item.status === 'active')
   if (spaces.length === 0) {
     return {
+      openid: input.openid,
       spaces: [],
       activeSpaceId: null,
       role: null
@@ -26,6 +27,7 @@ async function bootstrapSession(input, repository) {
     spaces.find((item) => item.spaceId === input.preferredSpaceId) || spaces[0]
 
   return {
+    openid: input.openid,
     spaces,
     activeSpaceId: activeMembership.spaceId,
     role: activeMembership.role

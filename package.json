@@ -7,6 +7,9 @@
     "sync:shared": "node scripts/sync-shared.cjs",
     "deploy:functions": "node scripts/deploy-cloudfunctions.cjs"
   },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
   "devDependencies": {
     "vitest": "^3.2.0"
   }

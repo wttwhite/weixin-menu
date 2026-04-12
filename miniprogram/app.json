@@ -12,7 +12,11 @@
     "pages/meal-plans/index",
     "pages/meal-plan-edit/index",
     "pages/shopping/index",
+    "pages/shopping-edit/index",
+    "pages/backup/index",
     "pages/statistics/index"
+    ,
+    "pages/space-members/index"
   ],
   "window": {
     "backgroundColor": "#F5F1E8",

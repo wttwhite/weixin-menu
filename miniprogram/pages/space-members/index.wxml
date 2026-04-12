@@ -1,0 +1,41 @@
+<view class="members-page">
+  <view class="members-hero">
+    <view class="members-kicker">Members</view>
+    <view class="members-title">{{activeSpaceId || '尚未选择空间'}}</view>
+    <view class="members-text">
+      {{role === 'owner' ? '你可以查看成员、移除成员，并刷新当前空间邀请码。' : '你可以查看当前空间成员。'}}
+    </view>
+  </view>
+
+  <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
+  <view wx:elif="{{loading}}" class="feedback-card">正在加载成员信息...</view>
+
+  <view wx:elif="{{members.length}}" class="members-list">
+    <view wx:for="{{members}}" wx:key="id" class="member-card">
+      <view class="member-card__main">
+        <view class="member-card__name">
+          {{item.name}}
+          <text wx:if="{{item.isCurrentUser}}" class="member-card__self">（你）</text>
+        </view>
+        <view class="member-card__role">{{item.roleLabel}}</view>
+      </view>
+      <view class="member-card__id">{{item.openid || item.id}}</view>
+      <button
+        wx:if="{{role === 'owner' && !item.isCurrentUser}}"
+        class="member-card__remove"
+        data-member-openid="{{item.openid}}"
+        bindtap="handleRemoveMember"
+      >
+        移除
+      </button>
+    </view>
+  </view>
+
+  <view wx:else class="feedback-card">当前空间还没有成员数据。</view>
+
+  <view wx:if="{{role === 'owner'}}" class="invite-card">
+    <view class="invite-card__title">邀请码</view>
+    <view class="invite-card__value">{{inviteCode || '点击下方刷新生成邀请码'}}</view>
+    <button class="invite-card__button" bindtap="handleRotateInviteCode">刷新邀请码</button>
+  </view>
+</view>

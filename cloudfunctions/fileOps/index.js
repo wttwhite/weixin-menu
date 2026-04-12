@@ -8,6 +8,11 @@ const {
   discardRecipeImage,
   prepareRecipeImageUpload
 } = require('./services/recipe-image-service')
+const {
+  exportSpaceBackup,
+  importSpaceBackup,
+  listBackupRecords
+} = require('./services/backup-service')
 const { createStorageService } = require('./services/storage-service')
 
 let hasInitialized = false
@@ -47,6 +52,32 @@ function createRepository(options = {}) {
   ensureCloudInit(cloudSdk)
   const db = options.db || cloudSdk.database()
   const RECIPE_IMAGES = COLLECTIONS.RECIPE_IMAGES || 'recipe_images'
+  const BACKUP_RECORDS = COLLECTIONS.BACKUP_RECORDS || 'backup_records'
+  const PAGE_SIZE = 100
+
+  async function listAllRecords(collectionName, where = {}) {
+    const items = []
+    let skip = 0
+
+    while (true) {
+      let request = db.collection(collectionName).where(where)
+      if (typeof request.orderBy === 'function') {
+        request = request.orderBy('_id', 'asc')
+      }
+      const result = await request
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .get()
+      const page = result.data || []
+      items.push(...page)
+      if (page.length < PAGE_SIZE) {
+        break
+      }
+      skip += PAGE_SIZE
+    }
+
+    return items
+  }
 
   async function findMembership(spaceId, openid) {
     const result = await db
@@ -103,10 +134,169 @@ function createRepository(options = {}) {
     }
   }
 
+  async function listRecipes(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    return listAllRecords(COLLECTIONS.RECIPES, where)
+  }
+
+  async function listRecipeTags(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    return listAllRecords(COLLECTIONS.RECIPE_TAGS, where)
+  }
+
+  async function listRecipeImages(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    return listAllRecords(RECIPE_IMAGES, where)
+  }
+
+  async function listPantryItems(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    return listAllRecords(COLLECTIONS.PANTRY_ITEMS, where)
+  }
+
+  async function listMealPlans(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    return listAllRecords(COLLECTIONS.MEAL_PLANS, where)
+  }
+
+  async function listShoppingLists(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    return listAllRecords(COLLECTIONS.SHOPPING_LISTS, where)
+  }
+
+  async function listShoppingItems(spaceId, shoppingListId = '', query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    if (shoppingListId) {
+      where.shoppingListId = shoppingListId
+    }
+    return listAllRecords(COLLECTIONS.SHOPPING_ITEMS, where)
+  }
+
+  async function createBackupRecord(data) {
+    const created = await db.collection(BACKUP_RECORDS).add({
+      data
+    })
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function listBackupRecords(spaceId) {
+    const items = await listAllRecords(BACKUP_RECORDS, { spaceId })
+    return items.sort((left, right) =>
+      String(right.updatedAt || right.createdAt || '').localeCompare(
+        String(left.updatedAt || left.createdAt || '')
+      )
+    )
+  }
+
+  async function clearSpaceCollection(connection, collectionName, spaceId) {
+    await connection.collection(collectionName).where({ spaceId }).remove()
+  }
+
+  async function addRecord(connection, collectionName, data) {
+    const created = await connection.collection(collectionName).add({
+      data
+    })
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function replaceSpaceData(spaceId, payload = {}) {
+    const collectionsToClear = [
+      COLLECTIONS.RECIPES,
+      COLLECTIONS.RECIPE_TAGS,
+      RECIPE_IMAGES,
+      COLLECTIONS.PANTRY_ITEMS,
+      COLLECTIONS.MEAL_PLANS,
+      COLLECTIONS.SHOPPING_LISTS,
+      COLLECTIONS.SHOPPING_ITEMS
+    ]
+
+    const runWithConnection = async (connection) => {
+      for (const collectionName of collectionsToClear) {
+        await clearSpaceCollection(connection, collectionName, spaceId)
+      }
+
+      for (const recipe of payload.recipes || []) {
+        await addRecord(connection, COLLECTIONS.RECIPES, { ...recipe, spaceId })
+      }
+      for (const recipeTag of payload.recipeTags || []) {
+        await addRecord(connection, COLLECTIONS.RECIPE_TAGS, { ...recipeTag, spaceId })
+      }
+      for (const recipeImage of payload.recipeImages || []) {
+        await addRecord(connection, RECIPE_IMAGES, { ...recipeImage, spaceId })
+      }
+      for (const pantryItem of payload.pantryItems || []) {
+        await addRecord(connection, COLLECTIONS.PANTRY_ITEMS, { ...pantryItem, spaceId })
+      }
+      for (const mealPlan of payload.mealPlans || []) {
+        await addRecord(connection, COLLECTIONS.MEAL_PLANS, { ...mealPlan, spaceId })
+      }
+      for (const shoppingList of payload.shoppingLists || []) {
+        await addRecord(connection, COLLECTIONS.SHOPPING_LISTS, { ...shoppingList, spaceId })
+      }
+      for (const shoppingItem of payload.shoppingItems || []) {
+        await addRecord(connection, COLLECTIONS.SHOPPING_ITEMS, { ...shoppingItem, spaceId })
+      }
+    }
+
+    if (typeof db.startTransaction !== 'function') {
+      throw new Error('Backup restore requires transaction support')
+    }
+
+    const transaction = await db.startTransaction()
+    try {
+      await runWithConnection(transaction)
+      await transaction.commit()
+    } catch (error) {
+      if (typeof transaction.rollback === 'function') {
+        await transaction.rollback()
+      }
+      throw error
+    }
+
+    return payload
+  }
+
   return {
     createRecipeImage,
+    createBackupRecord,
     findMembership,
     getRecipeImage,
+    listRecipeImages,
+    listRecipeTags,
+    listBackupRecords,
+    listMealPlans,
+    listPantryItems,
+    listRecipes,
+    listShoppingItems,
+    listShoppingLists,
+    replaceSpaceData,
     updateRecipeImage
   }
 }
@@ -119,6 +309,9 @@ function createFileOpsHandler(options = {}) {
   const confirmFn = options.confirmRecipeImageUpload || confirmRecipeImageUpload
   const discardFn = options.discardRecipeImage || discardRecipeImage
   const deleteFn = options.deleteRecipeImage || deleteRecipeImage
+  const exportBackupFn = options.exportSpaceBackup || exportSpaceBackup
+  const importBackupFn = options.importSpaceBackup || importSpaceBackup
+  const listBackupRecordsFn = options.listBackupRecords || listBackupRecords
 
   return async function main(event = {}) {
     const action = event.action
@@ -126,7 +319,10 @@ function createFileOpsHandler(options = {}) {
       'prepareRecipeImageUpload',
       'confirmRecipeImageUpload',
       'discardRecipeImage',
-      'deleteRecipeImage'
+      'deleteRecipeImage',
+      'exportSpaceBackup',
+      'importSpaceBackup',
+      'listBackupRecords'
     ])
 
     try {
@@ -145,6 +341,9 @@ function createFileOpsHandler(options = {}) {
       if (!membership) {
         throw toAppError('SPACE_FORBIDDEN', ERROR_CODES.SPACE_FORBIDDEN)
       }
+      if (action === 'importSpaceBackup' && membership.role !== 'owner') {
+        throw toAppError('SPACE_FORBIDDEN', ERROR_CODES.SPACE_FORBIDDEN)
+      }
 
       switch (action) {
         case 'prepareRecipeImageUpload':
@@ -155,6 +354,12 @@ function createFileOpsHandler(options = {}) {
           return buildOkResponse(await discardFn(event, context, repository, storageService))
         case 'deleteRecipeImage':
           return buildOkResponse(await deleteFn(event, context, repository, storageService))
+        case 'exportSpaceBackup':
+          return buildOkResponse(await exportBackupFn(event, context, repository, storageService))
+        case 'importSpaceBackup':
+          return buildOkResponse(await importBackupFn(event, context, repository, storageService))
+        case 'listBackupRecords':
+          return buildOkResponse(await listBackupRecordsFn(event, context, repository))
       }
     } catch (error) {
       return normalizeError(error)

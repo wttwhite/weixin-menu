@@ -4,8 +4,8 @@
   <view class="form-card">
     <view class="field">
       <view class="field-label">日期</view>
-      <picker mode="date" value="{{form.date}}" bindchange="handleDateChange">
-        <view class="picker-value">{{form.date}}</view>
+      <picker mode="date" value="{{form.planDate}}" bindchange="handleDateChange">
+        <view class="picker-value">{{form.planDate}}</view>
       </picker>
     </view>
 
@@ -23,27 +23,31 @@
     </view>
 
     <view class="field">
-      <view class="field-label">菜谱</view>
-      <picker
-        mode="selector"
-        value="{{selectedRecipeIndex}}"
-        range="{{recipeOptions}}"
-        range-key="label"
-        bindchange="handleRecipeChange"
-      >
-        <view class="picker-value">{{recipeOptions[selectedRecipeIndex].label}}</view>
-      </picker>
-    </view>
+      <view class="field-label">计划菜谱</view>
+      <view wx:for="{{form.recipes}}" wx:key="index" class="recipe-row">
+        <picker
+          mode="selector"
+          data-index="{{index}}"
+          value="{{selectedRecipeIndexes[index]}}"
+          range="{{recipeOptions}}"
+          range-key="label"
+          bindchange="handleRecipeChange"
+        >
+          <view class="picker-value">{{recipeOptions[selectedRecipeIndexes[index]].label}}</view>
+        </picker>
 
-    <view class="field">
-      <view class="field-label">份数（可覆盖）</view>
-      <input
-        class="field-input"
-        value="{{form.servings}}"
-        placeholder="例如 3"
-        data-field="servings"
-        bindinput="handleInput"
-      />
+        <input
+          class="field-input recipe-row__input"
+          value="{{item.servingsOverride}}"
+          placeholder="份数（可覆盖）"
+          data-index="{{index}}"
+          data-field="servingsOverride"
+          bindinput="handleRecipeFieldInput"
+        />
+
+        <button class="recipe-row__remove" data-index="{{index}}" bindtap="removeRecipeRow">删除这道菜</button>
+      </view>
+      <button class="recipe-row__add" bindtap="addRecipeRow">添加计划菜谱</button>
     </view>
 
     <view class="field">

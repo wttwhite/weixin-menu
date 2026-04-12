@@ -35,7 +35,13 @@ function createRepository() {
     async listMealPlans(spaceId, query = {}) {
       return items
         .filter((item) => item.spaceId === spaceId && item.deletedAt === (query.deletedAt || ''))
+        .slice(0, query.limit || items.length)
         .map((item) => ({ ...item }))
+    },
+    async getMealPlanListMetadata(spaceId, query = {}) {
+      return {
+        total: items.filter((item) => item.spaceId === spaceId && item.deletedAt === (query.deletedAt || '')).length
+      }
     },
     async createMealPlan(data) {
       const item = {
@@ -68,7 +74,7 @@ function createRepository() {
 }
 
 describe('meal-plan service', () => {
-  it('creates and lists meal plans with embedded recipe snapshots', async () => {
+  it('creates and lists meal plans with embedded recipes snapshots', async () => {
     const repository = createRepository()
     const context = { openid: 'user-1' }
 
@@ -76,10 +82,9 @@ describe('meal-plan service', () => {
       {
         spaceId: 'space-1',
         plan: {
-          date: '2026-04-10',
+          planDate: '2026-04-10',
           mealType: 'dinner',
-          recipeId: 'recipe-1',
-          servings: '3'
+          recipes: [{ recipeId: 'recipe-1', servingsOverride: '3', notes: '' }]
         }
       },
       context,
@@ -94,10 +99,9 @@ describe('meal-plan service', () => {
       {
         spaceId: 'space-1',
         plan: {
-          date: '2026-04-10',
+          planDate: '2026-04-10',
           mealType: 'breakfast',
-          recipeId: 'recipe-2',
-          servings: '2'
+          recipes: [{ recipeId: 'recipe-2', servingsOverride: '2', notes: '' }]
         }
       },
       context,
@@ -120,20 +124,36 @@ describe('meal-plan service', () => {
     expect(result.items).toHaveLength(2)
     expect(result.items[0]).toEqual(
       expect.objectContaining({
+        planDate: '2026-04-10',
         mealType: 'breakfast',
-        recipe: expect.objectContaining({
-          _id: 'recipe-2',
-          name: 'Mapo Tofu'
-        })
+        recipes: [
+          expect.objectContaining({
+            recipeId: 'recipe-2',
+            recipeNameSnapshot: 'Mapo Tofu',
+            servingsOverride: '2',
+            recipe: expect.objectContaining({
+              _id: 'recipe-2',
+              name: 'Mapo Tofu'
+            })
+          })
+        ]
       })
     )
     expect(result.items[1]).toEqual(
       expect.objectContaining({
+        planDate: '2026-04-10',
         mealType: 'dinner',
-        recipe: expect.objectContaining({
-          _id: 'recipe-1',
-          name: 'Tomato Egg'
-        })
+        recipes: [
+          expect.objectContaining({
+            recipeId: 'recipe-1',
+            recipeNameSnapshot: 'Tomato Egg',
+            servingsOverride: '3',
+            recipe: expect.objectContaining({
+              _id: 'recipe-1',
+              name: 'Tomato Egg'
+            })
+          })
+        ]
       })
     )
   })
@@ -145,10 +165,9 @@ describe('meal-plan service', () => {
       {
         spaceId: 'space-1',
         plan: {
-          date: '2026-04-10',
+          planDate: '2026-04-10',
           mealType: 'lunch',
-          recipeId: 'recipe-1',
-          servings: '2'
+          recipes: [{ recipeId: 'recipe-1', servingsOverride: '2', notes: '' }]
         }
       },
       context,
@@ -165,11 +184,10 @@ describe('meal-plan service', () => {
         spaceId: 'space-1',
         mealPlanId: created.item._id,
         plan: {
-          date: '2026-04-11',
+          planDate: '2026-04-11',
           mealType: 'dinner',
-          recipeId: 'recipe-2',
-          servings: '5',
-          notes: 'extra tofu'
+          notes: 'extra tofu',
+          recipes: [{ recipeId: 'recipe-2', servingsOverride: '5', notes: 'extra tofu' }]
         }
       },
       context,
@@ -183,14 +201,21 @@ describe('meal-plan service', () => {
 
     expect(updated.item).toEqual(
       expect.objectContaining({
-        date: '2026-04-11',
+        planDate: '2026-04-11',
         mealType: 'dinner',
-        servings: '5',
         notes: 'extra tofu',
-        recipe: expect.objectContaining({
-          _id: 'recipe-2',
-          name: 'Mapo Tofu'
-        })
+        recipes: [
+          expect.objectContaining({
+            recipeId: 'recipe-2',
+            recipeNameSnapshot: 'Mapo Tofu',
+            servingsOverride: '5',
+            notes: 'extra tofu',
+            recipe: expect.objectContaining({
+              _id: 'recipe-2',
+              name: 'Mapo Tofu'
+            })
+          })
+        ]
       })
     )
 
@@ -213,7 +238,10 @@ describe('meal-plan service', () => {
       deleted: true
     })
     await expect(listMealPlans({ spaceId: 'space-1' }, context, repository)).resolves.toEqual({
-      items: []
+      items: [],
+      total: 0,
+      limit: 100,
+      hasMore: false
     })
   })
 
@@ -224,13 +252,13 @@ describe('meal-plan service', () => {
     await expect(
       createMealPlan(
         {
-          spaceId: 'space-1',
-          plan: {
-            date: '2026-04-10',
-            mealType: 'dinner',
-            recipeId: ''
-          }
-        },
+        spaceId: 'space-1',
+        plan: {
+          planDate: '2026-04-10',
+          mealType: 'dinner',
+          recipes: []
+        }
+      },
         context,
         repository
       )
@@ -243,9 +271,9 @@ describe('meal-plan service', () => {
         {
           spaceId: 'space-1',
           plan: {
-            date: '2026-04-10',
+            planDate: '2026-04-10',
             mealType: 'dinner',
-            recipeId: 'missing'
+            recipes: [{ recipeId: 'missing', servingsOverride: '', notes: '' }]
           }
         },
         context,
@@ -254,5 +282,68 @@ describe('meal-plan service', () => {
     ).rejects.toMatchObject({
       code: ERROR_CODES.NOT_FOUND
     })
+  })
+
+  it('rejects writes when any recipe entry is malformed instead of silently dropping it', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await expect(
+      createMealPlan(
+        {
+          spaceId: 'space-1',
+          plan: {
+            planDate: '2026-04-10',
+            mealType: 'dinner',
+            recipes: [
+              { recipeId: 'recipe-1', servingsOverride: '2', notes: '' },
+              { recipeId: '', servingsOverride: '1', notes: '' }
+            ]
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+  })
+
+  it('returns list metadata when plans exceed the default limit', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    for (let index = 0; index < 101; index += 1) {
+      await createMealPlan(
+        {
+          spaceId: 'space-1',
+          plan: {
+            planDate: '2026-04-10',
+            mealType: 'dinner',
+            recipes: [{ recipeId: 'recipe-1', servingsOverride: '2', notes: '' }]
+          }
+        },
+        context,
+        repository,
+        {
+          clock: {
+            now: () => new Date(`2026-04-10T08:${String(index % 60).padStart(2, '0')}:00.000Z`)
+          }
+        }
+      )
+    }
+
+    const result = await listMealPlans(
+      {
+        spaceId: 'space-1'
+      },
+      context,
+      repository
+    )
+
+    expect(result.total).toBe(101)
+    expect(result.limit).toBe(100)
+    expect(result.hasMore).toBe(true)
+    expect(result.items).toHaveLength(100)
   })
 })

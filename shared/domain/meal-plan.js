@@ -36,21 +36,40 @@ function normalizeRecipeSnapshot(recipe = {}) {
   }
 }
 
-function normalizeMealPlanWrite(input = {}) {
-  const recipeId = normalizeText(input.recipeId) || normalizeText(input.recipe && input.recipe._id)
+function normalizeMealPlanRecipe(recipeInput = {}, fallbackSortOrder = 1) {
+  const recipeSnapshot = normalizeRecipeSnapshot(recipeInput.recipe || recipeInput)
+  const recipeId =
+    normalizeText(recipeInput.recipeId) || (recipeSnapshot ? recipeSnapshot._id : '')
+  if (!recipeId) {
+    return null
+  }
+
   return {
-    date: normalizeDate(input.date),
-    mealType: normalizeMealType(input.mealType),
-    servings: normalizeText(input.servings),
-    notes: normalizeText(input.notes),
     recipeId,
-    recipe: normalizeRecipeSnapshot(input.recipe || { _id: recipeId })
+    recipeNameSnapshot: normalizeText(recipeInput.recipeNameSnapshot) || (recipeSnapshot ? recipeSnapshot.name : ''),
+    servingsOverride: normalizeText(recipeInput.servingsOverride || recipeInput.servings),
+    sortOrder: fallbackSortOrder,
+    notes: normalizeText(recipeInput.recipeNotes || recipeInput.notes),
+    recipe: recipeSnapshot || { _id: recipeId, name: normalizeText(recipeInput.recipeNameSnapshot) }
+  }
+}
+
+function normalizeMealPlanWrite(input = {}) {
+  const normalizedRecipes = (Array.isArray(input.recipes) ? input.recipes : [])
+    .map((recipe, index) => normalizeMealPlanRecipe(recipe, index + 1))
+    .filter(Boolean)
+
+  return {
+    planDate: normalizeDate(input.planDate || input.date),
+    mealType: normalizeMealType(input.mealType),
+    notes: normalizeText(input.notes),
+    recipes: normalizedRecipes
   }
 }
 
 function compareMealPlanSchedule(left = {}, right = {}) {
-  const leftDate = normalizeDate(left.date)
-  const rightDate = normalizeDate(right.date)
+  const leftDate = normalizeDate(left.planDate || left.date)
+  const rightDate = normalizeDate(right.planDate || right.date)
   if (leftDate !== rightDate) {
     if (!leftDate) {
       return 1
@@ -65,7 +84,23 @@ function compareMealPlanSchedule(left = {}, right = {}) {
   const rightMealType = normalizeMealType(right.mealType)
   const leftOrder = MEAL_TYPE_ORDER[leftMealType] || Number.MAX_SAFE_INTEGER
   const rightOrder = MEAL_TYPE_ORDER[rightMealType] || Number.MAX_SAFE_INTEGER
-  return leftOrder - rightOrder
+  if (leftOrder !== rightOrder) {
+    return leftOrder - rightOrder
+  }
+
+  const leftCreatedAt = normalizeText(left.createdAt)
+  const rightCreatedAt = normalizeText(right.createdAt)
+  if (leftCreatedAt !== rightCreatedAt) {
+    if (!leftCreatedAt) {
+      return 1
+    }
+    if (!rightCreatedAt) {
+      return -1
+    }
+    return leftCreatedAt.localeCompare(rightCreatedAt)
+  }
+
+  return normalizeText(left._id).localeCompare(normalizeText(right._id))
 }
 
 function sortMealPlansBySchedule(items = []) {
@@ -83,6 +118,7 @@ function sortMealPlansBySchedule(items = []) {
 
 module.exports = {
   MEAL_TYPE_ORDER,
+  normalizeMealPlanRecipe,
   normalizeMealPlanWrite,
   sortMealPlansBySchedule
 }

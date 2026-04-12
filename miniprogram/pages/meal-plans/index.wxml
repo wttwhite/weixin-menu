@@ -7,8 +7,9 @@
   </view>
 
   <view class="error-text" wx:if="{{errorMessage}}">{{errorMessage}}</view>
+  <view class="page-space" wx:if="{{truncationMessage}}">{{truncationMessage}}</view>
 
-  <view class="empty-state" wx:if="{{showEmptyState}}">
+  <view class="empty-state" wx:if="{{!errorMessage && showEmptyState}}">
     <view class="empty-title">还没有计划</view>
     <view class="empty-text">{{emptyMessage}}</view>
     <button class="empty-button" bindtap="goCreate">添加第一条计划</button>
@@ -28,5 +29,5 @@
     </view>
   </block>
 
-  <button class="fab-add" bindtap="goCreate">+ 添加计划</button>
+  <button wx:if="{{activeSpaceId}}" class="fab-add" bindtap="goCreate">+ 添加计划</button>
 </view>

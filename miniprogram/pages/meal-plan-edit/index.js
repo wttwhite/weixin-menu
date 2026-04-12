@@ -32,18 +32,49 @@ function buildRecipeOptions(recipes = []) {
   )
 }
 
+function mergeRecipeOptions(recipes = [], fallbackRecipes = []) {
+  const options = buildRecipeOptions(recipes)
+  const existingIds = new Set(options.map((item) => item.value))
+
+  ;(fallbackRecipes || []).forEach((item) => {
+    const recipeId = item && item.recipeId ? item.recipeId : ''
+    if (!recipeId || existingIds.has(recipeId)) {
+      return
+    }
+    options.push({
+      label: `${item.recipeNameSnapshot || '已删除菜谱'}（历史快照）`,
+      value: recipeId
+    })
+    existingIds.add(recipeId)
+  })
+
+  return options
+}
+
 function buildRecipeIndex(recipeOptions = [], recipeId = '') {
   const index = (recipeOptions || []).findIndex((item) => item.value === recipeId)
   return index >= 0 ? index : 0
 }
 
+function buildRecipeIndices(recipeOptions = [], recipes = []) {
+  const rows = Array.isArray(recipes) && recipes.length ? recipes : [{ recipeId: '' }]
+  return rows.map((item) => buildRecipeIndex(recipeOptions, item.recipeId || ''))
+}
+
+function createEmptyPlanRecipe() {
+  return {
+    recipeId: '',
+    servingsOverride: '',
+    notes: ''
+  }
+}
+
 function createEmptyForm() {
   return {
-    date: getTodayDate(),
+    planDate: getTodayDate(),
     mealType: 'dinner',
-    recipeId: '',
-    servings: '',
-    notes: ''
+    notes: '',
+    recipes: [createEmptyPlanRecipe()]
   }
 }
 
@@ -57,7 +88,7 @@ Page({
     activeSpaceId: '',
     recipes: [],
     recipeOptions: [{ label: '请选择菜谱', value: '' }],
-    selectedRecipeIndex: 0,
+    selectedRecipeIndexes: [0],
     mealTypeOptions: MEAL_TYPE_OPTIONS,
     selectedMealTypeIndex: getMealTypeIndex('dinner'),
     loadErrorMessage: '',
@@ -86,15 +117,27 @@ Page({
 
     if (!activeSpaceId) {
       this.setData({
-        loading: false
+        loading: false,
+        loadErrorMessage: '请先选择空间后再编辑计划。',
+        form: createEmptyForm(),
+        recipes: [],
+        recipeOptions: [{ label: '请选择菜谱', value: '' }],
+        selectedRecipeIndexes: [0],
+        selectedMealTypeIndex: getMealTypeIndex('dinner')
       })
       return
     }
 
     try {
+      const mealPlanResult =
+        this.data.isEdit && this.data.mealPlanId
+          ? await createMealPlanService().getMealPlan(activeSpaceId, this.data.mealPlanId)
+          : null
+      const target = mealPlanResult && mealPlanResult.item ? mealPlanResult.item : null
+
       const recipeResult = await createRecipeService().listRecipes(activeSpaceId)
       const recipes = recipeResult.items || []
-      const recipeOptions = buildRecipeOptions(recipes)
+      const recipeOptions = mergeRecipeOptions(recipes, target ? target.recipes : [])
       const nextData = {
         loading: false,
         recipes,
@@ -102,8 +145,6 @@ Page({
       }
 
       if (this.data.isEdit && this.data.mealPlanId) {
-        const mealPlanResult = await createMealPlanService().listMealPlans(activeSpaceId)
-        const target = (mealPlanResult.items || []).find((item) => item._id === this.data.mealPlanId)
         if (!target) {
           this.setData({
             loading: false,
@@ -111,19 +152,26 @@ Page({
           })
           return
         }
+        const primaryRecipe = (Array.isArray(target.recipes) ? target.recipes[0] : null) || {}
         nextData.form = {
-          date: target.date || getTodayDate(),
+          planDate: target.planDate || getTodayDate(),
           mealType: target.mealType || 'dinner',
-          recipeId: target.recipeId || '',
-          servings: target.servings || '',
-          notes: target.notes || ''
+          notes: target.notes || '',
+          recipes: (Array.isArray(target.recipes) && target.recipes.length
+            ? target.recipes
+            : [primaryRecipe]
+          ).map((item) => ({
+            recipeId: item.recipeId || '',
+            servingsOverride: item.servingsOverride || '',
+            notes: item.notes || ''
+          }))
         }
         nextData.selectedMealTypeIndex = getMealTypeIndex(nextData.form.mealType)
-        nextData.selectedRecipeIndex = buildRecipeIndex(recipeOptions, nextData.form.recipeId)
+        nextData.selectedRecipeIndexes = buildRecipeIndices(recipeOptions, nextData.form.recipes)
       } else {
         nextData.form = createEmptyForm()
         nextData.selectedMealTypeIndex = getMealTypeIndex(nextData.form.mealType)
-        nextData.selectedRecipeIndex = 0
+        nextData.selectedRecipeIndexes = [0]
       }
 
       this.setData(nextData)
@@ -137,7 +185,7 @@ Page({
 
   handleDateChange(event) {
     this.setData({
-      'form.date': event.detail.value
+      'form.planDate': event.detail.value
     })
   },
 
@@ -151,11 +199,38 @@ Page({
   },
 
   handleRecipeChange(event) {
+    const index = Number(event.currentTarget.dataset.index)
     const selectedRecipeIndex = Number(event.detail.value)
     const recipeOption = this.data.recipeOptions[selectedRecipeIndex] || { value: '' }
     this.setData({
-      selectedRecipeIndex,
-      'form.recipeId': recipeOption.value
+      [`selectedRecipeIndexes[${index}]`]: selectedRecipeIndex,
+      [`form.recipes[${index}].recipeId`]: recipeOption.value
+    })
+  },
+
+  handleRecipeFieldInput(event) {
+    const index = Number(event.currentTarget.dataset.index)
+    const field = event.currentTarget.dataset.field
+    this.setData({
+      [`form.recipes[${index}].${field}`]: event.detail.value
+    })
+  },
+
+  addRecipeRow() {
+    const nextRecipes = (this.data.form.recipes || []).concat(createEmptyPlanRecipe())
+    this.setData({
+      'form.recipes': nextRecipes,
+      selectedRecipeIndexes: buildRecipeIndices(this.data.recipeOptions, nextRecipes)
+    })
+  },
+
+  removeRecipeRow(event) {
+    const index = Number(event.currentTarget.dataset.index)
+    const nextRecipes = (this.data.form.recipes || []).filter((item, currentIndex) => currentIndex !== index)
+    const safeRecipes = nextRecipes.length ? nextRecipes : [createEmptyPlanRecipe()]
+    this.setData({
+      'form.recipes': safeRecipes,
+      selectedRecipeIndexes: buildRecipeIndices(this.data.recipeOptions, safeRecipes)
     })
   },
 
@@ -170,9 +245,21 @@ Page({
     if (this.data.submitting || this.data.loading || this.data.loadErrorMessage || !this.data.activeSpaceId) {
       return
     }
-    if (!this.data.form.recipeId) {
+    const hasRecipeSelection = (this.data.form.recipes || []).some((item) => item.recipeId)
+    if (!hasRecipeSelection) {
       wx.showToast({
         title: '请选择菜谱',
+        icon: 'none'
+      })
+      return
+    }
+    const availableRecipeIds = new Set((this.data.recipes || []).map((item) => item._id))
+    const hasMissingRecipe = (this.data.form.recipes || []).some(
+      (item) => !item.recipeId || !availableRecipeIds.has(item.recipeId)
+    )
+    if (hasMissingRecipe) {
+      wx.showToast({
+        title: '计划中包含已失效菜谱，请重新选择',
         icon: 'none'
       })
       return
