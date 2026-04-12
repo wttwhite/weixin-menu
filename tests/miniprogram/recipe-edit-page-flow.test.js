@@ -131,4 +131,57 @@ describe('recipe edit page flow', () => {
     expect(page.data.form.name).toBe('Local Draft Name')
     expect(callFunction).toHaveBeenCalledTimes(2)
   })
+
+  it('filters stale tagIds when bootstrapping existing recipe into edit form', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'recipe-1',
+              name: 'Mapo Tofu',
+              tagIds: ['tag-1', 'tag-stale'],
+              ingredients: [{ name: 'Tofu' }],
+              steps: [{ content: 'Cook' }]
+            }
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(page.data.form.tagIds).toEqual(['tag-1'])
+    expect(page.data.tagViewItems).toEqual([
+      expect.objectContaining({
+        _id: 'tag-1',
+        selected: true
+      })
+    ])
+  })
 })

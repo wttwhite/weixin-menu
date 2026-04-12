@@ -164,6 +164,26 @@ function createRepository(options = {}) {
     return result.data || []
   }
 
+  async function isRecipeTagInUse(spaceId, tagId) {
+    const normalizedTagId = typeof tagId === 'string' ? tagId.trim() : ''
+    if (!normalizedTagId) {
+      return false
+    }
+
+    const _ = db.command
+    const result = await db
+      .collection(COLLECTIONS.RECIPES)
+      .where({
+        spaceId,
+        deletedAt: '',
+        tagIds: _.all([normalizedTagId])
+      })
+      .limit(1)
+      .get()
+
+    return Boolean(result.data && result.data.length)
+  }
+
   async function getRecipe(spaceId, recipeId) {
     const result = await db
       .collection(COLLECTIONS.RECIPES)
@@ -274,6 +294,7 @@ function createRepository(options = {}) {
     listPantryItems,
     listRecipeTags,
     listRecipes,
+    isRecipeTagInUse,
     updatePantryItem,
     updateRecipe,
     updateRecipeTag

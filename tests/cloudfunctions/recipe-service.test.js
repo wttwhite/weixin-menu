@@ -73,6 +73,15 @@ function createRepository() {
         ...patch
       }
       return { ...tags[index] }
+    },
+    async isRecipeTagInUse(spaceId, tagId) {
+      return recipes.some((item) => {
+        if (item.spaceId !== spaceId || item.deletedAt) {
+          return false
+        }
+        const tagIds = Array.isArray(item.tagIds) ? item.tagIds : []
+        return tagIds.includes(tagId)
+      })
     }
   }
 }
@@ -448,6 +457,64 @@ describe('recipe service', () => {
         {
           spaceId: 'space-1',
           tagId: createdTag.item._id
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.CONFLICT
+    })
+  })
+
+  it('rejects deleting an in-use tag even when listRecipes is capped to first 100 rows', async () => {
+    const context = { openid: 'user-1' }
+    const tags = [
+      {
+        _id: 'tag-1',
+        spaceId: 'space-1',
+        name: '家常',
+        color: '#E6A23C',
+        deletedAt: ''
+      }
+    ]
+    const recipes = Array.from({ length: 120 }, (_, index) => ({
+      _id: `recipe-${index + 1}`,
+      spaceId: 'space-1',
+      name: `Recipe ${index + 1}`,
+      tagIds: index === 119 ? ['tag-1'] : [],
+      deletedAt: ''
+    }))
+
+    const repository = {
+      async getRecipeTag(spaceId, tagId) {
+        const matched = tags.find((item) => item.spaceId === spaceId && item._id === tagId)
+        return matched ? { ...matched } : null
+      },
+      async listRecipes(spaceId) {
+        return recipes
+          .filter((item) => item.spaceId === spaceId && item.deletedAt === '')
+          .slice(0, 100)
+          .map((item) => ({ ...item }))
+      },
+      async isRecipeTagInUse(spaceId, tagId) {
+        return recipes.some((item) => {
+          if (item.spaceId !== spaceId || item.deletedAt) {
+            return false
+          }
+          const tagIds = Array.isArray(item.tagIds) ? item.tagIds : []
+          return tagIds.includes(tagId)
+        })
+      },
+      async updateRecipeTag() {
+        throw new Error('should not delete in-use tag')
+      }
+    }
+
+    await expect(
+      deleteRecipeTag(
+        {
+          spaceId: 'space-1',
+          tagId: 'tag-1'
         },
         context,
         repository

@@ -113,10 +113,14 @@ Page({
       if (this.data.isEdit && this.data.recipeId) {
         const detail = await service.getRecipeDetail(activeSpaceId, this.data.recipeId)
         const item = detail.item || {}
+        const availableTagIdSet = new Set((nextData.availableTags || []).map((tag) => tag._id))
+        const filteredTagIds = (Array.isArray(item.tagIds) ? item.tagIds : []).filter((tagId) =>
+          availableTagIdSet.has(tagId)
+        )
         nextData.form = {
           ...createEmptyForm(),
           ...item,
-          tagIds: Array.isArray(item.tagIds) ? item.tagIds : [],
+          tagIds: filteredTagIds,
           ingredients: normalizeRows(item.ingredients, createEmptyIngredient),
           steps: normalizeRows(item.steps, createEmptyStep)
         }
