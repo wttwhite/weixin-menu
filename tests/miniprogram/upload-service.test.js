@@ -141,4 +141,41 @@ describe('upload service', () => {
       })
     ).rejects.toThrow('图片已上传但登记失败，请重试')
   })
+
+  it('surfaces cleanup-failure signal when upload fails and discard also fails', async () => {
+    const callCloud = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            imageId: 'img-4',
+            uploadSessionId: 'session-4',
+            cloudPath: 'spaces/space-1/recipes/recipe-1/images/cover/img-4.jpg'
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 500,
+          message: 'discard failed'
+        }
+      })
+    const uploadFile = vi.fn().mockRejectedValue(new Error('upload failed'))
+
+    const service = createUploadService({
+      callCloud,
+      uploadFile
+    })
+
+    await expect(
+      service.uploadRecipeImage({
+        spaceId: 'space-1',
+        recipeId: 'recipe-1',
+        imageRole: 'cover',
+        filePath: '/tmp/cover.jpg',
+        fileName: 'cover.jpg'
+      })
+    ).rejects.toThrow('图片上传失败，且清理未完成，请重试并检查草稿图片')
+  })
 })

@@ -918,4 +918,110 @@ describe('recipe service', () => {
       })
     )
   })
+
+  it('rejects same-space confirmed image that is already bound to another recipe', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+    repository.__seedRecipeImage({
+      _id: 'img-bound',
+      spaceId: 'space-1',
+      recipeId: 'recipe-other',
+      uploadStatus: 'confirmed',
+      deletedAt: '',
+      fileId: 'cloud://img-bound'
+    })
+
+    await expect(
+      createRecipe(
+        {
+          spaceId: 'space-1',
+          recipe: {
+            name: 'Should Reject Bound Image',
+            images: [{ _id: 'img-bound' }]
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Recipe For Update'
+        }
+      },
+      context,
+      repository
+    )
+
+    await expect(
+      updateRecipe(
+        {
+          spaceId: 'space-1',
+          recipeId: 'recipe-1',
+          recipe: {
+            name: 'Update Should Reject Bound Image',
+            images: [{ _id: 'img-bound' }]
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+  })
+
+  it('delete marks recipe/images deleted before cloud-file cleanup and keeps state consistent on cleanup failure', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Recipe Delete Failure Path'
+        }
+      },
+      context,
+      repository
+    )
+    repository.__seedRecipeImage({
+      _id: 'img-fail',
+      spaceId: 'space-1',
+      recipeId: 'recipe-1',
+      uploadStatus: 'confirmed',
+      deletedAt: '',
+      fileId: 'cloud://img-fail'
+    })
+    repository.deleteCloudFiles = async () => {
+      throw new Error('cloud delete failed')
+    }
+
+    await expect(
+      deleteRecipe(
+        {
+          spaceId: 'space-1',
+          recipeId: 'recipe-1'
+        },
+        context,
+        repository
+      )
+    ).rejects.toThrow('cloud delete failed')
+
+    const recipeAfterDelete = await repository.getRecipe('space-1', 'recipe-1')
+    expect(recipeAfterDelete).toEqual(
+      expect.objectContaining({
+        deletedAt: expect.any(String)
+      })
+    )
+    expect(repository.__getRecipeImage('img-fail')).toEqual(
+      expect.objectContaining({
+        deletedAt: expect.any(String)
+      })
+    )
+  })
 })

@@ -527,10 +527,12 @@ Page({
     }
   },
 
-  async cleanupCreateDraftImagesBeforeExit() {
+  async cleanupCreateDraftImagesBeforeExit(options = {}) {
+    const shouldBlockOnUploading = options.blockOnUploading !== false
+    const showFailureToast = options.showFailureToast !== false
     const images = this.data.form.images || []
     const hasUploadingImages = images.some((item) => item && item.uploadStatus === 'uploading')
-    if (hasUploadingImages) {
+    if (hasUploadingImages && shouldBlockOnUploading) {
       wx.showToast({
         title: '图片仍在上传，请稍候再退出',
         icon: 'none'
@@ -548,10 +550,12 @@ Page({
       try {
         await uploadService.discardRecipeImage(this.data.activeSpaceId, image._id)
       } catch (error) {
-        wx.showToast({
-          title: getErrorMessage(error),
-          icon: 'none'
-        })
+        if (showFailureToast) {
+          wx.showToast({
+            title: getErrorMessage(error),
+            icon: 'none'
+          })
+        }
         return false
       }
     }
@@ -564,6 +568,16 @@ Page({
       }
     })
     return true
+  },
+
+  async onUnload() {
+    if (this.data.isEdit) {
+      return
+    }
+    await this.cleanupCreateDraftImagesBeforeExit({
+      blockOnUploading: false,
+      showFailureToast: false
+    })
   },
 
   async goBack() {

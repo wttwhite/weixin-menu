@@ -600,4 +600,57 @@ describe('recipe edit page flow', () => {
     })
     expect(navigateBack).not.toHaveBeenCalled()
   })
+
+  it('onUnload in create mode discards confirmed draft images via lifecycle exit path', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          discarded: true
+        }
+      }
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      isEdit: false,
+      activeSpaceId: 'space-1',
+      form: {
+        ...page.data.form,
+        images: [
+          {
+            _id: 'img-on-unload',
+            uploadStatus: 'confirmed',
+            imageRole: 'cover',
+            fileId: 'cloud://img-on-unload'
+          }
+        ]
+      }
+    })
+
+    await page.onUnload()
+
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'fileOps',
+      data: {
+        action: 'discardRecipeImage',
+        spaceId: 'space-1',
+        imageId: 'img-on-unload'
+      },
+      config: undefined
+    })
+  })
 })

@@ -120,7 +120,7 @@ function toCanonicalRecipeImage(image = {}, sortOrder = 0) {
   }
 }
 
-async function resolveCanonicalRecipeImages(spaceId, recipe = {}, repository = {}) {
+async function resolveCanonicalRecipeImages(spaceId, targetRecipeId = '', recipe = {}, repository = {}) {
   const requestedImageIds = normalizeImageRefIds(recipe.images || [])
   if (!requestedImageIds.length) {
     return []
@@ -138,6 +138,10 @@ async function resolveCanonicalRecipeImages(spaceId, recipe = {}, repository = {
       return null
     }
     if (matched.deletedAt || matched.uploadStatus !== 'confirmed') {
+      return null
+    }
+    const boundRecipeId = normalizeId(matched.recipeId)
+    if (boundRecipeId && boundRecipeId !== targetRecipeId) {
       return null
     }
     return toCanonicalRecipeImage(matched, index + 1)
@@ -176,28 +180,15 @@ async function bindCanonicalImagesToRecipe(
   }
 }
 
-async function cleanupRecipeImagesOnDelete(
-  spaceId,
-  recipeId,
-  context = {},
-  repository = {},
-  now = ''
-) {
+async function cleanupRecipeImagesOnDelete(spaceId, recipeId, context = {}, repository = {}, now = '') {
   let images = []
   if (typeof repository.listRecipeImagesByRecipeId === 'function') {
     images = await repository.listRecipeImagesByRecipeId(spaceId, recipeId)
   }
   const activeImages = (images || []).filter((item) => !item.deletedAt)
-  const cloudFiles = activeImages
-    .filter((item) => item.uploadStatus === 'confirmed' && item.fileId)
-    .map((item) => item.fileId)
-
-  if (cloudFiles.length && typeof repository.deleteCloudFiles === 'function') {
-    await repository.deleteCloudFiles(cloudFiles)
-  }
 
   if (typeof repository.updateRecipeImage !== 'function') {
-    return
+    return activeImages
   }
   for (const image of activeImages) {
     await repository.updateRecipeImage(spaceId, image._id, {
@@ -207,6 +198,7 @@ async function cleanupRecipeImagesOnDelete(
       updatedBy: context.openid || ''
     })
   }
+  return activeImages
 }
 
 async function listRecipes(event = {}, context = {}, repository = {}) {
@@ -262,7 +254,7 @@ async function createRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
-  const canonicalImages = await resolveCanonicalRecipeImages(event.spaceId, recipe, repository)
+  const canonicalImages = await resolveCanonicalRecipeImages(event.spaceId, '', recipe, repository)
   const coverImageId = normalizeId(recipe.coverImageId)
   if (coverImageId && !canonicalImages.some((item) => item._id === coverImageId)) {
     throw toAppError('coverImageId is invalid', ERROR_CODES.INVALID_INPUT)
@@ -320,7 +312,12 @@ async function updateRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
-  const canonicalImages = await resolveCanonicalRecipeImages(event.spaceId, recipe, repository)
+  const canonicalImages = await resolveCanonicalRecipeImages(
+    event.spaceId,
+    normalizeId(event.recipeId),
+    recipe,
+    repository
+  )
   const coverImageId = normalizeId(recipe.coverImageId)
   if (coverImageId && !canonicalImages.some((item) => item._id === coverImageId)) {
     throw toAppError('coverImageId is invalid', ERROR_CODES.INVALID_INPUT)
@@ -389,7 +386,13 @@ async function deleteRecipe(event = {}, context = {}, repository = {}, options =
   }
 
   const now = resolveServerInstant(options)
-  await cleanupRecipeImagesOnDelete(event.spaceId, event.recipeId, context, repository, now)
+  const cleanedImages = await cleanupRecipeImagesOnDelete(
+    event.spaceId,
+    event.recipeId,
+    context,
+    repository,
+    now
+  )
   const deleted = await repository.updateRecipe(event.spaceId, event.recipeId, {
     deletedAt: now,
     deletedBy: context.openid || '',
@@ -398,6 +401,12 @@ async function deleteRecipe(event = {}, context = {}, repository = {}, options =
   })
   if (!deleted) {
     throw toAppError('Recipe not found', ERROR_CODES.NOT_FOUND)
+  }
+  const cloudFiles = (cleanedImages || [])
+    .filter((item) => item.uploadStatus === 'confirmed' && item.fileId)
+    .map((item) => item.fileId)
+  if (cloudFiles.length && typeof repository.deleteCloudFiles === 'function') {
+    await repository.deleteCloudFiles(cloudFiles)
   }
 
   return {

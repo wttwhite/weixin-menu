@@ -30,12 +30,14 @@ function defaultUploadFile(payload) {
 
 async function safeDiscard(cloudCall, payload) {
   try {
-    await cloudCall('fileOps', {
+    const response = await cloudCall('fileOps', {
       action: 'discardRecipeImage',
       ...payload
     })
+    unwrapResponse(response)
+    return null
   } catch (error) {
-    void error
+    return error
   }
 }
 
@@ -66,10 +68,13 @@ function createUploadService(dependencies = {}) {
           filePath: params.filePath
         })
       } catch (error) {
-        await safeDiscard(cloudCall, {
+        const cleanupError = await safeDiscard(cloudCall, {
           spaceId: params.spaceId,
           imageId: prepare.imageId
         })
+        if (cleanupError) {
+          throw new Error('图片上传失败，且清理未完成，请重试并检查草稿图片')
+        }
         throw new Error('图片上传失败，请重试')
       }
 
@@ -91,10 +96,13 @@ function createUploadService(dependencies = {}) {
         )
         return confirm.item || null
       } catch (error) {
-        await safeDiscard(cloudCall, {
+        const cleanupError = await safeDiscard(cloudCall, {
           spaceId: params.spaceId,
           imageId: prepare.imageId
         })
+        if (cleanupError) {
+          throw new Error('图片已上传但登记失败，且清理未完成，请重试并检查草稿图片')
+        }
         throw new Error('图片已上传但登记失败，请重试')
       }
     },
