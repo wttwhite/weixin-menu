@@ -164,6 +164,21 @@ function createRepository(options = {}) {
     return result.data || []
   }
 
+  async function getRecipeListMetadata(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    const result = await db
+      .collection(COLLECTIONS.RECIPES)
+      .where(where)
+      .count()
+
+    return {
+      total: typeof result.total === 'number' ? result.total : 0
+    }
+  }
+
   async function isRecipeTagInUse(spaceId, tagId) {
     const normalizedTagId = typeof tagId === 'string' ? tagId.trim() : ''
     if (!normalizedTagId) {
@@ -290,6 +305,7 @@ function createRepository(options = {}) {
     getPantryItem,
     getPantryListMetadata,
     getRecipe,
+    getRecipeListMetadata,
     getRecipeTag,
     listPantryItems,
     listRecipeTags,

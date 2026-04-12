@@ -184,4 +184,97 @@ describe('recipe edit page flow', () => {
       })
     ])
   })
+
+  it('retries bootstrap on next onShow after initial load failure', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 500,
+          message: 'server error',
+          data: null
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({})
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(page.data.loadErrorMessage).toBe('server error')
+    expect(page.data.availableTags).toEqual([])
+
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.loadErrorMessage).toBe('')
+    expect(page.data.availableTags).toEqual([
+      expect.objectContaining({
+        _id: 'tag-1'
+      })
+    ])
+  })
+
+  it('retries bootstrap when activeSpaceId was initially missing and later becomes available', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+        }
+      }
+    })
+    const globalData = {
+      activeSpaceId: ''
+    }
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({})
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(callFunction).not.toHaveBeenCalled()
+    expect(page.data.activeSpaceId).toBe('')
+
+    globalData.activeSpaceId = 'space-1'
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+    expect(page.data.activeSpaceId).toBe('space-1')
+    expect(page.data.loadErrorMessage).toBe('')
+  })
 })

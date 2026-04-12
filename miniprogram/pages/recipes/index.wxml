@@ -11,6 +11,8 @@
 
   <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
 
+  <view wx:if="{{!errorMessage && truncationMessage}}" class="feedback-card">{{truncationMessage}}</view>
+
   <view wx:if="{{!errorMessage && loading}}" class="feedback-card">正在加载菜谱...</view>
 
   <view wx:elif="{{items.length}}" class="recipe-list">
@@ -23,7 +25,7 @@
     />
   </view>
 
-  <view wx:elif="{{activeSpaceId}}" class="empty-card">
+  <view wx:elif="{{showEmptyState && activeSpaceId}}" class="empty-card">
     <view class="empty-card__title">还没有菜谱</view>
     <view class="empty-card__text">添加第一道菜并维护配料、步骤和标签。</view>
     <button class="empty-card__button" bindtap="goCreate">立即添加</button>

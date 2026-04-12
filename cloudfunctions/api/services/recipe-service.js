@@ -12,6 +12,16 @@ function normalizeId(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+const DEFAULT_LIST_LIMIT = 100
+
+function normalizeListLimit(limit) {
+  const parsed = Number(limit)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_LIST_LIMIT
+  }
+  return Math.min(Math.floor(parsed), DEFAULT_LIST_LIMIT)
+}
+
 function validateSpaceId(spaceId) {
   if (!normalizeId(spaceId)) {
     throw toAppError('spaceId is required', ERROR_CODES.INVALID_INPUT)
@@ -89,16 +99,33 @@ function enrichRecipeWithTags(recipe, tagMap) {
 
 async function listRecipes(event = {}, context = {}, repository = {}) {
   validateSpaceId(event.spaceId)
+  const limit = normalizeListLimit(event.limit)
 
-  const [recipes, tags] = await Promise.all([
-    repository.listRecipes(event.spaceId),
-    repository.listRecipeTags(event.spaceId)
+  const [recipes, tags, metadata] = await Promise.all([
+    repository.listRecipes(event.spaceId, {
+      deletedAt: '',
+      limit
+    }),
+    repository.listRecipeTags(event.spaceId, {
+      deletedAt: ''
+    }),
+    repository.getRecipeListMetadata
+      ? repository.getRecipeListMetadata(event.spaceId, {
+          deletedAt: ''
+        })
+      : null
   ])
   const tagMap = mapTagsById(tags)
+  const items = (recipes || [])
+    .filter((recipe) => !recipe.deletedAt)
+    .map((recipe) => enrichRecipeWithTags(recipe, tagMap))
+  const total = metadata && typeof metadata.total === 'number' ? metadata.total : items.length
+  const hasMore = total > limit
   return {
-    items: (recipes || [])
-      .filter((recipe) => !recipe.deletedAt)
-      .map((recipe) => enrichRecipeWithTags(recipe, tagMap))
+    items,
+    total,
+    hasMore,
+    limit
   }
 }
 

@@ -39,6 +39,12 @@
   color: var(--text-secondary);
 }
 
+.recipe-card__metric {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: var(--text-tertiary);
+}
+
 .recipe-card__tags {
   margin-top: 16rpx;
   display: flex;

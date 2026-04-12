@@ -5,6 +5,7 @@
   </view>
 
   <view class="recipe-card__meta">{{item.categorySummary || '未分类'}}</view>
+  <view wx:if="{{item.metricSummary}}" class="recipe-card__metric">{{item.metricSummary}}</view>
   <view wx:if="{{item.summary}}" class="recipe-card__summary">{{item.summary}}</view>
 
   <view wx:if="{{item.tags && item.tags.length}}" class="recipe-card__tags">

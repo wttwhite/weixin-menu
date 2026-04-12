@@ -57,6 +57,7 @@ function buildTagViewItems(tags = [], selectedTagIds = []) {
 Page({
   data: {
     loading: true,
+    isBootstrapping: false,
     hasBootstrapped: false,
     submitting: false,
     deleting: false,
@@ -80,24 +81,32 @@ Page({
   },
 
   onShow() {
-    if (this.data.hasBootstrapped) {
+    if (this.data.isBootstrapping) {
       return
     }
-    this.bootstrap()
+    const currentActiveSpaceId = getActiveSpaceId()
+    const shouldRetryAfterFailure = Boolean(this.data.loadErrorMessage)
+    const shouldRetryAfterMissingSpace = !this.data.activeSpaceId && Boolean(currentActiveSpaceId)
+    if (this.data.hasBootstrapped && !shouldRetryAfterFailure && !shouldRetryAfterMissingSpace) {
+      return
+    }
+    this.bootstrap(currentActiveSpaceId)
   },
 
-  async bootstrap() {
-    const activeSpaceId = getActiveSpaceId()
+  async bootstrap(activeSpaceIdInput = '') {
+    const activeSpaceId = activeSpaceIdInput || getActiveSpaceId()
     this.setData({
       activeSpaceId,
       loading: true,
+      isBootstrapping: true,
       hasBootstrapped: true,
       loadErrorMessage: ''
     })
 
     if (!activeSpaceId) {
       this.setData({
-        loading: false
+        loading: false,
+        isBootstrapping: false
       })
       return
     }
@@ -107,6 +116,7 @@ Page({
       const tagResult = await service.listRecipeTags(activeSpaceId)
       const nextData = {
         loading: false,
+        isBootstrapping: false,
         availableTags: tagResult.items || []
       }
 
@@ -132,6 +142,7 @@ Page({
     } catch (error) {
       this.setData({
         loading: false,
+        isBootstrapping: false,
         loadErrorMessage: getErrorMessage(error),
         tagViewItems: [],
         form: createEmptyForm()

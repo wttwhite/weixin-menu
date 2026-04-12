@@ -523,4 +523,56 @@ describe('recipe service', () => {
       code: ERROR_CODES.CONFLICT
     })
   })
+
+  it('returns list metadata so capped recipe list can expose truncation', async () => {
+    const context = { openid: 'user-1' }
+    const tags = [
+      {
+        _id: 'tag-1',
+        spaceId: 'space-1',
+        name: '家常',
+        color: '#E6A23C',
+        deletedAt: ''
+      }
+    ]
+    const recipes = Array.from({ length: 120 }, (_, index) => ({
+      _id: `recipe-${index + 1}`,
+      spaceId: 'space-1',
+      name: `Recipe ${index + 1}`,
+      tagIds: index === 0 ? ['tag-1'] : [],
+      deletedAt: ''
+    }))
+    const repository = {
+      async listRecipes(spaceId) {
+        return recipes
+          .filter((item) => item.spaceId === spaceId && item.deletedAt === '')
+          .slice(0, 100)
+          .map((item) => ({ ...item }))
+      },
+      async listRecipeTags(spaceId) {
+        return tags
+          .filter((item) => item.spaceId === spaceId && item.deletedAt === '')
+          .map((item) => ({ ...item }))
+      },
+      async getRecipeListMetadata(spaceId) {
+        const total = recipes.filter((item) => item.spaceId === spaceId && item.deletedAt === '').length
+        return {
+          total
+        }
+      }
+    }
+
+    const listed = await listRecipes(
+      {
+        spaceId: 'space-1'
+      },
+      context,
+      repository
+    )
+
+    expect(listed.items).toHaveLength(100)
+    expect(listed.total).toBe(120)
+    expect(listed.limit).toBe(100)
+    expect(listed.hasMore).toBe(true)
+  })
 })

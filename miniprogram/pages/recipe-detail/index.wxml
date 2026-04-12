@@ -14,6 +14,15 @@
       <view class="hero-meta">
         {{item.category || '未分类'}} · {{item.cuisine || '未设置菜系'}} · {{item.difficulty || '难度未设置'}}
       </view>
+      <view
+        wx:if="{{(item.recommendationScore != null && item.recommendationScore !== '') || (item.servings != null && item.servings !== '') || (item.prepTimeMinutes != null && item.prepTimeMinutes !== '') || (item.cookTimeMinutes != null && item.cookTimeMinutes !== '')}}"
+        class="hero-meta"
+      >
+        <text wx:if="{{item.recommendationScore != null && item.recommendationScore !== ''}}">推荐 {{item.recommendationScore}}</text>
+        <text wx:if="{{item.servings != null && item.servings !== ''}}">{{item.servings}} 人份</text>
+        <text wx:if="{{item.prepTimeMinutes != null && item.prepTimeMinutes !== ''}}">准备 {{item.prepTimeMinutes}} 分钟</text>
+        <text wx:if="{{item.cookTimeMinutes != null && item.cookTimeMinutes !== ''}}">烹饪 {{item.cookTimeMinutes}} 分钟</text>
+      </view>
       <view wx:if="{{item.summary}}" class="hero-summary">{{item.summary}}</view>
 
       <view wx:if="{{item.tags && item.tags.length}}" class="hero-tags">
