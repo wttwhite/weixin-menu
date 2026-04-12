@@ -98,6 +98,26 @@ function normalizeRecipeTagRef(tag = {}) {
   }
 }
 
+function normalizeRecipeImages(images = []) {
+  const normalized = (images || [])
+    .map((item, index) => ({
+      _id: normalizeText(item && item._id),
+      imageRole: normalizeText(item && item.imageRole) || 'gallery',
+      fileId: normalizeText(item && item.fileId),
+      cloudPath: normalizeText(item && item.cloudPath),
+      mimeType: normalizeText(item && item.mimeType),
+      fileSize: normalizeInteger(item && item.fileSize, 0),
+      uploadStatus: normalizeText(item && item.uploadStatus) || 'confirmed',
+      sortOrder: normalizeSortOrder(item && item.sortOrder, index + 1)
+    }))
+    .filter((item) => item._id)
+
+  return sortBySortOrder(normalized).map((item, index) => ({
+    ...item,
+    sortOrder: index + 1
+  }))
+}
+
 function normalizeRecipeTags(tags = []) {
   return (tags || [])
     .map((tag) => normalizeRecipeTagRef(tag))
@@ -136,6 +156,7 @@ function normalizeRecipeDraft(input = {}) {
     sourceUrl: normalizeText(input.sourceUrl),
     isFavorite: normalizeBoolean(input.isFavorite),
     coverImageId: normalizeText(input.coverImageId) || null,
+    images: normalizeRecipeImages(input.images || []),
     ingredients: normalizeRecipeIngredients(input.ingredients || []),
     steps: normalizeRecipeSteps(input.steps || []),
     tags,

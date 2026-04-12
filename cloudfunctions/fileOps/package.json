@@ -1,0 +1,12 @@
+{
+  "name": "fileOps",
+  "version": "1.0.0",
+  "description": "File operations cloud function",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "wx-server-sdk": "~2.4.0"
+  }
+}

@@ -3,6 +3,7 @@ const COLLECTIONS = Object.freeze({
   INVITE_CODE_CLAIMS: 'invite_code_claims',
   SPACE_MEMBERS: 'space_members',
   RECIPES: 'recipes',
+  RECIPE_IMAGES: 'recipe_images',
   RECIPE_TAGS: 'recipe_tags',
   PANTRY_ITEMS: 'pantry_items',
   MEAL_PLANS: 'meal_plans',

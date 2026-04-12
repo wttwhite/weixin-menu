@@ -111,6 +111,19 @@
     </view>
     <button class="section-button" bindtap="addStepRow">添加步骤行</button>
 
+    <view class="section-title">菜谱图片</view>
+    <image-uploader
+      label="上传封面或过程图（上传成功后会保留在当前编辑态）"
+      items="{{form.images}}"
+      spaceId="{{activeSpaceId}}"
+      recipeId="{{recipeId}}"
+      imageRole="cover"
+      bindpendingadd="handleImagePendingAdd"
+      binduploaded="handleImageUploaded"
+      binduploaderror="handleImageUploadError"
+      bindremove="handleImageRemove"
+    />
+
     <view class="section-title">备注与来源</view>
     <textarea class="field-textarea" data-field="notes" value="{{form.notes}}" placeholder="备注（可选）" bindinput="handleInput" />
     <input class="field-input" data-field="sourceName" value="{{form.sourceName}}" placeholder="来源名称（可选）" bindinput="handleInput" />

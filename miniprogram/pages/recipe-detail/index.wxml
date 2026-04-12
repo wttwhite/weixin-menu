@@ -25,6 +25,16 @@
       </view>
       <view wx:if="{{item.summary}}" class="hero-summary">{{item.summary}}</view>
 
+      <view wx:if="{{item.images && item.images.length}}" class="hero-images">
+        <image
+          wx:for="{{item.images}}"
+          wx:key="_id"
+          class="hero-image"
+          src="{{item.fileId || item.localPath}}"
+          mode="aspectFill"
+        />
+      </view>
+
       <view wx:if="{{item.tags && item.tags.length}}" class="hero-tags">
         <tag-chip
           wx:for="{{item.tags}}"

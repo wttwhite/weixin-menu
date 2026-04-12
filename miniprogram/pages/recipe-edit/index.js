@@ -1,4 +1,5 @@
 const { createRecipeService } = require('../../services/recipe')
+const { createUploadService } = require('../../services/upload')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 
@@ -37,6 +38,7 @@ function createEmptyForm() {
     sourceUrl: '',
     isFavorite: false,
     tagIds: [],
+    images: [],
     ingredients: [createEmptyIngredient()],
     steps: [createEmptyStep()]
   }
@@ -52,6 +54,19 @@ function buildTagViewItems(tags = [], selectedTagIds = []) {
     ...tag,
     selected: selectedTagIds.indexOf(tag._id) !== -1
   }))
+}
+
+function normalizeImageItems(images = []) {
+  return (images || [])
+    .map((item) => ({
+      _id: item && item._id ? item._id : '',
+      imageRole: item && item.imageRole ? item.imageRole : 'gallery',
+      uploadStatus: item && item.uploadStatus ? item.uploadStatus : 'confirmed',
+      fileId: item && item.fileId ? item.fileId : '',
+      cloudPath: item && item.cloudPath ? item.cloudPath : '',
+      localPath: item && item.localPath ? item.localPath : ''
+    }))
+    .filter((item) => item._id)
 }
 
 Page({
@@ -148,6 +163,7 @@ Page({
           ...createEmptyForm(),
           ...item,
           tagIds: filteredTagIds,
+          images: normalizeImageItems(item.images || []),
           ingredients: normalizeRows(item.ingredients, createEmptyIngredient),
           steps: normalizeRows(item.steps, createEmptyStep)
         }
@@ -319,6 +335,96 @@ Page({
         submitting: false
       })
     }
+  },
+
+  handleImagePendingAdd(event) {
+    const pending = event.detail && event.detail.item ? event.detail.item : null
+    if (!pending || !pending._id) {
+      return
+    }
+
+    this.setData({
+      'form.images': (this.data.form.images || []).concat(pending)
+    })
+  },
+
+  handleImageUploaded(event) {
+    const localId = event.detail && event.detail.localId ? event.detail.localId : ''
+    const uploadedItem = event.detail && event.detail.item ? event.detail.item : null
+    if (!localId || !uploadedItem || !uploadedItem._id) {
+      return
+    }
+
+    const nextImages = (this.data.form.images || []).map((item) => {
+      if (item._id !== localId) {
+        return item
+      }
+      return {
+        ...uploadedItem
+      }
+    })
+
+    const nextCoverImageId =
+      uploadedItem.imageRole === 'cover'
+        ? uploadedItem._id
+        : this.data.form.coverImageId
+
+    this.setData({
+      'form.images': nextImages,
+      'form.coverImageId': nextCoverImageId
+    })
+  },
+
+  handleImageUploadError(event) {
+    const localId = event.detail && event.detail.localId ? event.detail.localId : ''
+    if (!localId) {
+      return
+    }
+
+    this.setData({
+      'form.images': (this.data.form.images || []).filter((item) => item._id !== localId)
+    })
+  },
+
+  async handleImageRemove(event) {
+    const imageId = event.detail && event.detail.imageId ? event.detail.imageId : ''
+    if (!imageId) {
+      return
+    }
+
+    const images = this.data.form.images || []
+    const targetImage = images.find((item) => item._id === imageId)
+    if (!targetImage) {
+      return
+    }
+
+    if (targetImage.uploadStatus !== 'uploading') {
+      try {
+        const uploadService = createUploadService()
+        if (targetImage.uploadStatus === 'confirmed') {
+          await uploadService.deleteRecipeImage(this.data.activeSpaceId, imageId)
+        } else {
+          await uploadService.discardRecipeImage(this.data.activeSpaceId, imageId)
+        }
+      } catch (error) {
+        wx.showToast({
+          title: getErrorMessage(error),
+          icon: 'none'
+        })
+        return
+      }
+    }
+
+    const nextImages = images.filter((item) => item._id !== imageId)
+    const nextCoverImageId =
+      this.data.form.coverImageId === imageId
+        ? (nextImages.find((item) => item.imageRole === 'cover' && item.uploadStatus === 'confirmed') || {})._id || null
+        : this.data.form.coverImageId
+
+    this.setData({
+      'form.images': nextImages,
+      'form.coverImageId': nextCoverImageId
+    })
   },
 
   async removeRecipe() {
