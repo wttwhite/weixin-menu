@@ -71,11 +71,21 @@ Component({
         return
       }
 
-      const result = await wx.chooseMedia({
-        count: 1,
-        mediaType: ['image'],
-        sourceType: ['album', 'camera']
-      })
+      let result = null
+      try {
+        result = await wx.chooseMedia({
+          count: 1,
+          mediaType: ['image'],
+          sourceType: ['album', 'camera']
+        })
+      } catch (error) {
+        const message = (error && error.message) || (error && error.errMsg) || ''
+        const isCancel = /cancel/i.test(message)
+        if (isCancel) {
+          return
+        }
+        throw error
+      }
       const files = result && Array.isArray(result.tempFiles) ? result.tempFiles : []
       if (!files.length) {
         return

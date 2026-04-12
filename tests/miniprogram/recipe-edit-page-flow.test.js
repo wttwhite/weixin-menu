@@ -723,4 +723,75 @@ describe('recipe edit page flow', () => {
     expect(callFunction).toHaveBeenCalledTimes(2)
     expect(page.data.form.images).toEqual([])
   })
+
+  it('create-mode space switch discards confirmed draft images before reset', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            discarded: true
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ _id: 'tag-new', name: '新空间标签', color: '#67C23A' }]
+          }
+        }
+      })
+    const globalData = {
+      activeSpaceId: 'space-1'
+    }
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      hasBootstrapped: true,
+      activeSpaceId: 'space-1',
+      loading: false,
+      isEdit: false,
+      form: {
+        ...page.data.form,
+        name: 'Draft Recipe',
+        images: [
+          {
+            _id: 'img-switch',
+            uploadStatus: 'confirmed',
+            imageRole: 'cover',
+            fileId: 'cloud://img-switch'
+          }
+        ]
+      }
+    })
+
+    globalData.activeSpaceId = 'space-2'
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'fileOps',
+      data: {
+        action: 'discardRecipeImage',
+        spaceId: 'space-1',
+        imageId: 'img-switch'
+      },
+      config: undefined
+    })
+    expect(page.data.activeSpaceId).toBe('space-2')
+    expect(page.data.form.images).toEqual([])
+  })
 })

@@ -155,4 +155,30 @@ describe('image-uploader component lifecycle cleanup', () => {
     expect(discardRecipeImage).toHaveBeenCalledWith('space-1', 'img-space-switch')
     expect(instance.triggered.some((event) => event.name === 'uploaded')).toBe(false)
   })
+
+  it('treats chooseMedia cancellation as no-op without uploaderror', async () => {
+    const uploadRecipeImage = vi.fn()
+    const discardRecipeImage = vi.fn()
+    global.wx = {
+      chooseMedia: vi.fn().mockRejectedValue(new Error('chooseMedia:fail cancel')),
+      showToast: vi.fn()
+    }
+
+    const componentConfig = await loadComponent()
+    const instance = createComponentInstance(componentConfig, {
+      spaceId: 'space-1',
+      recipeId: '',
+      imageRole: 'cover'
+    })
+    instance.__uploadService = {
+      uploadRecipeImage,
+      discardRecipeImage
+    }
+
+    await instance.chooseAndUpload()
+
+    expect(uploadRecipeImage).not.toHaveBeenCalled()
+    expect(global.wx.showToast).not.toHaveBeenCalled()
+    expect(instance.triggered).toEqual([])
+  })
 })

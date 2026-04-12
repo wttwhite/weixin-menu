@@ -100,7 +100,15 @@ Page({
     })
   },
 
-  onShow() {
+  async onShow() {
+    try {
+      await this.handleOnShow()
+    } catch (error) {
+      void error
+    }
+  },
+
+  async handleOnShow() {
     if (this.data.isBootstrapping) {
       return
     }
@@ -111,6 +119,16 @@ Page({
     const shouldRetryAfterFailure = Boolean(this.data.loadErrorMessage)
     const shouldRetryAfterMissingSpace = !this.data.activeSpaceId && Boolean(currentActiveSpaceId)
     if (hasSpaceChanged) {
+      this.setData({
+        loading: true,
+        isBootstrapping: true
+      })
+      if (!this.data.isEdit) {
+        await this.cleanupCreateDraftImagesBeforeExit({
+          blockOnUploading: false,
+          showFailureToast: false
+        })
+      }
       this.setData({
         hasBootstrapped: false,
         loadErrorMessage: '',
@@ -128,7 +146,7 @@ Page({
     ) {
       return
     }
-    this.bootstrap(currentActiveSpaceId)
+    await this.bootstrap(currentActiveSpaceId)
   },
 
   async bootstrap(activeSpaceIdInput = '') {
