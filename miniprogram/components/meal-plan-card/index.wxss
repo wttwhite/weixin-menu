@@ -1,0 +1,46 @@
+.meal-plan-card {
+  border-radius: 24rpx;
+  padding: 24rpx;
+  background: #ffffff;
+  box-shadow: 0 12rpx 30rpx rgba(15, 29, 68, 0.08);
+}
+
+.meal-plan-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.meal-plan-card__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  color: #2c436d;
+  background: #e9f1ff;
+}
+
+.meal-plan-card__servings {
+  font-size: 24rpx;
+  color: #6f7d95;
+}
+
+.meal-plan-card__name {
+  margin-top: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1b2432;
+}
+
+.meal-plan-card__summary {
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  color: #4a5568;
+}
+
+.meal-plan-card__notes {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #6f7d95;
+}

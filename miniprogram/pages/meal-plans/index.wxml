@@ -1,8 +1,32 @@
-<view class="placeholder-page">
-  <view class="placeholder-card">
-    <view class="placeholder-title">{{title}}</view>
-    <view class="placeholder-space">当前空间：{{activeSpaceId || '尚未选择'}}</view>
-    <view class="placeholder-text">{{description}}</view>
-    <button class="placeholder-button" bindtap="openSpace">管理空间</button>
+<view class="meal-plans-page">
+  <view class="page-header">
+    <view class="page-title">用餐计划</view>
+    <view class="page-summary">{{summary}}</view>
+    <view class="page-space">当前空间：{{activeSpaceId || '尚未选择'}}</view>
+    <button class="space-button" bindtap="openSpace">管理空间</button>
   </view>
+
+  <view class="error-text" wx:if="{{errorMessage}}">{{errorMessage}}</view>
+
+  <view class="empty-state" wx:if="{{showEmptyState}}">
+    <view class="empty-title">还没有计划</view>
+    <view class="empty-text">{{emptyMessage}}</view>
+    <button class="empty-button" bindtap="goCreate">添加第一条计划</button>
+  </view>
+
+  <block wx:for="{{groups}}" wx:key="date">
+    <view class="group-card">
+      <view class="group-date">{{item.date}}</view>
+      <view class="group-list">
+        <meal-plan-card
+          wx:for="{{item.items}}"
+          wx:key="_id"
+          mealPlan="{{item}}"
+          bind:select="handleSelectMealPlan"
+        />
+      </view>
+    </view>
+  </block>
+
+  <button class="fab-add" bindtap="goCreate">+ 添加计划</button>
 </view>

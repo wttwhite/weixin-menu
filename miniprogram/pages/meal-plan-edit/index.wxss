@@ -1,0 +1,79 @@
+.meal-plan-edit-page {
+  min-height: 100vh;
+  padding: 28rpx;
+  background: #f4f6fb;
+  box-sizing: border-box;
+}
+
+.error-text {
+  margin-bottom: 16rpx;
+  color: #b44343;
+  font-size: 26rpx;
+}
+
+.form-card {
+  border-radius: 24rpx;
+  padding: 24rpx;
+  background: #fff;
+}
+
+.field {
+  margin-bottom: 20rpx;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field-label {
+  margin-bottom: 8rpx;
+  font-size: 26rpx;
+  color: #33465f;
+}
+
+.picker-value,
+.field-input,
+.field-textarea {
+  width: 100%;
+  border-radius: 14rpx;
+  border: 1rpx solid #d6deea;
+  background: #f9fbff;
+  padding: 16rpx 18rpx;
+  font-size: 28rpx;
+  color: #1e2737;
+  box-sizing: border-box;
+}
+
+.field-textarea {
+  min-height: 140rpx;
+}
+
+.action-row {
+  margin-top: 24rpx;
+  display: flex;
+  gap: 20rpx;
+}
+
+.ghost-button,
+.primary-button {
+  flex: 1;
+  font-size: 28rpx;
+}
+
+.ghost-button {
+  background: #ffffff;
+  color: #2f4f7f;
+  border: 1rpx solid #cad8ea;
+}
+
+.primary-button {
+  background: #2f5ba3;
+  color: #ffffff;
+}
+
+.danger-button {
+  margin-top: 28rpx;
+  background: #b44343;
+  color: #fff;
+  font-size: 28rpx;
+}

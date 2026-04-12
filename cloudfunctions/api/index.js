@@ -4,6 +4,7 @@ const { ERROR_CODES } = require('./shared/constants/error-codes')
 const { createContext } = require('./lib/context')
 const { createApiRouter } = require('./lib/router')
 const pantryHandlers = require('./handlers/pantry')
+const mealPlanHandlers = require('./handlers/meal-plans')
 const recipeHandlers = require('./handlers/recipes')
 
 let hasInitialized = false
@@ -140,6 +141,59 @@ function createRepository(options = {}) {
     }
 
     await db.collection(COLLECTIONS.PANTRY_ITEMS).doc(pantryItemId).update({
+      data
+    })
+
+    return {
+      ...existing,
+      ...data
+    }
+  }
+
+  async function listMealPlans(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    const result = await db
+      .collection(COLLECTIONS.MEAL_PLANS)
+      .where(where)
+      .get()
+    return result.data || []
+  }
+
+  async function createMealPlan(data) {
+    const created = await db.collection(COLLECTIONS.MEAL_PLANS).add({
+      data
+    })
+
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function getMealPlan(spaceId, mealPlanId) {
+    const result = await db
+      .collection(COLLECTIONS.MEAL_PLANS)
+      .where({
+        _id: mealPlanId,
+        spaceId
+      })
+      .get()
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+    return result.data[0]
+  }
+
+  async function updateMealPlan(spaceId, mealPlanId, data) {
+    const existing = await getMealPlan(spaceId, mealPlanId)
+    if (!existing) {
+      return null
+    }
+
+    await db.collection(COLLECTIONS.MEAL_PLANS).doc(mealPlanId).update({
       data
     })
 
@@ -518,12 +572,14 @@ function createRepository(options = {}) {
 
   return {
     createPantryItem,
+    createMealPlan,
     createRecipe,
     createRecipeAtomic,
     createRecipeTag,
     deleteRecipeTagAtomic,
     findMembership,
     getPantryItem,
+    getMealPlan,
     getPantryListMetadata,
     getRecipe,
     listRecipeImagesByIds,
@@ -531,10 +587,12 @@ function createRepository(options = {}) {
     getRecipeListMetadata,
     getRecipeTag,
     listPantryItems,
+    listMealPlans,
     listRecipeTags,
     listRecipes,
     isRecipeTagInUse,
     updatePantryItem,
+    updateMealPlan,
     updateRecipe,
     updateRecipeImage,
     updateRecipeAtomic,
@@ -550,6 +608,10 @@ function createDefaultHandlers() {
     createPantryItem: pantryHandlers.createPantryItem,
     updatePantryItem: pantryHandlers.updatePantryItem,
     deletePantryItem: pantryHandlers.deletePantryItem,
+    listMealPlans: mealPlanHandlers.listMealPlans,
+    createMealPlan: mealPlanHandlers.createMealPlan,
+    updateMealPlan: mealPlanHandlers.updateMealPlan,
+    deleteMealPlan: mealPlanHandlers.deleteMealPlan,
     listRecipes: recipeHandlers.listRecipes,
     getRecipeDetail: recipeHandlers.getRecipeDetail,
     createRecipe: recipeHandlers.createRecipe,

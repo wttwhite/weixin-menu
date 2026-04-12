@@ -1,0 +1,76 @@
+<view class="meal-plan-edit-page">
+  <view class="error-text" wx:if="{{loadErrorMessage}}">{{loadErrorMessage}}</view>
+
+  <view class="form-card">
+    <view class="field">
+      <view class="field-label">日期</view>
+      <picker mode="date" value="{{form.date}}" bindchange="handleDateChange">
+        <view class="picker-value">{{form.date}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field-label">餐次</view>
+      <picker
+        mode="selector"
+        value="{{selectedMealTypeIndex}}"
+        range="{{mealTypeOptions}}"
+        range-key="label"
+        bindchange="handleMealTypeChange"
+      >
+        <view class="picker-value">{{mealTypeOptions[selectedMealTypeIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field-label">菜谱</view>
+      <picker
+        mode="selector"
+        value="{{selectedRecipeIndex}}"
+        range="{{recipeOptions}}"
+        range-key="label"
+        bindchange="handleRecipeChange"
+      >
+        <view class="picker-value">{{recipeOptions[selectedRecipeIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field-label">份数（可覆盖）</view>
+      <input
+        class="field-input"
+        value="{{form.servings}}"
+        placeholder="例如 3"
+        data-field="servings"
+        bindinput="handleInput"
+      />
+    </view>
+
+    <view class="field">
+      <view class="field-label">备注</view>
+      <textarea
+        class="field-textarea"
+        value="{{form.notes}}"
+        placeholder="例如：少辣、需要备菜"
+        data-field="notes"
+        bindinput="handleInput"
+      />
+    </view>
+  </view>
+
+  <view class="action-row">
+    <button class="ghost-button" bindtap="goBack">取消</button>
+    <button class="primary-button" loading="{{submitting}}" bindtap="submit">
+      {{isEdit ? '保存变更' : '创建计划'}}
+    </button>
+  </view>
+
+  <button
+    wx:if="{{isEdit}}"
+    class="danger-button"
+    loading="{{deleting}}"
+    bindtap="removeMealPlan"
+  >
+    删除计划
+  </button>
+</view>
