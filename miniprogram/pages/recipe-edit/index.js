@@ -527,7 +527,52 @@ Page({
     }
   },
 
-  goBack() {
+  async cleanupCreateDraftImagesBeforeExit() {
+    const images = this.data.form.images || []
+    const hasUploadingImages = images.some((item) => item && item.uploadStatus === 'uploading')
+    if (hasUploadingImages) {
+      wx.showToast({
+        title: '图片仍在上传，请稍候再退出',
+        icon: 'none'
+      })
+      return false
+    }
+
+    const confirmedImages = images.filter((item) => item && item.uploadStatus === 'confirmed' && item._id)
+    if (!confirmedImages.length) {
+      return true
+    }
+
+    const uploadService = createUploadService()
+    for (const image of confirmedImages) {
+      try {
+        await uploadService.discardRecipeImage(this.data.activeSpaceId, image._id)
+      } catch (error) {
+        wx.showToast({
+          title: getErrorMessage(error),
+          icon: 'none'
+        })
+        return false
+      }
+    }
+
+    this.setData({
+      form: {
+        ...this.data.form,
+        images: [],
+        coverImageId: null
+      }
+    })
+    return true
+  },
+
+  async goBack() {
+    if (!this.data.isEdit) {
+      const cleaned = await this.cleanupCreateDraftImagesBeforeExit()
+      if (!cleaned) {
+        return
+      }
+    }
     wx.navigateBack()
   }
 })

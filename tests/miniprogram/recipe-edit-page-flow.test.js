@@ -454,4 +454,150 @@ describe('recipe edit page flow', () => {
     })
     expect(callFunction).not.toHaveBeenCalled()
   })
+
+  it('create-mode back discards confirmed draft images before navigating away', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          discarded: true
+        }
+      }
+    })
+    const navigateBack = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack,
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      isEdit: false,
+      activeSpaceId: 'space-1',
+      form: {
+        ...page.data.form,
+        images: [
+          {
+            _id: 'img-1',
+            uploadStatus: 'confirmed',
+            imageRole: 'cover',
+            fileId: 'cloud://img-1'
+          }
+        ]
+      }
+    })
+
+    await page.goBack()
+
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'fileOps',
+      data: {
+        action: 'discardRecipeImage',
+        spaceId: 'space-1',
+        imageId: 'img-1'
+      },
+      config: undefined
+    })
+    expect(navigateBack).toHaveBeenCalled()
+  })
+
+  it('create-mode back is blocked while uploads are in flight', async () => {
+    const navigateBack = vi.fn()
+    const showToast = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      showToast,
+      navigateBack,
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      isEdit: false,
+      activeSpaceId: 'space-1',
+      form: {
+        ...page.data.form,
+        images: [
+          {
+            _id: 'local-1',
+            uploadStatus: 'uploading',
+            imageRole: 'cover'
+          }
+        ]
+      }
+    })
+
+    await page.goBack()
+
+    expect(showToast).toHaveBeenCalledWith({
+      title: '图片仍在上传，请稍候再退出',
+      icon: 'none'
+    })
+    expect(navigateBack).not.toHaveBeenCalled()
+  })
+
+  it('create-mode back surfaces cleanup failure and keeps page for retry', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 500,
+        message: 'cleanup failed'
+      }
+    })
+    const navigateBack = vi.fn()
+    const showToast = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast,
+      navigateBack,
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      isEdit: false,
+      activeSpaceId: 'space-1',
+      form: {
+        ...page.data.form,
+        images: [
+          {
+            _id: 'img-1',
+            uploadStatus: 'confirmed',
+            imageRole: 'cover',
+            fileId: 'cloud://img-1'
+          }
+        ]
+      }
+    })
+
+    await page.goBack()
+
+    expect(showToast).toHaveBeenCalledWith({
+      title: 'cleanup failed',
+      icon: 'none'
+    })
+    expect(navigateBack).not.toHaveBeenCalled()
+  })
 })

@@ -14,6 +14,8 @@ import { ERROR_CODES } from '../../shared/constants/error-codes'
 function createRepository() {
   const recipes = []
   const tags = []
+  const recipeImages = []
+  const deletedCloudFiles = []
   let recipeIndex = 1
   let tagIndex = 1
 
@@ -45,6 +47,31 @@ function createRepository() {
         ...patch
       }
       return { ...recipes[index] }
+    },
+    async listRecipeImagesByIds(spaceId, imageIds = []) {
+      const idSet = new Set(imageIds)
+      return recipeImages
+        .filter((item) => item.spaceId === spaceId && idSet.has(item._id))
+        .map((item) => ({ ...item }))
+    },
+    async listRecipeImagesByRecipeId(spaceId, recipeId) {
+      return recipeImages
+        .filter((item) => item.spaceId === spaceId && item.recipeId === recipeId)
+        .map((item) => ({ ...item }))
+    },
+    async updateRecipeImage(spaceId, imageId, patch) {
+      const index = recipeImages.findIndex((item) => item.spaceId === spaceId && item._id === imageId)
+      if (index === -1) {
+        return null
+      }
+      recipeImages[index] = {
+        ...recipeImages[index],
+        ...patch
+      }
+      return { ...recipeImages[index] }
+    },
+    async deleteCloudFiles(fileIds = []) {
+      deletedCloudFiles.push(...fileIds)
     },
     async listRecipeTags(spaceId) {
       return tags
@@ -82,6 +109,15 @@ function createRepository() {
         const tagIds = Array.isArray(item.tagIds) ? item.tagIds : []
         return tagIds.includes(tagId)
       })
+    },
+    __seedRecipeImage(image) {
+      recipeImages.push({ ...image })
+    },
+    __getRecipeImage(imageId) {
+      return recipeImages.find((item) => item._id === imageId) || null
+    },
+    __getDeletedCloudFiles() {
+      return [...deletedCloudFiles]
     }
   }
 }
@@ -714,5 +750,172 @@ describe('recipe service', () => {
       repository
     )
     expect(updated.item.recommendationScore).toBe('')
+  })
+
+  it('rejects create with stale/unconfirmed/foreign image refs', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+    repository.__seedRecipeImage({
+      _id: 'img-unconfirmed',
+      spaceId: 'space-1',
+      recipeId: '',
+      uploadStatus: 'prepared',
+      deletedAt: '',
+      fileId: 'cloud://img-unconfirmed'
+    })
+    repository.__seedRecipeImage({
+      _id: 'img-foreign',
+      spaceId: 'space-2',
+      recipeId: '',
+      uploadStatus: 'confirmed',
+      deletedAt: '',
+      fileId: 'cloud://img-foreign'
+    })
+    repository.__seedRecipeImage({
+      _id: 'img-deleted',
+      spaceId: 'space-1',
+      recipeId: '',
+      uploadStatus: 'confirmed',
+      deletedAt: '2026-04-10T00:00:00.000Z',
+      fileId: 'cloud://img-deleted'
+    })
+
+    await expect(
+      createRecipe(
+        {
+          spaceId: 'space-1',
+          recipe: {
+            name: 'Bad Image Ref Recipe',
+            images: [{ _id: 'img-unconfirmed' }]
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+
+    await expect(
+      createRecipe(
+        {
+          spaceId: 'space-1',
+          recipe: {
+            name: 'Bad Deleted Image Ref Recipe',
+            images: [{ _id: 'img-deleted' }]
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+
+    await expect(
+      createRecipe(
+        {
+          spaceId: 'space-1',
+          recipe: {
+            name: 'Bad Missing Image Ref Recipe',
+            images: [{ _id: 'img-missing' }, { _id: 'img-foreign' }]
+          }
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INVALID_INPUT
+    })
+  })
+
+  it('persists canonical image metadata from repository records', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+    repository.__seedRecipeImage({
+      _id: 'img-1',
+      spaceId: 'space-1',
+      recipeId: '',
+      stepId: '',
+      imageRole: 'cover',
+      cloudPath: 'spaces/space-1/recipes/draft/images/cover/img-1.jpg',
+      fileId: 'cloud://real-file-1',
+      mimeType: 'image/jpeg',
+      fileSize: 1024,
+      sortOrder: 1,
+      uploadStatus: 'confirmed',
+      deletedAt: ''
+    })
+
+    const created = await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Canonical Image Recipe',
+          images: [
+            {
+              _id: 'img-1',
+              fileId: 'cloud://tampered',
+              cloudPath: 'tampered-path',
+              uploadStatus: 'confirmed'
+            }
+          ]
+        }
+      },
+      context,
+      repository
+    )
+
+    expect(created.item.images).toEqual([
+      expect.objectContaining({
+        _id: 'img-1',
+        fileId: 'cloud://real-file-1',
+        cloudPath: 'spaces/space-1/recipes/draft/images/cover/img-1.jpg',
+        uploadStatus: 'confirmed'
+      })
+    ])
+  })
+
+  it('deleting recipe also cleans up related recipe images and cloud files', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Recipe With Image'
+        }
+      },
+      context,
+      repository
+    )
+    repository.__seedRecipeImage({
+      _id: 'img-2',
+      spaceId: 'space-1',
+      recipeId: 'recipe-1',
+      fileId: 'cloud://real-file-2',
+      uploadStatus: 'confirmed',
+      deletedAt: ''
+    })
+
+    const removed = await deleteRecipe(
+      {
+        spaceId: 'space-1',
+        recipeId: 'recipe-1'
+      },
+      context,
+      repository
+    )
+
+    expect(removed).toEqual({
+      recipeId: 'recipe-1',
+      deleted: true
+    })
+    expect(repository.__getDeletedCloudFiles()).toEqual(['cloud://real-file-2'])
+    expect(repository.__getRecipeImage('img-2')).toEqual(
+      expect.objectContaining({
+        deletedAt: expect.any(String)
+      })
+    )
   })
 })

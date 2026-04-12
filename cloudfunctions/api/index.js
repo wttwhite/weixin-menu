@@ -215,6 +215,58 @@ function createRepository(options = {}) {
     return result.data[0]
   }
 
+  async function listRecipeImagesByIds(spaceId, imageIds = []) {
+    const normalizedIds = Array.from(
+      new Set((Array.isArray(imageIds) ? imageIds : []).filter((id) => typeof id === 'string' && id))
+    )
+    if (!normalizedIds.length) {
+      return []
+    }
+
+    const where = {
+      spaceId
+    }
+    if (normalizedIds.length === 1) {
+      where._id = normalizedIds[0]
+    } else {
+      where._id = db.command.in(normalizedIds)
+    }
+
+    const result = await db
+      .collection(COLLECTIONS.RECIPE_IMAGES)
+      .where(where)
+      .get()
+    return result.data || []
+  }
+
+  async function listRecipeImagesByRecipeId(spaceId, recipeId) {
+    const result = await db
+      .collection(COLLECTIONS.RECIPE_IMAGES)
+      .where({
+        spaceId,
+        recipeId
+      })
+      .get()
+    return result.data || []
+  }
+
+  async function updateRecipeImage(spaceId, imageId, data) {
+    const existingList = await listRecipeImagesByIds(spaceId, [imageId])
+    if (!existingList.length) {
+      return null
+    }
+    const existing = existingList[0]
+
+    await db.collection(COLLECTIONS.RECIPE_IMAGES).doc(imageId).update({
+      data
+    })
+
+    return {
+      ...existing,
+      ...data
+    }
+  }
+
   async function createRecipe(data) {
     const created = await db.collection(COLLECTIONS.RECIPES).add({
       data
@@ -451,6 +503,19 @@ function createRepository(options = {}) {
     }
   }
 
+  async function deleteCloudFiles(fileIds = []) {
+    const normalized = Array.from(
+      new Set((Array.isArray(fileIds) ? fileIds : []).filter((fileId) => typeof fileId === 'string' && fileId))
+    )
+    if (!normalized.length) {
+      return
+    }
+
+    await cloudSdk.deleteFile({
+      fileList: normalized
+    })
+  }
+
   return {
     createPantryItem,
     createRecipe,
@@ -461,6 +526,8 @@ function createRepository(options = {}) {
     getPantryItem,
     getPantryListMetadata,
     getRecipe,
+    listRecipeImagesByIds,
+    listRecipeImagesByRecipeId,
     getRecipeListMetadata,
     getRecipeTag,
     listPantryItems,
@@ -469,8 +536,10 @@ function createRepository(options = {}) {
     isRecipeTagInUse,
     updatePantryItem,
     updateRecipe,
+    updateRecipeImage,
     updateRecipeAtomic,
-    updateRecipeTag
+    updateRecipeTag,
+    deleteCloudFiles
   }
 }
 

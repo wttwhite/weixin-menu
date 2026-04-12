@@ -97,6 +97,118 @@ function enrichRecipeWithTags(recipe, tagMap) {
   }
 }
 
+function normalizeImageRefIds(images = []) {
+  return Array.from(
+    new Set(
+      (Array.isArray(images) ? images : [])
+        .map((item) => normalizeId(item && item._id))
+        .filter(Boolean)
+    )
+  )
+}
+
+function toCanonicalRecipeImage(image = {}, sortOrder = 0) {
+  return {
+    _id: image._id,
+    imageRole: image.imageRole || 'gallery',
+    fileId: image.fileId || '',
+    cloudPath: image.cloudPath || '',
+    mimeType: image.mimeType || '',
+    fileSize: typeof image.fileSize === 'number' ? image.fileSize : 0,
+    uploadStatus: 'confirmed',
+    sortOrder
+  }
+}
+
+async function resolveCanonicalRecipeImages(spaceId, recipe = {}, repository = {}) {
+  const requestedImageIds = normalizeImageRefIds(recipe.images || [])
+  if (!requestedImageIds.length) {
+    return []
+  }
+
+  if (typeof repository.listRecipeImagesByIds !== 'function') {
+    throw toAppError('Recipe image verification is unavailable', ERROR_CODES.INVALID_INPUT)
+  }
+
+  const fetched = await repository.listRecipeImagesByIds(spaceId, requestedImageIds)
+  const fetchedMap = new Map((fetched || []).map((item) => [item._id, item]))
+  const canonical = requestedImageIds.map((imageId, index) => {
+    const matched = fetchedMap.get(imageId)
+    if (!matched) {
+      return null
+    }
+    if (matched.deletedAt || matched.uploadStatus !== 'confirmed') {
+      return null
+    }
+    return toCanonicalRecipeImage(matched, index + 1)
+  })
+
+  if (canonical.some((item) => item === null)) {
+    throw toAppError('Invalid recipe images', ERROR_CODES.INVALID_INPUT)
+  }
+
+  return canonical
+}
+
+async function bindCanonicalImagesToRecipe(
+  spaceId,
+  recipeId,
+  canonicalImages = [],
+  context = {},
+  repository = {},
+  now = ''
+) {
+  if (!Array.isArray(canonicalImages) || !canonicalImages.length) {
+    return
+  }
+  if (typeof repository.updateRecipeImage !== 'function') {
+    return
+  }
+
+  for (const image of canonicalImages) {
+    await repository.updateRecipeImage(spaceId, image._id, {
+      recipeId,
+      imageRole: image.imageRole,
+      sortOrder: image.sortOrder,
+      updatedAt: now,
+      updatedBy: context.openid || ''
+    })
+  }
+}
+
+async function cleanupRecipeImagesOnDelete(
+  spaceId,
+  recipeId,
+  context = {},
+  repository = {},
+  now = ''
+) {
+  let images = []
+  if (typeof repository.listRecipeImagesByRecipeId === 'function') {
+    images = await repository.listRecipeImagesByRecipeId(spaceId, recipeId)
+  }
+  const activeImages = (images || []).filter((item) => !item.deletedAt)
+  const cloudFiles = activeImages
+    .filter((item) => item.uploadStatus === 'confirmed' && item.fileId)
+    .map((item) => item.fileId)
+
+  if (cloudFiles.length && typeof repository.deleteCloudFiles === 'function') {
+    await repository.deleteCloudFiles(cloudFiles)
+  }
+
+  if (typeof repository.updateRecipeImage !== 'function') {
+    return
+  }
+  for (const image of activeImages) {
+    await repository.updateRecipeImage(spaceId, image._id, {
+      deletedAt: now,
+      deletedBy: context.openid || '',
+      updatedAt: now,
+      updatedBy: context.openid || ''
+    })
+  }
+}
+
 async function listRecipes(event = {}, context = {}, repository = {}) {
   validateSpaceId(event.spaceId)
   const limit = normalizeListLimit(event.limit)
@@ -150,11 +262,18 @@ async function createRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
+  const canonicalImages = await resolveCanonicalRecipeImages(event.spaceId, recipe, repository)
+  const coverImageId = normalizeId(recipe.coverImageId)
+  if (coverImageId && !canonicalImages.some((item) => item._id === coverImageId)) {
+    throw toAppError('coverImageId is invalid', ERROR_CODES.INVALID_INPUT)
+  }
   const { tags: ignoredTags, ...recipeWrite } = recipe
   void ignoredTags
   const recipeCreateData = {
     spaceId: event.spaceId,
     ...recipeWrite,
+    images: canonicalImages,
+    coverImageId: coverImageId || (canonicalImages[0] ? canonicalImages[0]._id : null),
     createdAt: now,
     updatedAt: now,
     deletedAt: '',
@@ -165,6 +284,14 @@ async function createRecipe(event = {}, context = {}, repository = {}, options =
 
   if (typeof repository.createRecipeAtomic === 'function') {
     const created = await repository.createRecipeAtomic(recipeCreateData)
+    await bindCanonicalImagesToRecipe(
+      event.spaceId,
+      created._id,
+      canonicalImages,
+      context,
+      repository,
+      now
+    )
     return {
       item: created
     }
@@ -173,6 +300,14 @@ async function createRecipe(event = {}, context = {}, repository = {}, options =
   await assertRecipeTagIdsValid(event.spaceId, recipe.tagIds, repository)
 
   const created = await repository.createRecipe(recipeCreateData)
+  await bindCanonicalImagesToRecipe(
+    event.spaceId,
+    created._id,
+    canonicalImages,
+    context,
+    repository,
+    now
+  )
   return {
     item: created
   }
@@ -185,10 +320,17 @@ async function updateRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
+  const canonicalImages = await resolveCanonicalRecipeImages(event.spaceId, recipe, repository)
+  const coverImageId = normalizeId(recipe.coverImageId)
+  if (coverImageId && !canonicalImages.some((item) => item._id === coverImageId)) {
+    throw toAppError('coverImageId is invalid', ERROR_CODES.INVALID_INPUT)
+  }
   const { tags: ignoredTags, ...recipeWrite } = recipe
   void ignoredTags
   const recipePatch = {
     ...recipeWrite,
+    images: canonicalImages,
+    coverImageId: coverImageId || (canonicalImages[0] ? canonicalImages[0]._id : null),
     updatedAt: now,
     updatedBy: context.openid || ''
   }
@@ -198,6 +340,14 @@ async function updateRecipe(event = {}, context = {}, repository = {}, options =
     if (!updated) {
       throw toAppError('Recipe not found', ERROR_CODES.NOT_FOUND)
     }
+    await bindCanonicalImagesToRecipe(
+      event.spaceId,
+      event.recipeId,
+      canonicalImages,
+      context,
+      repository,
+      now
+    )
     return {
       item: updated
     }
@@ -215,6 +365,14 @@ async function updateRecipe(event = {}, context = {}, repository = {}, options =
   if (!updated) {
     throw toAppError('Recipe not found', ERROR_CODES.NOT_FOUND)
   }
+  await bindCanonicalImagesToRecipe(
+    event.spaceId,
+    event.recipeId,
+    canonicalImages,
+    context,
+    repository,
+    now
+  )
 
   return {
     item: updated
@@ -231,6 +389,7 @@ async function deleteRecipe(event = {}, context = {}, repository = {}, options =
   }
 
   const now = resolveServerInstant(options)
+  await cleanupRecipeImagesOnDelete(event.spaceId, event.recipeId, context, repository, now)
   const deleted = await repository.updateRecipe(event.spaceId, event.recipeId, {
     deletedAt: now,
     deletedBy: context.openid || '',
