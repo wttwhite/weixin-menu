@@ -16,6 +16,23 @@ function normalizeInteger(value, fallback) {
   return Math.max(0, Math.floor(parsed))
 }
 
+function normalizeOptionalNumber(value) {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  if (typeof value === 'string' && !value.trim()) {
+    return ''
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return ''
+  }
+
+  return Math.max(0, parsed)
+}
+
 function normalizeSortOrder(value, fallback) {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -113,7 +130,7 @@ function normalizeRecipeDraft(input = {}) {
     servings: normalizeText(input.servings),
     prepTimeMinutes: normalizeText(input.prepTimeMinutes),
     cookTimeMinutes: normalizeText(input.cookTimeMinutes),
-    recommendationScore: normalizeInteger(input.recommendationScore, 0),
+    recommendationScore: normalizeOptionalNumber(input.recommendationScore),
     notes: normalizeText(input.notes),
     sourceName: normalizeText(input.sourceName),
     sourceUrl: normalizeText(input.sourceUrl),

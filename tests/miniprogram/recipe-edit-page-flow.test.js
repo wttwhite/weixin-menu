@@ -277,4 +277,65 @@ describe('recipe edit page flow', () => {
     expect(page.data.activeSpaceId).toBe('space-1')
     expect(page.data.loadErrorMessage).toBe('')
   })
+
+  it('re-bootstraps and resets local draft when active space changes', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ _id: 'tag-1', name: '旧空间标签', color: '#E6A23C' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ _id: 'tag-2', name: '新空间标签', color: '#67C23A' }]
+          }
+        }
+      })
+    const globalData = {
+      activeSpaceId: 'space-1'
+    }
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({})
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    page.setData({
+      form: {
+        ...page.data.form,
+        name: 'Local Draft Name'
+      }
+    })
+    expect(page.data.form.name).toBe('Local Draft Name')
+
+    globalData.activeSpaceId = 'space-2'
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.activeSpaceId).toBe('space-2')
+    expect(page.data.form.name).toBe('')
+    expect(page.data.availableTags).toEqual([
+      expect.objectContaining({
+        _id: 'tag-2'
+      })
+    ])
+  })
 })

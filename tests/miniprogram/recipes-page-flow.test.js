@@ -145,5 +145,40 @@ describe('recipes page flow', () => {
     expect(page.data.items[0].metricSummary).toContain('准备 10 分钟')
     expect(page.data.items[0].metricSummary).toContain('烹饪 20 分钟')
   })
-})
 
+  it('does not render recommendation score in metric summary when score is unset', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn().mockResolvedValue({
+          result: {
+            code: 0,
+            data: {
+              items: [
+                {
+                  _id: 'recipe-1',
+                  name: 'Mapo',
+                  recommendationScore: '',
+                  servings: 2
+                }
+              ]
+            }
+          }
+        })
+      },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.items[0].metricSummary).toContain('2 人份')
+    expect(page.data.items[0].metricSummary).not.toContain('推荐')
+  })
+})

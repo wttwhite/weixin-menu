@@ -85,9 +85,26 @@ Page({
       return
     }
     const currentActiveSpaceId = getActiveSpaceId()
+    const hasSpaceChanged =
+      this.data.hasBootstrapped &&
+      currentActiveSpaceId !== this.data.activeSpaceId
     const shouldRetryAfterFailure = Boolean(this.data.loadErrorMessage)
     const shouldRetryAfterMissingSpace = !this.data.activeSpaceId && Boolean(currentActiveSpaceId)
-    if (this.data.hasBootstrapped && !shouldRetryAfterFailure && !shouldRetryAfterMissingSpace) {
+    if (hasSpaceChanged) {
+      this.setData({
+        hasBootstrapped: false,
+        loadErrorMessage: '',
+        availableTags: [],
+        tagViewItems: [],
+        form: createEmptyForm()
+      })
+    }
+    if (
+      this.data.hasBootstrapped &&
+      !hasSpaceChanged &&
+      !shouldRetryAfterFailure &&
+      !shouldRetryAfterMissingSpace
+    ) {
       return
     }
     this.bootstrap(currentActiveSpaceId)

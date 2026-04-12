@@ -683,4 +683,36 @@ describe('recipe service', () => {
       deleted: true
     })
   })
+
+  it('keeps blank recommendationScore unset on create and update', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    const created = await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Blank Score Recipe',
+          recommendationScore: ''
+        }
+      },
+      context,
+      repository
+    )
+    expect(created.item.recommendationScore).toBe('')
+
+    const updated = await updateRecipe(
+      {
+        spaceId: 'space-1',
+        recipeId: created.item._id,
+        recipe: {
+          name: 'Blank Score Recipe Updated',
+          recommendationScore: '   '
+        }
+      },
+      context,
+      repository
+    )
+    expect(updated.item.recommendationScore).toBe('')
+  })
 })
