@@ -242,6 +242,160 @@ function createRepository(options = {}) {
     }
   }
 
+  async function runInTransaction(work) {
+    if (typeof db.startTransaction !== 'function') {
+      return work(db)
+    }
+
+    const transaction = await db.startTransaction()
+    try {
+      const result = await work(transaction)
+      await transaction.commit()
+      return result
+    } catch (error) {
+      if (typeof transaction.rollback === 'function') {
+        await transaction.rollback()
+      }
+      throw error
+    }
+  }
+
+  async function getRecipeByConnection(connection, spaceId, recipeId) {
+    const result = await connection
+      .collection(COLLECTIONS.RECIPES)
+      .where({
+        _id: recipeId,
+        spaceId
+      })
+      .get()
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+    return result.data[0]
+  }
+
+  async function getActiveRecipeTagByConnection(connection, spaceId, tagId) {
+    const result = await connection
+      .collection(COLLECTIONS.RECIPE_TAGS)
+      .where({
+        _id: tagId,
+        spaceId,
+        deletedAt: ''
+      })
+      .get()
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+    return result.data[0]
+  }
+
+  async function assertRecipeTagsActiveAndTouch(connection, spaceId, tagIds = [], touchedAt = '') {
+    const normalizedTagIds = Array.from(
+      new Set((Array.isArray(tagIds) ? tagIds : []).filter((tagId) => typeof tagId === 'string' && tagId))
+    )
+    if (!normalizedTagIds.length) {
+      return
+    }
+
+    for (const tagId of normalizedTagIds) {
+      const activeTag = await getActiveRecipeTagByConnection(connection, spaceId, tagId)
+      if (!activeTag) {
+        throw toAppError('Invalid recipe tagIds', ERROR_CODES.INVALID_INPUT)
+      }
+    }
+
+    for (const tagId of normalizedTagIds) {
+      await connection.collection(COLLECTIONS.RECIPE_TAGS).doc(tagId).update({
+        data: {
+          integrityTouchedAt: touchedAt
+        }
+      })
+    }
+  }
+
+  async function createRecipeAtomic(data) {
+    return runInTransaction(async (connection) => {
+      const spaceId = data.spaceId
+      await assertRecipeTagsActiveAndTouch(
+        connection,
+        spaceId,
+        data.tagIds,
+        data.updatedAt || data.createdAt || ''
+      )
+      const created = await connection.collection(COLLECTIONS.RECIPES).add({
+        data
+      })
+      return {
+        _id: created._id,
+        ...data
+      }
+    })
+  }
+
+  async function updateRecipeAtomic(spaceId, recipeId, data) {
+    return runInTransaction(async (connection) => {
+      const existing = await getRecipeByConnection(connection, spaceId, recipeId)
+      if (!existing || existing.deletedAt) {
+        return null
+      }
+
+      await assertRecipeTagsActiveAndTouch(connection, spaceId, data.tagIds, data.updatedAt || '')
+      await connection.collection(COLLECTIONS.RECIPES).doc(recipeId).update({
+        data
+      })
+
+      return {
+        ...existing,
+        ...data
+      }
+    })
+  }
+
+  async function deleteRecipeTagAtomic(spaceId, tagId, data) {
+    return runInTransaction(async (connection) => {
+      const result = await connection
+        .collection(COLLECTIONS.RECIPE_TAGS)
+        .where({
+          _id: tagId,
+          spaceId
+        })
+        .get()
+      const existing =
+        result.data && result.data.length
+          ? result.data[0]
+          : null
+      if (!existing || existing.deletedAt) {
+        return null
+      }
+
+      const _ = db.command
+      const referencedRecipeResult = await connection
+        .collection(COLLECTIONS.RECIPES)
+        .where({
+          spaceId,
+          deletedAt: '',
+          tagIds: _.all([tagId])
+        })
+        .limit(1)
+        .get()
+      const hasReferencedRecipe = Boolean(
+        referencedRecipeResult.data && referencedRecipeResult.data.length
+      )
+      if (hasReferencedRecipe) {
+        throw toAppError('Recipe tag is still referenced by recipes', ERROR_CODES.CONFLICT)
+      }
+
+      await connection.collection(COLLECTIONS.RECIPE_TAGS).doc(tagId).update({
+        data
+      })
+
+      return {
+        ...existing,
+        ...data
+      }
+    })
+  }
+
   async function listRecipeTags(spaceId, query = {}) {
     const where = {
       spaceId,
@@ -300,7 +454,9 @@ function createRepository(options = {}) {
   return {
     createPantryItem,
     createRecipe,
+    createRecipeAtomic,
     createRecipeTag,
+    deleteRecipeTagAtomic,
     findMembership,
     getPantryItem,
     getPantryListMetadata,
@@ -313,6 +469,7 @@ function createRepository(options = {}) {
     isRecipeTagInUse,
     updatePantryItem,
     updateRecipe,
+    updateRecipeAtomic,
     updateRecipeTag
   }
 }

@@ -145,4 +145,16 @@ describe('api repository wiring', () => {
     )
     await expect(repository.findMembership('space-1', 'missing')).resolves.toBeNull()
   })
+
+  it('exposes transactional recipe integrity methods on real repository wiring', () => {
+    const fakeCloud = createFakeCloudDbAdapter()
+    const repository = createApiRepository({
+      cloudSdk: fakeCloud.cloudSdk,
+      db: fakeCloud.db
+    })
+
+    expect(typeof repository.createRecipeAtomic).toBe('function')
+    expect(typeof repository.updateRecipeAtomic).toBe('function')
+    expect(typeof repository.deleteRecipeTagAtomic).toBe('function')
+  })
 })

@@ -575,4 +575,112 @@ describe('recipe service', () => {
     expect(listed.limit).toBe(100)
     expect(listed.hasMore).toBe(true)
   })
+
+  it('uses repository.createRecipeAtomic when available', async () => {
+    const context = { openid: 'user-1' }
+    const createRecipeAtomic = async (data) => ({
+      _id: 'recipe-atomic-1',
+      ...data
+    })
+    const repository = {
+      createRecipeAtomic,
+      listRecipeTags: async () => {
+        throw new Error('listRecipeTags fallback should not be used')
+      },
+      createRecipe: async () => {
+        throw new Error('createRecipe fallback should not be used')
+      }
+    }
+
+    const created = await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Atomic Recipe',
+          tagIds: ['tag-1']
+        }
+      },
+      context,
+      repository
+    )
+
+    expect(created.item).toEqual(
+      expect.objectContaining({
+        _id: 'recipe-atomic-1',
+        name: 'Atomic Recipe'
+      })
+    )
+  })
+
+  it('uses repository.updateRecipeAtomic when available', async () => {
+    const context = { openid: 'user-1' }
+    const repository = {
+      updateRecipeAtomic: async (_spaceId, recipeId, patch) => ({
+        _id: recipeId,
+        ...patch
+      }),
+      getRecipe: async () => {
+        throw new Error('getRecipe fallback should not be used')
+      },
+      listRecipeTags: async () => {
+        throw new Error('listRecipeTags fallback should not be used')
+      },
+      updateRecipe: async () => {
+        throw new Error('updateRecipe fallback should not be used')
+      }
+    }
+
+    const updated = await updateRecipe(
+      {
+        spaceId: 'space-1',
+        recipeId: 'recipe-1',
+        recipe: {
+          name: 'Atomic Update',
+          tagIds: ['tag-1']
+        }
+      },
+      context,
+      repository
+    )
+
+    expect(updated.item).toEqual(
+      expect.objectContaining({
+        _id: 'recipe-1',
+        name: 'Atomic Update'
+      })
+    )
+  })
+
+  it('uses repository.deleteRecipeTagAtomic when available', async () => {
+    const context = { openid: 'user-1' }
+    const repository = {
+      deleteRecipeTagAtomic: async (_spaceId, tagId, patch) => ({
+        _id: tagId,
+        ...patch
+      }),
+      getRecipeTag: async () => {
+        throw new Error('getRecipeTag fallback should not be used')
+      },
+      isRecipeTagInUse: async () => {
+        throw new Error('isRecipeTagInUse fallback should not be used')
+      },
+      updateRecipeTag: async () => {
+        throw new Error('updateRecipeTag fallback should not be used')
+      }
+    }
+
+    const removed = await deleteRecipeTag(
+      {
+        spaceId: 'space-1',
+        tagId: 'tag-1'
+      },
+      context,
+      repository
+    )
+
+    expect(removed).toEqual({
+      tagId: 'tag-1',
+      deleted: true
+    })
+  })
 })

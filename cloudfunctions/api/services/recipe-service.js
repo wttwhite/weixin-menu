@@ -150,11 +150,9 @@ async function createRecipe(event = {}, context = {}, repository = {}, options =
   const now = resolveServerInstant(options)
   const recipe = normalizeRecipeDraft(event.recipe || {})
   validateRecipeWrite(recipe)
-  await assertRecipeTagIdsValid(event.spaceId, recipe.tagIds, repository)
   const { tags: ignoredTags, ...recipeWrite } = recipe
   void ignoredTags
-
-  const created = await repository.createRecipe({
+  const recipeCreateData = {
     spaceId: event.spaceId,
     ...recipeWrite,
     createdAt: now,
@@ -163,7 +161,18 @@ async function createRecipe(event = {}, context = {}, repository = {}, options =
     createdBy: context.openid || '',
     updatedBy: context.openid || '',
     deletedBy: ''
-  })
+  }
+
+  if (typeof repository.createRecipeAtomic === 'function') {
+    const created = await repository.createRecipeAtomic(recipeCreateData)
+    return {
+      item: created
+    }
+  }
+
+  await assertRecipeTagIdsValid(event.spaceId, recipe.tagIds, repository)
+
+  const created = await repository.createRecipe(recipeCreateData)
   return {
     item: created
   }
@@ -173,23 +182,35 @@ async function updateRecipe(event = {}, context = {}, repository = {}, options =
   validateSpaceId(event.spaceId)
   validateRecipeId(event.recipeId)
 
+  const now = resolveServerInstant(options)
+  const recipe = normalizeRecipeDraft(event.recipe || {})
+  validateRecipeWrite(recipe)
+  const { tags: ignoredTags, ...recipeWrite } = recipe
+  void ignoredTags
+  const recipePatch = {
+    ...recipeWrite,
+    updatedAt: now,
+    updatedBy: context.openid || ''
+  }
+
+  if (typeof repository.updateRecipeAtomic === 'function') {
+    const updated = await repository.updateRecipeAtomic(event.spaceId, event.recipeId, recipePatch)
+    if (!updated) {
+      throw toAppError('Recipe not found', ERROR_CODES.NOT_FOUND)
+    }
+    return {
+      item: updated
+    }
+  }
+
   const existing = await repository.getRecipe(event.spaceId, event.recipeId)
   if (!existing || existing.deletedAt) {
     throw toAppError('Recipe not found', ERROR_CODES.NOT_FOUND)
   }
 
-  const now = resolveServerInstant(options)
-  const recipe = normalizeRecipeDraft(event.recipe || {})
-  validateRecipeWrite(recipe)
   await assertRecipeTagIdsValid(event.spaceId, recipe.tagIds, repository)
-  const { tags: ignoredTags, ...recipeWrite } = recipe
-  void ignoredTags
 
-  const updated = await repository.updateRecipe(event.spaceId, event.recipeId, {
-    ...recipeWrite,
-    updatedAt: now,
-    updatedBy: context.openid || ''
-  })
+  const updated = await repository.updateRecipe(event.spaceId, event.recipeId, recipePatch)
 
   if (!updated) {
     throw toAppError('Recipe not found', ERROR_CODES.NOT_FOUND)
@@ -260,6 +281,30 @@ async function deleteRecipeTag(event = {}, context = {}, repository = {}, option
   validateSpaceId(event.spaceId)
   validateTagId(event.tagId)
 
+  const now = resolveServerInstant(options)
+  const recipeTagDeletePatch = {
+    deletedAt: now,
+    deletedBy: context.openid || '',
+    updatedAt: now,
+    updatedBy: context.openid || ''
+  }
+
+  if (typeof repository.deleteRecipeTagAtomic === 'function') {
+    const deleted = await repository.deleteRecipeTagAtomic(
+      event.spaceId,
+      event.tagId,
+      recipeTagDeletePatch
+    )
+    if (!deleted) {
+      throw toAppError('Recipe tag not found', ERROR_CODES.NOT_FOUND)
+    }
+
+    return {
+      tagId: event.tagId,
+      deleted: true
+    }
+  }
+
   const existing = await repository.getRecipeTag(event.spaceId, event.tagId)
   if (!existing || existing.deletedAt) {
     throw toAppError('Recipe tag not found', ERROR_CODES.NOT_FOUND)
@@ -272,13 +317,7 @@ async function deleteRecipeTag(event = {}, context = {}, repository = {}, option
     throw toAppError('Recipe tag is still referenced by recipes', ERROR_CODES.CONFLICT)
   }
 
-  const now = resolveServerInstant(options)
-  const deleted = await repository.updateRecipeTag(event.spaceId, event.tagId, {
-    deletedAt: now,
-    deletedBy: context.openid || '',
-    updatedAt: now,
-    updatedBy: context.openid || ''
-  })
+  const deleted = await repository.updateRecipeTag(event.spaceId, event.tagId, recipeTagDeletePatch)
   if (!deleted) {
     throw toAppError('Recipe tag not found', ERROR_CODES.NOT_FOUND)
   }
