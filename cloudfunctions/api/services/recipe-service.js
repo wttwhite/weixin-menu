@@ -240,17 +240,6 @@ async function deleteRecipeTag(event = {}, context = {}, repository = {}, option
   let hasReferencedRecipe = false
   if (typeof repository.isRecipeTagInUse === 'function') {
     hasReferencedRecipe = await repository.isRecipeTagInUse(event.spaceId, event.tagId)
-  } else {
-    const recipes = await repository.listRecipes(event.spaceId, {
-      deletedAt: ''
-    })
-    hasReferencedRecipe = (recipes || []).some((recipe) => {
-      if (recipe.deletedAt) {
-        return false
-      }
-      const tagIds = Array.isArray(recipe.tagIds) ? recipe.tagIds : []
-      return tagIds.indexOf(event.tagId) !== -1
-    })
   }
   if (hasReferencedRecipe) {
     throw toAppError('Recipe tag is still referenced by recipes', ERROR_CODES.CONFLICT)
