@@ -331,9 +331,11 @@ describe('app session contract', () => {
     }
 
     await import('../../miniprogram/app.js')
+    const { envList } = await import('../../miniprogram/envList.js')
+    const expectedEnv = envList[0] && envList[0].envId ? envList[0].envId : ''
 
     expect(appConfig.globalData).toEqual({
-      env: '',
+      env: expectedEnv,
       activeSpaceId: ''
     })
     expect(appConfig.setSession).toBeUndefined()
