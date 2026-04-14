@@ -68,6 +68,23 @@
   font-size: 28rpx;
 }
 
+.boot-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-top: 40rpx;
+}
+
+.boot-actions .boot-action {
+  margin-top: 0;
+}
+
+.boot-action-secondary {
+  background: transparent;
+  color: var(--brand-strong);
+  border: 2rpx solid rgba(157, 86, 46, 0.22);
+ }
+
 @keyframes pulse {
   0%,
   100% {

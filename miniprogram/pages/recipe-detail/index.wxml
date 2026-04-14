@@ -9,75 +9,81 @@
 
   <view wx:elif="{{item}}" class="detail-content">
     <view class="hero-card">
-      <view class="hero-title">{{item.name}}</view>
-      <view wx:if="{{item.isFavorite}}" class="hero-favorite">★ 收藏菜谱</view>
-      <view class="hero-meta">
-        {{item.category || '未分类'}} · {{item.cuisine || '未设置菜系'}} · {{item.difficulty || '难度未设置'}}
-      </view>
-      <view
-        wx:if="{{(item.recommendationScore != null && item.recommendationScore !== '') || (item.servings != null && item.servings !== '') || (item.prepTimeMinutes != null && item.prepTimeMinutes !== '') || (item.cookTimeMinutes != null && item.cookTimeMinutes !== '')}}"
-        class="hero-meta"
-      >
-        <text wx:if="{{item.recommendationScore != null && item.recommendationScore !== ''}}">推荐 {{item.recommendationScore}}</text>
-        <text wx:if="{{item.servings != null && item.servings !== ''}}">{{item.servings}} 人份</text>
-        <text wx:if="{{item.prepTimeMinutes != null && item.prepTimeMinutes !== ''}}">准备 {{item.prepTimeMinutes}} 分钟</text>
-        <text wx:if="{{item.cookTimeMinutes != null && item.cookTimeMinutes !== ''}}">烹饪 {{item.cookTimeMinutes}} 分钟</text>
-      </view>
-      <view wx:if="{{item.summary}}" class="hero-summary">{{item.summary}}</view>
-
-      <view wx:if="{{item.images && item.images.length}}" class="hero-images">
-        <image
-          wx:for="{{item.images}}"
-          wx:key="_id"
-          class="hero-image"
-          src="{{item.fileId || item.localPath}}"
-          mode="aspectFill"
-        />
-      </view>
-
-      <view wx:if="{{item.tags && item.tags.length}}" class="hero-tags">
-        <tag-chip
-          wx:for="{{item.tags}}"
-          wx:key="_id"
-          text="{{item.name}}"
-          color="{{item.color}}"
-          plain="{{true}}"
-        />
-      </view>
-    </view>
-
-    <view class="card">
-      <view class="card-title">配料</view>
-      <view wx:if="{{item.ingredients && item.ingredients.length}}">
-        <view wx:for="{{item.ingredients}}" wx:key="sortOrder" class="list-row">
-          <view class="list-row__main">{{index + 1}}. {{item.name}}</view>
-          <view class="list-row__sub">
-            {{item.quantity || '-'}} {{item.unit || ''}} {{item.preparation || ''}}
-          </view>
+      <image class="hero-cover" src="{{coverImageUrl}}" mode="aspectFill" bindtap="previewImage" data-current="{{coverImageUrl}}" />
+      <view class="hero-overlay">
+        <view wx:if="{{item.category}}" class="hero-badge">{{item.category}}</view>
+        <view class="hero-title">{{item.name}}</view>
+        <view wx:if="{{heroSummaryText}}" class="hero-summary">{{heroSummaryText}}</view>
+        <view wx:if="{{heroMetricTexts.length}}" class="hero-metrics">
+          <text wx:for="{{heroMetricTexts}}" wx:key="index" class="hero-metric">{{item}}</text>
         </view>
       </view>
-      <view wx:else class="card-text">暂无配料信息。</view>
+      <button class="hero-share" open-type="share">↗</button>
+    </view>
+
+    <view class="action-row">
+      <button wx:if="{{canManageRecipe}}" class="action-button action-button--edit" bindtap="goEdit">🖊 编辑</button>
+      <button wx:if="{{canManageRecipe}}" class="action-button action-button--delete" bindtap="removeRecipe">🗑 删除</button>
     </view>
 
     <view class="card">
-      <view class="card-title">步骤</view>
-      <view wx:if="{{item.steps && item.steps.length}}">
-        <view wx:for="{{item.steps}}" wx:key="sortOrder" class="step-row">
-          <view class="step-row__title">步骤 {{index + 1}} {{item.title ? '· ' + item.title : ''}}</view>
-          <view class="step-row__content">{{item.content}}</view>
-          <view wx:if="{{item.tips}}" class="step-row__tips">提示：{{item.tips}}</view>
+      <view class="card-head">
+        <view class="card-head__left">
+          <view class="card-head__icon">👨‍🍳</view>
+          <view class="card-title">制作步骤</view>
+        </view>
+        <view class="card-head__meta">{{stepViewItems.length}} 步</view>
+      </view>
+      <view class="card-divider"></view>
+      <view wx:if="{{hasSteps}}">
+        <view wx:for="{{stepViewItems}}" wx:key="displayIndex" class="step-panel">
+          <view class="step-panel__title">步骤 {{item.displayIndex}}</view>
+          <view class="step-panel__content">{{item.content}}</view>
         </view>
       </view>
       <view wx:else class="card-text">暂无步骤信息。</view>
     </view>
 
-    <view wx:if="{{item.notes || item.sourceName || item.sourceUrl}}" class="card">
-      <view class="card-title">备注与来源</view>
-      <view wx:if="{{item.notes}}" class="card-text">{{item.notes}}</view>
-      <view wx:if="{{item.sourceName}}" class="card-text">来源：{{item.sourceName}}</view>
-      <view wx:if="{{item.sourceUrl}}" class="card-text">{{item.sourceUrl}}</view>
+    <view wx:if="{{hasGalleryItems}}" class="card">
+      <view class="card-head">
+        <view class="card-head__left">
+          <view class="card-head__icon">📷</view>
+          <view class="card-title">菜谱图集</view>
+        </view>
+        <view class="card-head__meta">{{galleryItems.length}} 张</view>
+      </view>
+      <view class="card-divider"></view>
+      <view class="gallery-grid">
+        <view wx:for="{{galleryItems}}" wx:key="url" class="gallery-item {{item.isCover ? 'gallery-item--cover' : ''}}">
+          <image
+            class="gallery-image"
+            src="{{item.url}}"
+            mode="aspectFill"
+            bindtap="previewImage"
+            data-current="{{item.url}}"
+          />
+          <view wx:if="{{item.isCover}}" class="gallery-badge">封面</view>
+        </view>
+      </view>
     </view>
 
-    <button class="primary-button" bindtap="goEdit">编辑菜谱</button>
+    <view wx:if="{{hasIngredients}}" class="card">
+      <view class="card-head">
+        <view class="card-head__left">
+          <view class="card-head__icon">🥬</view>
+          <view class="card-title">食材列表</view>
+        </view>
+        <view class="card-head__meta">{{ingredientViewItems.length}} 项</view>
+      </view>
+      <view class="card-divider"></view>
+      <view wx:for="{{ingredientViewItems}}" wx:key="displayIndex" class="ingredient-row">
+        <view class="ingredient-row__name">{{item.displayIndex}}. {{item.name}}</view>
+        <view class="ingredient-row__meta">{{item.quantityText}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{item && !loading && !errorMessage}}" class="bottom-actions">
+    <button class="footer-close-button" bindtap="goBack">关闭</button>
   </view>
 </view>

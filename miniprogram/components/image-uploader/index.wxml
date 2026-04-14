@@ -1,28 +1,39 @@
 <view class="uploader">
   <view wx:if="{{label}}" class="uploader__label">{{label}}</view>
 
-  <button
-    class="uploader__button"
-    loading="{{uploading}}"
-    disabled="{{disabled || uploading || items.length >= maxCount}}"
-    bindtap="chooseAndUpload"
-  >
-    {{uploading ? '上传中...' : '添加图片'}}
-  </button>
+  <view class="uploader__action-row">
+    <view
+      class="uploader__entry uploader__entry--camera"
+      bindtap="handleCameraTap"
+      hover-class="uploader__entry--hover"
+    >
+      <view class="uploader__entry-icon">📷</view>
+      <view class="uploader__entry-text">拍照</view>
+    </view>
+    <view
+      class="uploader__entry uploader__entry--album"
+      bindtap="handleAlbumTap"
+      hover-class="uploader__entry--hover"
+    >
+      <view class="uploader__entry-icon">＋</view>
+      <view class="uploader__entry-text">相册</view>
+    </view>
+  </view>
+
+  <view wx:if="{{uploading}}" class="uploader__hint">图片上传中...</view>
 
   <view wx:if="{{items.length}}" class="uploader__list">
     <view wx:for="{{items}}" wx:key="_id" class="uploader__item">
       <image class="uploader__image" src="{{item.localPath || item.fileId}}" mode="aspectFill" />
       <view class="uploader__meta">
         <view class="uploader__status">{{item.uploadStatus || 'confirmed'}}</view>
-        <button
+        <view
           class="uploader__remove"
           data-image-id="{{item._id}}"
           bindtap="handleRemove"
-          disabled="{{disabled}}"
         >
           删除
-        </button>
+        </view>
       </view>
     </view>
   </view>

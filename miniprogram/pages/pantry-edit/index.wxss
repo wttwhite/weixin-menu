@@ -1,101 +1,316 @@
 .edit-page {
   min-height: 100vh;
-  padding: 40rpx 28rpx 60rpx;
+  overflow-x: hidden;
+  padding: 28rpx 24rpx 180rpx;
+  background:
+    radial-gradient(circle at top, rgba(135, 203, 158, 0.18), transparent 28%),
+    linear-gradient(180deg, #f7faf8 0%, #edf2ef 100%);
 }
 
-.form-card,
-.empty-card {
-  border-radius: 32rpx;
-  padding: 40rpx 32rpx;
-  background: var(--surface-bg);
-  box-shadow: var(--shadow-soft);
+.editor-shell,
+.state-card {
+  display: grid;
+  gap: 22rpx;
+  min-width: 0;
 }
 
-.form-title,
-.empty-card__title {
-  font-size: 42rpx;
-  font-weight: 600;
-  color: var(--text-primary);
+.editor-section,
+.state-card {
+  border-radius: 34rpx;
+  padding: 28rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 20rpx 34rpx rgba(56, 63, 79, 0.1);
+  min-width: 0;
 }
 
-.form-text,
-.empty-card__text {
-  margin-top: 16rpx;
+.state-title,
+.editor-section__title {
+  font-size: 46rpx;
+  font-weight: 800;
+  color: #182234;
+}
+
+.state-text {
+  margin-top: 12rpx;
   font-size: 28rpx;
   line-height: 1.7;
-  color: var(--text-secondary);
+  color: #7a808d;
+}
+
+.state-button {
+  margin-top: 20rpx;
+  background: #2f8b37;
+  color: #fff;
+  font-size: 28rpx;
+}
+
+.editor-section__head {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.editor-section__icon {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 26rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef6ef;
+  color: #2f8b37;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.editor-section__icon--danger {
+  background: #ffe9e9;
+  color: #d14b4b;
+}
+
+.editor-section__divider {
+  height: 1px;
+  margin: 18rpx 0 8rpx;
+  background: #edf1f5;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 20rpx;
+  min-width: 0;
+}
+
+.form-row__label {
+  width: 124rpx;
+  flex-shrink: 0;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #27323f;
+  white-space: nowrap;
+}
+
+.form-row__required {
+  margin-right: 6rpx;
+  color: #d65a5a;
 }
 
 .field-label {
-  margin-top: 28rpx;
-  font-size: 24rpx;
-  color: var(--text-secondary);
-}
-
-.field-row {
-  display: flex;
-  gap: 18rpx;
-}
-
-.field-col {
-  flex: 1;
+  margin-top: 22rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #27323f;
 }
 
 .field-input,
 .field-textarea {
   width: 100%;
-  margin-top: 14rpx;
-  padding: 24rpx 22rpx;
-  border-radius: 22rpx;
-  background: #fff;
   box-sizing: border-box;
+  margin-top: 10rpx;
+  border-radius: 18rpx;
+  background: #fafbfe;
+  border: 1px solid #edf0f4;
   font-size: 28rpx;
+  line-height: 1.4;
+  color: #27323f;
 }
 
-.date-row {
+.field-input--inline {
+  margin-top: 0;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.picker-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-picker-row {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 10rpx;
 }
 
-.date-row picker {
+.field-input {
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 24rpx;
+}
+
+.field-input--date {
+  display: flex;
+  align-items: center;
+}
+
+.field-input--picker,
+.field-input--readonly {
+  justify-content: space-between;
+}
+
+.field-input--readonly {
+  color: #667084;
+  background: #f4f7fa;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.detail-grid__item {
+  min-width: 0;
+}
+
+.quantity-stepper {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  width: 100%;
+  min-width: 0;
+}
+
+.quantity-stepper--inline {
+  margin-top: 12rpx;
+}
+
+.stepper-button {
+  width: 48rpx;
+  min-width: 48rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 14rpx;
+  background: #eef3ef;
+  color: #2f8b37;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.stepper-button::after {
+  border: none;
+}
+
+.stepper-value {
   flex: 1;
+  min-width: 0;
+  height: 56rpx;
+  line-height: 56rpx;
+  padding: 0 12rpx;
+  box-sizing: border-box;
+  border-radius: 14rpx;
+  background: #fafbfe;
+  border: 1px solid #edf0f4;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #27323f;
+  text-align: center;
+}
+
+.date-row__picker {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 10rpx;
+}
+
+.field-clear {
+  flex: none;
+  width: auto;
+  min-width: 44rpx;
+  height: 44rpx;
+  line-height: 44rpx;
+  margin-top: 0;
+  border-radius: 999rpx;
+  background: #eef3ef;
+  color: #667084;
+  font-size: 24rpx;
+  font-weight: 700;
+  text-align: center;
+}
+
+.description-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24rpx;
+}
+
+.description-head__label {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #27323f;
+}
+
+.description-head__count {
+  font-size: 22rpx;
+  color: #8c95a2;
 }
 
 .field-textarea {
-  min-height: 180rpx;
+  padding: 18rpx 24rpx;
+  line-height: 1.6;
 }
 
-.date-clear {
-  margin-top: 14rpx;
-  padding: 0 24rpx;
-  height: 84rpx;
-  line-height: 84rpx;
-  background: #fff;
-  color: var(--text-secondary);
-  font-size: 24rpx;
-}
-
-.submit-button {
-  margin-top: 34rpx;
-  padding: 24rpx 0;
-  background: var(--brand);
-  color: #fff;
-  font-size: 28rpx;
+.field-textarea--notes {
+  min-height: 80rpx;
+  height: 80rpx;
 }
 
 .delete-button {
-  margin-top: 18rpx;
-  padding: 24rpx 0;
-  background: #f4d8d8;
-  color: #8c2f2f;
+  margin-top: 6rpx;
+  width: auto;
+  min-width: 0;
+  padding: 0 28rpx;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  height: 74rpx;
+  line-height: 74rpx;
+  border-radius: 999rpx;
+  background: #ffe9e9;
+  color: #d14b4b;
   font-size: 28rpx;
+  font-weight: 700;
 }
 
-.back-button {
-  margin-top: 24rpx;
-  padding: 24rpx 0;
-  background: var(--brand);
+.bottom-actions {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 14rpx);
+  display: flex;
+  gap: 14rpx;
+}
+
+.footer-close-button,
+.footer-submit-button {
+  margin: 0;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 24rpx;
+  font-size: 32rpx;
+  font-weight: 800;
+  box-shadow: 0 16rpx 28rpx rgba(56, 63, 79, 0.12);
+}
+
+.footer-close-button {
+  width: 170rpx;
+  background: #edf1f6;
+  color: #27323f;
+}
+
+.footer-submit-button {
+  flex: 1;
+  background: linear-gradient(135deg, #3c9844, #2d7f34);
   color: #fff;
-  font-size: 28rpx;
 }

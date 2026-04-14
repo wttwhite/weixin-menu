@@ -30,6 +30,31 @@ function createRepository(options = {}) {
   const cloudSdk = getCloudSdk(options.cloudSdk)
   ensureCloudInit(cloudSdk)
   const db = options.db || cloudSdk.database()
+  const PAGE_SIZE = 100
+
+  async function listAllRecords(collectionName, where = {}) {
+    const items = []
+    let skip = 0
+
+    while (true) {
+      let request = db.collection(collectionName).where(where)
+      if (typeof request.orderBy === 'function') {
+        request = request.orderBy('_id', 'asc')
+      }
+      const result = await request
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .get()
+      const page = result.data || []
+      items.push(...page)
+      if (page.length < PAGE_SIZE) {
+        break
+      }
+      skip += PAGE_SIZE
+    }
+
+    return items
+  }
 
   async function findMembership(spaceId, openid) {
     const result = await db
@@ -70,16 +95,25 @@ function createRepository(options = {}) {
     return result.data || []
   }
 
-  async function getPantryListMetadata(spaceId, query = {}) {
-    const result = await db
-      .collection(COLLECTIONS.PANTRY_ITEMS)
-      .where({
-        spaceId,
-        deletedAt: ''
-      })
-      .get()
+  async function listAllPantryItems(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    if (query.category) {
+      where.category = query.category
+    }
+    if (query.location) {
+      where.location = query.location
+    }
 
-    const data = result.data || []
+    return listAllRecords(COLLECTIONS.PANTRY_ITEMS, where)
+  }
+
+  async function getPantryListMetadata(spaceId, query = {}) {
+    const data = await listAllPantryItems(spaceId, {
+      deletedAt: ''
+    })
     const categories = []
     const locations = []
 
@@ -150,6 +184,44 @@ function createRepository(options = {}) {
       ...existing,
       ...data
     }
+  }
+
+  async function renamePantryCategory(spaceId, previousName, nextName, metadata = {}) {
+    const pantryItems = await listAllPantryItems(spaceId, {
+      deletedAt: ''
+    })
+    const matched = (pantryItems || []).filter((item) => item.category === previousName)
+
+    for (const pantryItem of matched) {
+      await db.collection(COLLECTIONS.PANTRY_ITEMS).doc(pantryItem._id).update({
+        data: {
+          category: nextName,
+          updatedAt: metadata.updatedAt || pantryItem.updatedAt || '',
+          updatedBy: metadata.updatedBy || pantryItem.updatedBy || ''
+        }
+      })
+    }
+
+    return matched.length
+  }
+
+  async function renamePantryLocation(spaceId, previousName, nextName, metadata = {}) {
+    const pantryItems = await listAllPantryItems(spaceId, {
+      deletedAt: ''
+    })
+    const matched = (pantryItems || []).filter((item) => item.location === previousName)
+
+    for (const pantryItem of matched) {
+      await db.collection(COLLECTIONS.PANTRY_ITEMS).doc(pantryItem._id).update({
+        data: {
+          location: nextName,
+          updatedAt: metadata.updatedAt || pantryItem.updatedAt || '',
+          updatedBy: metadata.updatedBy || pantryItem.updatedBy || ''
+        }
+      })
+    }
+
+    return matched.length
   }
 
   async function listMealPlans(spaceId, query = {}) {
@@ -352,6 +424,14 @@ function createRepository(options = {}) {
     return result.data || []
   }
 
+  async function listAllRecipes(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    return listAllRecords(COLLECTIONS.RECIPES, where)
+  }
+
   async function getRecipeListMetadata(spaceId, query = {}) {
     const where = {
       spaceId,
@@ -401,6 +481,60 @@ function createRepository(options = {}) {
     }
 
     return result.data[0]
+  }
+
+  async function getSpace(spaceId) {
+    const result = await db
+      .collection(COLLECTIONS.SPACES)
+      .where({
+        _id: spaceId
+      })
+      .get()
+
+    if (!result.data || result.data.length === 0) {
+      return null
+    }
+
+    return result.data[0]
+  }
+
+  async function updateSpace(spaceId, data) {
+    const existing = await getSpace(spaceId)
+    if (!existing) {
+      return null
+    }
+
+    await db.collection(COLLECTIONS.SPACES).doc(spaceId).update({
+      data
+    })
+
+    return {
+      ...existing,
+      ...data,
+      settings: {
+        ...(existing.settings || {}),
+        ...((data && data.settings) || {})
+      }
+    }
+  }
+
+  async function renameRecipeCategory(spaceId, previousName, nextName, metadata = {}) {
+    const recipes = await listAllRecipes(spaceId, {
+      deletedAt: ''
+    })
+    const matched = (recipes || []).filter((item) => item.category === previousName)
+
+    for (const recipe of matched) {
+      await db.collection(COLLECTIONS.RECIPES).doc(recipe._id).update({
+        data: {
+          category: nextName,
+          updatedAt: metadata.updatedAt || recipe.updatedAt || '',
+          updatedBy: metadata.updatedBy || recipe.updatedBy || ''
+        }
+      })
+    }
+
+    return matched.length
   }
 
   async function listRecipeImagesByIds(spaceId, imageIds = []) {
@@ -742,6 +876,7 @@ function createRepository(options = {}) {
     findMembership,
     getPantryItem,
     getMealPlan,
+    getSpace,
     getPantryListMetadata,
     getMealPlanListMetadata,
     getRecipe,
@@ -749,7 +884,9 @@ function createRepository(options = {}) {
     listRecipeImagesByRecipeId,
     getRecipeListMetadata,
     getRecipeTag,
+    listAllPantryItems,
     listPantryItems,
+    listAllRecipes,
     listMealPlans,
     listShoppingLists,
     listShoppingItems,
@@ -762,12 +899,16 @@ function createRepository(options = {}) {
     isRecipeTagInUse,
     updatePantryItem,
     updateMealPlan,
+    updateSpace,
     updateShoppingItem,
     updateShoppingList,
     updateRecipe,
     updateRecipeImage,
     updateRecipeAtomic,
     updateRecipeTag,
+    renamePantryCategory,
+    renamePantryLocation,
+    renameRecipeCategory,
     deleteCloudFiles,
     createShoppingItem,
     createShoppingList
@@ -781,6 +922,16 @@ function createDefaultHandlers() {
     createPantryItem: pantryHandlers.createPantryItem,
     updatePantryItem: pantryHandlers.updatePantryItem,
     deletePantryItem: pantryHandlers.deletePantryItem,
+    listPantryCategories: pantryHandlers.listPantryCategories,
+    createPantryCategory: pantryHandlers.createPantryCategory,
+    updatePantryCategory: pantryHandlers.updatePantryCategory,
+    deletePantryCategory: pantryHandlers.deletePantryCategory,
+    reorderPantryCategories: pantryHandlers.reorderPantryCategories,
+    listPantryLocations: pantryHandlers.listPantryLocations,
+    createPantryLocation: pantryHandlers.createPantryLocation,
+    updatePantryLocation: pantryHandlers.updatePantryLocation,
+    deletePantryLocation: pantryHandlers.deletePantryLocation,
+    reorderPantryLocations: pantryHandlers.reorderPantryLocations,
     listMealPlans: mealPlanHandlers.listMealPlans,
     getMealPlan: mealPlanHandlers.getMealPlan,
     createMealPlan: mealPlanHandlers.createMealPlan,
@@ -792,7 +943,11 @@ function createDefaultHandlers() {
     updateRecipe: recipeHandlers.updateRecipe,
     deleteRecipe: recipeHandlers.deleteRecipe,
     listRecipeTags: recipeHandlers.listRecipeTags,
+    listRecipeCategories: recipeHandlers.listRecipeCategories,
     createRecipeTag: recipeHandlers.createRecipeTag,
+    createRecipeCategory: recipeHandlers.createRecipeCategory,
+    updateRecipeCategory: recipeHandlers.updateRecipeCategory,
+    deleteRecipeCategory: recipeHandlers.deleteRecipeCategory,
     deleteRecipeTag: recipeHandlers.deleteRecipeTag,
     listShoppingLists: shoppingHandlers.listShoppingLists,
     createShoppingList: shoppingHandlers.createShoppingList,

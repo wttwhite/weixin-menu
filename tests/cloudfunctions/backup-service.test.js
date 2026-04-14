@@ -9,6 +9,9 @@ import { ERROR_CODES } from '../../shared/constants/error-codes'
 
 function createRepository() {
   const backupRecords = []
+  const settings = {
+    recipeCategories: ['健康时蔬', '美味汤羹']
+  }
   const imported = {
     recipes: [],
     recipeTags: [],
@@ -16,7 +19,8 @@ function createRepository() {
     pantryItems: [],
     mealPlans: [],
     shoppingLists: [],
-    shoppingItems: []
+    shoppingItems: [],
+    settings: {}
   }
 
   return {
@@ -64,6 +68,9 @@ function createRepository() {
     async listBackupRecords(spaceId) {
       return backupRecords.filter((item) => item.spaceId === spaceId).map((item) => ({ ...item }))
     },
+    async getSpaceSettings() {
+      return { ...settings }
+    },
     async replaceSpaceData(spaceId, payload) {
       imported.recipes = (payload.recipes || []).map((item) => ({ ...item, spaceId }))
       imported.recipeTags = (payload.recipeTags || []).map((item) => ({ ...item, spaceId }))
@@ -72,6 +79,7 @@ function createRepository() {
       imported.mealPlans = (payload.mealPlans || []).map((item) => ({ ...item, spaceId }))
       imported.shoppingLists = (payload.shoppingLists || []).map((item) => ({ ...item, spaceId }))
       imported.shoppingItems = (payload.shoppingItems || []).map((item) => ({ ...item, spaceId }))
+      imported.settings = { ...(payload.settings || {}) }
       return imported
     },
     getImported() {
@@ -143,6 +151,9 @@ describe('backup service', () => {
     expect(backupPayload.recipes).toHaveLength(1)
     expect(backupPayload.recipeTags).toHaveLength(1)
     expect(backupPayload.recipeImages).toHaveLength(1)
+    expect(backupPayload.settings).toEqual({
+      recipeCategories: ['健康时蔬', '美味汤羹']
+    })
   })
 
   it('maps export file-read failures to BACKUP_EXPORT_FAILED', async () => {
@@ -263,7 +274,9 @@ describe('backup service', () => {
         mealPlans: [{ _id: 'meal-1' }],
         shoppingLists: [{ _id: 'list-1' }],
         shoppingItems: [{ _id: 'item-1' }],
-        settings: {}
+        settings: {
+          recipeCategories: ['健康时蔬', '美味汤羹']
+        }
       })
     )
     zip.file('files/recipe-images/img-1.jpg', 'image-bytes')
@@ -291,6 +304,9 @@ describe('backup service', () => {
     })
     expect(repository.getImported().recipes).toHaveLength(1)
     expect(repository.getImported().recipes[0].coverImageId).toBe(repository.getImported().recipeImages[0]._id)
+    expect(repository.getImported().settings).toEqual({
+      recipeCategories: ['健康时蔬', '美味汤羹']
+    })
   })
 
   it('does not fail import when writing the import backup record fails after restore', async () => {

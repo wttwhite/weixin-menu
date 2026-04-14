@@ -93,23 +93,45 @@ describe('pantry edit page flow', () => {
   })
 
   it('loads edit item via getPantryItem action', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        code: 0,
-        data: {
-          item: {
-            _id: 'pantry-1',
-            name: 'Milk',
-            category: 'dairy',
-            quantity: '1',
-            unit: 'box',
-            location: 'fridge',
-            expirationDate: '2026-04-20',
-            notes: 'test'
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'dairy' }, { name: 'produce' }]
           }
         }
-      }
-    })
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'fridge' }, { name: 'freezer' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'pantry-1',
+              name: 'Milk',
+              category: 'dairy',
+              quantity: '1',
+              unit: 'box',
+              location: 'fridge',
+              productionDate: '2026-01-10',
+              shelfLifeMonths: '3',
+              openedDate: '2026-01-18',
+              usageStatus: 'opened',
+              expirationDate: '2026-04-10',
+              notes: 'test'
+            }
+          }
+        }
+      })
     global.wx = {
       cloud: {
         callFunction
@@ -139,7 +161,80 @@ describe('pantry edit page flow', () => {
       config: undefined
     })
     expect(page.data.form.name).toBe('Milk')
+    expect(page.data.categoryOptions).toEqual(['未设置', 'dairy', 'produce'])
+    expect(page.data.locationOptions).toEqual(['未设置', 'fridge', 'freezer'])
+    expect(page.data.form.usageStatus).toBe('opened')
+    expect(page.data.form.expirationDate).toBe('2026-04-10')
     expect(page.data.loadErrorMessage).toBe('')
+  })
+
+  it('uses configured dropdowns and stepper actions for pantry fields', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'dairy' }, { name: 'produce' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'fridge' }, { name: 'freezer' }]
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      redirectTo: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry-edit/index.js')
+    page.onLoad({})
+    await flushAsyncWork()
+
+    page.handleCategorySelect({ detail: { value: 2 } })
+    page.handleLocationSelect({ detail: { value: 2 } })
+    page.handleUsageStatusSelect({ detail: { value: 2 } })
+    page.incrementQuantity()
+    page.incrementShelfLifeMonths()
+    page.handleProductionDateChange({ detail: { value: '2026-01-10' } })
+    page.handleExpirationDateChange({ detail: { value: '2026-02-14' } })
+    page.handleOpenedDateChange({ detail: { value: '2026-01-12' } })
+
+    expect(page.data.form.category).toBe('produce')
+    expect(page.data.form.location).toBe('freezer')
+    expect(page.data.form.usageStatus).toBe('used-up')
+    expect(page.data.form.quantity).toBe('2')
+    expect(page.data.form.shelfLifeMonths).toBe('1')
+    expect(page.data.form.productionDate).toBe('2026-01-10')
+    expect(page.data.form.expirationDate).toBe('2026-02-14')
+    expect(page.data.form.openedDate).toBe('2026-01-12')
+
+    page.clearCategory()
+    page.clearLocation()
+    page.clearExpirationDate()
+    page.clearOpenedDate()
+
+    expect(page.data.form.category).toBe('')
+    expect(page.data.form.location).toBe('')
+    expect(page.data.form.expirationDate).toBe('')
+    expect(page.data.form.openedDate).toBe('')
+    expect(page.data.categoryIndex).toBe(0)
+    expect(page.data.locationIndex).toBe(0)
   })
 
   it('blocks edit actions after item load failure', async () => {
@@ -172,6 +267,6 @@ describe('pantry edit page flow', () => {
     expect(page.data.loadErrorMessage).toBe('没有找到对应的数据')
     await page.submit()
     await page.removeItem()
-    expect(callFunction).toHaveBeenCalledTimes(1)
+    expect(callFunction).toHaveBeenCalledTimes(3)
   })
 })

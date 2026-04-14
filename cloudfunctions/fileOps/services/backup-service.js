@@ -133,13 +133,16 @@ function remapImportedPayload(payload = {}, options = {}) {
 }
 
 async function buildBackupPayload(spaceId, repository, nowIso) {
-  const [recipes, recipeTags, recipeImages, pantryItems, mealPlans, shoppingLists] = await Promise.all([
+  const [recipes, recipeTags, recipeImages, pantryItems, mealPlans, shoppingLists, settings] = await Promise.all([
     repository.listRecipes(spaceId, { deletedAt: '' }),
     repository.listRecipeTags(spaceId, { deletedAt: '' }),
     repository.listRecipeImages(spaceId, { deletedAt: '' }),
     repository.listPantryItems(spaceId, { deletedAt: '' }),
     repository.listMealPlans(spaceId, { deletedAt: '' }),
-    repository.listShoppingLists(spaceId, { deletedAt: '' })
+    repository.listShoppingLists(spaceId, { deletedAt: '' }),
+    typeof repository.getSpaceSettings === 'function'
+      ? repository.getSpaceSettings(spaceId)
+      : {}
   ])
 
   const shoppingItems = []
@@ -158,7 +161,7 @@ async function buildBackupPayload(spaceId, repository, nowIso) {
     mealPlans: mealPlans || [],
     shoppingLists: shoppingLists || [],
     shoppingItems,
-    settings: {}
+    settings: settings || {}
   }
 }
 
@@ -351,7 +354,8 @@ async function importSpaceBackup(event = {}, context = {}, repository = {}, stor
         pantryItems: remappedPayload.pantryItems || [],
         mealPlans: remappedPayload.mealPlans || [],
         shoppingLists: remappedPayload.shoppingLists || [],
-        shoppingItems: remappedPayload.shoppingItems || []
+        shoppingItems: remappedPayload.shoppingItems || [],
+        settings: payload.settings || {}
       })
     } catch (error) {
       throw toAppError(error.message || 'Backup restore failed', ERROR_CODES.BACKUP_RESTORE_FAILED)

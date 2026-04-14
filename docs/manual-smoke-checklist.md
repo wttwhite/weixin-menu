@@ -5,6 +5,12 @@
 - Prepare one owner account and one member account.
 - Ensure both can enter the same cloud environment.
 
+## Bootstrap
+
+- In a fresh cloud environment without business collections, open the mini program and confirm the boot page shows `初始化云数据库`.
+- Tap `初始化云数据库` and verify the app can continue into the space selection flow without manually creating collections.
+- Confirm the created business collections are still configured as `所有用户不可读写`.
+
 ## Space
 
 - Create a new space with the owner account.

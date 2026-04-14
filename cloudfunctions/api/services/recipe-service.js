@@ -40,6 +40,12 @@ function validateTagId(tagId) {
   }
 }
 
+function validateCategoryName(name, fieldName = 'name') {
+  if (!normalizeId(name)) {
+    throw toAppError(`${fieldName} is required`, ERROR_CODES.INVALID_INPUT)
+  }
+}
+
 function validateRecipeWrite(recipe) {
   if (!recipe.name) {
     throw toAppError('Recipe name is required', ERROR_CODES.INVALID_INPUT)
@@ -50,6 +56,46 @@ function validateTagWrite(tag) {
   if (!tag.name) {
     throw toAppError('Tag name is required', ERROR_CODES.INVALID_INPUT)
   }
+}
+
+function normalizeCategoryName(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function getStoredRecipeCategories(space = {}) {
+  const settings = space && typeof space.settings === 'object' ? space.settings : {}
+  const categories = Array.isArray(settings.recipeCategories) ? settings.recipeCategories : []
+  return Array.from(
+    new Set(
+      categories
+        .map((item) => normalizeCategoryName(item))
+        .filter(Boolean)
+    )
+  )
+}
+
+function buildRecipeCategoryItems(space = {}, recipes = []) {
+  const counts = new Map()
+  for (const recipe of recipes || []) {
+    const category = normalizeCategoryName(recipe.category)
+    if (!category) {
+      continue
+    }
+    counts.set(category, (counts.get(category) || 0) + 1)
+  }
+
+  const orderedNames = getStoredRecipeCategories(space)
+  for (const categoryName of counts.keys()) {
+    if (!orderedNames.includes(categoryName)) {
+      orderedNames.push(categoryName)
+    }
+  }
+
+  return orderedNames.map((name) => ({
+    name,
+    recipeCount: counts.get(name) || 0,
+    deletable: (counts.get(name) || 0) === 0
+  }))
 }
 
 async function assertRecipeTagIdsValid(spaceId, tagIds = [], repository = {}) {
@@ -423,6 +469,159 @@ async function listRecipeTags(event = {}, context = {}, repository = {}) {
   }
 }
 
+async function listRecipeCategories(event = {}, context = {}, repository = {}) {
+  validateSpaceId(event.spaceId)
+  const [space, recipes] = await Promise.all([
+    repository.getSpace ? repository.getSpace(event.spaceId) : null,
+    repository.listAllRecipes
+      ? repository.listAllRecipes(event.spaceId, { deletedAt: '' })
+      : repository.listRecipes(event.spaceId, { deletedAt: '' })
+  ])
+
+  return {
+    items: buildRecipeCategoryItems(space || {}, recipes || [])
+  }
+}
+
+async function createRecipeCategory(event = {}, context = {}, repository = {}, options = {}) {
+  validateSpaceId(event.spaceId)
+  const name = normalizeCategoryName(event.name)
+  validateCategoryName(name)
+
+  const now = resolveServerInstant(options)
+  const [space, recipes] = await Promise.all([
+    repository.getSpace ? repository.getSpace(event.spaceId) : null,
+    repository.listAllRecipes
+      ? repository.listAllRecipes(event.spaceId, { deletedAt: '' })
+      : repository.listRecipes(event.spaceId, { deletedAt: '' })
+  ])
+  const existingItems = buildRecipeCategoryItems(space || {}, recipes || [])
+  if (existingItems.some((item) => item.name === name)) {
+    throw toAppError('Recipe category already exists', ERROR_CODES.CONFLICT)
+  }
+
+  const previousSettings = space && typeof space.settings === 'object' ? space.settings : {}
+  const recipeCategories = getStoredRecipeCategories(space || {}).concat(name)
+  await repository.updateSpace(event.spaceId, {
+    settings: {
+      ...previousSettings,
+      recipeCategories
+    },
+    updatedAt: now,
+    updatedBy: context.openid || ''
+  })
+
+  return {
+    item: {
+      name,
+      recipeCount: 0,
+      deletable: true
+    }
+  }
+}
+
+async function updateRecipeCategory(event = {}, context = {}, repository = {}, options = {}) {
+  validateSpaceId(event.spaceId)
+  const previousName = normalizeCategoryName(event.previousName)
+  const name = normalizeCategoryName(event.name)
+  validateCategoryName(previousName, 'previousName')
+  validateCategoryName(name)
+
+  const now = resolveServerInstant(options)
+  const [space, recipes] = await Promise.all([
+    repository.getSpace ? repository.getSpace(event.spaceId) : null,
+    repository.listAllRecipes
+      ? repository.listAllRecipes(event.spaceId, { deletedAt: '' })
+      : repository.listRecipes(event.spaceId, { deletedAt: '' })
+  ])
+  const existingItems = buildRecipeCategoryItems(space || {}, recipes || [])
+  const currentItem = existingItems.find((item) => item.name === previousName)
+  if (!currentItem) {
+    throw toAppError('Recipe category not found', ERROR_CODES.NOT_FOUND)
+  }
+  if (previousName !== name && existingItems.some((item) => item.name === name)) {
+    throw toAppError('Recipe category already exists', ERROR_CODES.CONFLICT)
+  }
+
+  const previousSettings = space && typeof space.settings === 'object' ? space.settings : {}
+  const storedCategories = getStoredRecipeCategories(space || {})
+  const nextCategories = storedCategories.includes(previousName)
+    ? storedCategories.map((item) => (item === previousName ? name : item))
+    : storedCategories.concat(name)
+
+  await repository.updateSpace(event.spaceId, {
+    settings: {
+      ...previousSettings,
+      recipeCategories: Array.from(new Set(nextCategories))
+    },
+    updatedAt: now,
+    updatedBy: context.openid || ''
+  })
+
+  if (previousName !== name) {
+    if (typeof repository.renameRecipeCategory === 'function') {
+      await repository.renameRecipeCategory(event.spaceId, previousName, name, {
+        updatedAt: now,
+        updatedBy: context.openid || ''
+      })
+    } else {
+      for (const recipe of (recipes || []).filter((item) => normalizeCategoryName(item.category) === previousName)) {
+        await repository.updateRecipe(event.spaceId, recipe._id, {
+          category: name,
+          updatedAt: now,
+          updatedBy: context.openid || ''
+        })
+      }
+    }
+  }
+
+  return {
+    item: {
+      name,
+      recipeCount: currentItem.recipeCount,
+      deletable: currentItem.recipeCount === 0
+    }
+  }
+}
+
+async function deleteRecipeCategory(event = {}, context = {}, repository = {}, options = {}) {
+  validateSpaceId(event.spaceId)
+  const name = normalizeCategoryName(event.name)
+  validateCategoryName(name)
+
+  const now = resolveServerInstant(options)
+  const [space, recipes] = await Promise.all([
+    repository.getSpace ? repository.getSpace(event.spaceId) : null,
+    repository.listAllRecipes
+      ? repository.listAllRecipes(event.spaceId, { deletedAt: '' })
+      : repository.listRecipes(event.spaceId, { deletedAt: '' })
+  ])
+  const existingItems = buildRecipeCategoryItems(space || {}, recipes || [])
+  const currentItem = existingItems.find((item) => item.name === name)
+  if (!currentItem) {
+    throw toAppError('Recipe category not found', ERROR_CODES.NOT_FOUND)
+  }
+  if (currentItem.recipeCount > 0) {
+    throw toAppError('Recipe category is still referenced by recipes', ERROR_CODES.CONFLICT)
+  }
+
+  const previousSettings = space && typeof space.settings === 'object' ? space.settings : {}
+  const nextCategories = getStoredRecipeCategories(space || {}).filter((item) => item !== name)
+  await repository.updateSpace(event.spaceId, {
+    settings: {
+      ...previousSettings,
+      recipeCategories: nextCategories
+    },
+    updatedAt: now,
+    updatedBy: context.openid || ''
+  })
+
+  return {
+    deleted: true,
+    name
+  }
+}
+
 async function createRecipeTag(event = {}, context = {}, repository = {}, options = {}) {
   validateSpaceId(event.spaceId)
   const now = resolveServerInstant(options)
@@ -498,11 +697,15 @@ async function deleteRecipeTag(event = {}, context = {}, repository = {}, option
 
 module.exports = {
   createRecipe,
+  createRecipeCategory,
   createRecipeTag,
   deleteRecipe,
+  deleteRecipeCategory,
   deleteRecipeTag,
   getRecipeDetail,
+  listRecipeCategories,
   listRecipeTags,
   listRecipes,
+  updateRecipeCategory,
   updateRecipe
 }

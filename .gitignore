@@ -6,3 +6,4 @@ miniprogram/shared/
 cloudfunctions/api/shared/
 cloudfunctions/memberOps/shared/
 cloudfunctions/fileOps/shared/
+.ace-tool/

@@ -82,6 +82,40 @@ beforeEach(() => {
 })
 
 describe('image-uploader component lifecycle cleanup', () => {
+  it('supports dedicated camera and album entry points', async () => {
+    global.wx = {
+      chooseMedia: vi.fn().mockResolvedValue({
+        tempFiles: []
+      }),
+      showToast: vi.fn()
+    }
+
+    const componentConfig = await loadComponent()
+    const instance = createComponentInstance(componentConfig, {
+      spaceId: 'space-1',
+      recipeId: '',
+      imageRole: 'cover'
+    })
+    instance.__uploadService = {
+      uploadRecipeImage: vi.fn(),
+      discardRecipeImage: vi.fn()
+    }
+
+    await instance.handleCameraTap()
+    await instance.handleAlbumTap()
+
+    expect(global.wx.chooseMedia).toHaveBeenNthCalledWith(1, {
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['camera']
+    })
+    expect(global.wx.chooseMedia).toHaveBeenNthCalledWith(2, {
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album']
+    })
+  })
+
   it('discards late upload success after component is detached', async () => {
     const deferred = createDeferred()
     const uploadRecipeImage = vi.fn().mockReturnValue(deferred.promise)

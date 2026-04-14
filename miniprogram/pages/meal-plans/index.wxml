@@ -1,33 +1,132 @@
 <view class="meal-plans-page">
-  <view class="page-header">
-    <view class="page-title">用餐计划</view>
-    <view class="page-summary">{{summary}}</view>
-    <view class="page-space">当前空间：{{activeSpaceId || '尚未选择'}}</view>
-    <button class="space-button" bindtap="openSpace">管理空间</button>
-  </view>
-
-  <view class="error-text" wx:if="{{errorMessage}}">{{errorMessage}}</view>
-  <view class="page-space" wx:if="{{truncationMessage}}">{{truncationMessage}}</view>
-
-  <view class="empty-state" wx:if="{{!errorMessage && showEmptyState}}">
-    <view class="empty-title">还没有计划</view>
-    <view class="empty-text">{{emptyMessage}}</view>
-    <button class="empty-button" bindtap="goCreate">添加第一条计划</button>
-  </view>
-
-  <block wx:for="{{groups}}" wx:key="date">
-    <view class="group-card">
-      <view class="group-date">{{item.date}}</view>
-      <view class="group-list">
-        <meal-plan-card
-          wx:for="{{item.items}}"
-          wx:key="_id"
-          mealPlan="{{item}}"
-          bind:select="handleSelectMealPlan"
-        />
+  <view class="plans-hero">
+    <image class="plans-hero__background" src="/images/food-hero-table.svg" mode="aspectFill" />
+    <view class="plans-hero__overlay">
+      <view class="plans-hero__date">{{currentDateLabel}}</view>
+      <view class="plans-hero__title">做饭计划</view>
+      <view class="plans-hero__subtitle">本周菜谱安排，合理规划每日饮食</view>
+      <view class="plans-hero__stat">
+        <view class="plans-hero__stat-value">{{monthPlanCount}}</view>
+        <view class="plans-hero__stat-label">个计划</view>
       </view>
     </view>
-  </block>
+  </view>
 
-  <button wx:if="{{activeSpaceId}}" class="fab-add" bindtap="goCreate">+ 添加计划</button>
+  <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
+  <view wx:if="{{!errorMessage && truncationMessage}}" class="feedback-card">{{truncationMessage}}</view>
+
+  <view wx:if="{{!activeSpaceId}}" class="empty-card">
+    <view class="empty-card__title">先选择一个空间</view>
+    <view class="empty-card__text">空间用于团队共享菜谱、库存、计划和采购数据。</view>
+    <button class="empty-card__button" bindtap="openSpace">前往选择空间</button>
+  </view>
+
+  <view wx:elif="{{loading}}" class="feedback-card">正在读取计划...</view>
+
+  <view wx:else>
+    <view class="calendar-panel">
+      <view class="calendar-panel__nav">
+        <view class="calendar-nav__button" bindtap="goPrevMonth">‹</view>
+        <view class="calendar-nav__month">{{viewMonthLabel}}</view>
+        <view class="calendar-nav__button" bindtap="goNextMonth">›</view>
+        <button class="calendar-nav__today" bindtap="goToday">回到今日</button>
+      </view>
+
+      <view class="calendar-weekdays">
+        <view wx:for="{{weekDayLabels}}" wx:key="index" class="calendar-weekdays__item">{{item}}</view>
+      </view>
+
+      <view class="calendar-grid">
+        <view
+          wx:for="{{calendarItems}}"
+          wx:key="key"
+          class="{{item.itemClass}}"
+          data-date="{{item.date}}"
+          bindtap="handleCalendarDateSelect"
+        >
+          <view wx:if="{{!item.isBlank}}" class="calendar-cell__day">{{item.label}}</view>
+          <view wx:if="{{item.showDot}}" class="{{item.dotClass}}"></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="plans-day-card">
+      <view class="plans-day-card__head">
+        <view>
+          <view class="plans-day-card__title">{{selectedDateTitle}}</view>
+          <view class="plans-day-card__meta">{{selectedPlanCountText}}</view>
+        </view>
+        <button wx:if="{{selectedPlans.length}}" class="plans-day-card__action" bindtap="openInventoryCheck">检查食材库存</button>
+        <button wx:else class="plans-day-card__action" bindtap="goCreate">添加安排</button>
+      </view>
+
+      <view wx:if="{{selectedPlans.length}}" class="plan-card-list">
+        <view wx:for="{{selectedPlans}}" wx:key="_id" class="plan-card" data-meal-plan-id="{{item._id}}" bindtap="handleSelectMealPlan">
+          <view class="plan-card__icon">{{item.utensilText}}</view>
+          <view class="plan-card__body">
+            <view class="plan-card__head">
+              <view class="plan-card__title">{{item.mealTypeLabel}}：{{item.primaryRecipeName}}</view>
+              <view class="{{item.statusClass}}">{{item.statusText}}</view>
+            </view>
+            <view class="plan-card__meta">{{item.planCountText}}</view>
+            <view class="plan-card__tags">
+              <view wx:for="{{item.recipeTagItems}}" wx:key="index" class="plan-card__tag">{{item}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:else class="empty-card empty-card--inline">
+        <view class="empty-card__title">当天还没有安排</view>
+        <view class="empty-card__text">{{emptyMessage}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showInventoryModal}}" class="inventory-modal__overlay" catchtap="closeInventoryModal">
+    <view class="inventory-modal" catchtap="closeInventoryModal">
+      <view class="inventory-modal__panel" catchtap="noop">
+        <view class="inventory-modal__header">
+          <view>
+            <view class="inventory-modal__title">食材库存检查</view>
+            <view class="inventory-modal__date">{{inventoryCheckDateLabel}}</view>
+          </view>
+          <view class="inventory-modal__close" bindtap="closeInventoryModal">×</view>
+        </view>
+
+        <view wx:if="{{inventoryModalLoading}}" class="feedback-card feedback-card--inline">正在检查库存...</view>
+
+        <view wx:else>
+          <view class="inventory-modal__summary">
+            <view class="inventory-stat">
+              <view class="inventory-stat__value">{{inventorySummary.totalText}}</view>
+              <view class="inventory-stat__label">需食材</view>
+            </view>
+            <view class="inventory-stat inventory-stat--ok">
+              <view class="inventory-stat__value">{{inventorySummary.inStockText}}</view>
+              <view class="inventory-stat__label">库存充足</view>
+            </view>
+            <view class="inventory-stat inventory-stat--missing">
+              <view class="inventory-stat__value">{{inventorySummary.missingText}}</view>
+              <view class="inventory-stat__label">需采购</view>
+            </view>
+          </view>
+
+          <view class="inventory-list">
+            <view wx:for="{{inventoryItems}}" wx:key="key" class="inventory-item">
+              <view class="{{item.iconClass}}">{{item.iconText}}</view>
+              <view class="inventory-item__body">
+                <view class="inventory-item__name">{{item.name}}</view>
+                <view class="inventory-item__meta">{{item.requiredText}}</view>
+                <view class="inventory-item__meta">{{item.stockText}}</view>
+              </view>
+              <view class="{{item.statusClass}}">{{item.statusText}}</view>
+            </view>
+          </view>
+
+          <button class="inventory-modal__primary" bindtap="generateShoppingList">{{inventoryGenerateButtonText}}</button>
+        </view>
+      </view>
+    </view>
+  </view>
 </view>

@@ -1,55 +1,149 @@
 <view class="edit-page">
-  <view wx:if="{{!activeSpaceId}}" class="empty-card">
-    <view class="empty-card__title">还没有可用空间</view>
-    <view class="empty-card__text">请先创建或切换空间，再管理库存。</view>
+  <view wx:if="{{!activeSpaceId}}" class="state-card">
+    <view class="state-title">还没有可用空间</view>
+    <view class="state-text">请先切换或创建空间，再管理共享库存。</view>
   </view>
 
-  <view wx:elif="{{loading}}" class="empty-card">
-    <view class="empty-card__title">正在加载库存信息...</view>
+  <view wx:elif="{{loading}}" class="state-card">
+    <view class="state-title">{{loadingTitle}}</view>
   </view>
 
-  <view wx:elif="{{loadErrorMessage}}" class="empty-card">
-    <view class="empty-card__title">库存项加载失败</view>
-    <view class="empty-card__text">{{loadErrorMessage}}</view>
-    <button class="back-button" bindtap="goBack">返回列表</button>
+  <view wx:elif="{{loadErrorMessage}}" class="state-card">
+    <view class="state-title">库存项加载失败</view>
+    <view class="state-text">{{loadErrorMessage}}</view>
+    <button class="state-button" bindtap="goBack">返回列表</button>
   </view>
 
-  <view wx:else class="form-card">
-    <view class="form-title">{{isEdit ? '更新库存项' : '添加库存项'}}</view>
-    <view class="form-text">记录分类、位置和到期时间，方便家庭空间成员同步查看。</view>
-
-    <view class="field-label">名称</view>
-    <input class="field-input" data-field="name" value="{{form.name}}" placeholder="例如：牛奶" bindinput="handleInput" />
-
-    <view class="field-label">分类</view>
-    <input class="field-input" data-field="category" value="{{form.category}}" placeholder="例如：乳制品" bindinput="handleInput" />
-
-    <view class="field-row">
-      <view class="field-col">
-        <view class="field-label">数量</view>
-        <input class="field-input" data-field="quantity" value="{{form.quantity}}" placeholder="1" bindinput="handleInput" />
+  <view wx:else class="editor-shell">
+    <view class="editor-section">
+      <view class="editor-section__head">
+        <view class="editor-section__icon">⌂</view>
+        <view class="editor-section__title">基本信息</view>
       </view>
-      <view class="field-col">
-        <view class="field-label">单位</view>
-        <input class="field-input" data-field="unit" value="{{form.unit}}" placeholder="盒 / 瓶 / 袋" bindinput="handleInput" />
+      <view class="editor-section__divider"></view>
+
+      <view class="form-row">
+        <view class="form-row__label"><text class="form-row__required">*</text>名称</view>
+        <input
+          class="field-input field-input--inline"
+          data-field="name"
+          value="{{form.name}}"
+          placeholder="例如：牛奶"
+          bindinput="handleInput"
+        />
+      </view>
+
+      <view class="form-row">
+        <view class="form-row__label">分类</view>
+        <view class="field-picker-row">
+          <picker class="picker-field" mode="selector" range="{{categoryOptions}}" value="{{categoryIndex}}" bindchange="handleCategorySelect">
+            <view class="field-input field-input--inline field-input--picker">{{categoryOptions[categoryIndex] || '未设置'}}</view>
+          </picker>
+          <view wx:if="{{form.category}}" class="field-clear" bindtap="clearCategory">×</view>
+        </view>
+      </view>
+
+      <view class="form-row">
+        <view class="form-row__label">位置</view>
+        <view class="field-picker-row">
+          <picker class="picker-field" mode="selector" range="{{locationOptions}}" value="{{locationIndex}}" bindchange="handleLocationSelect">
+            <view class="field-input field-input--inline field-input--picker">{{locationOptions[locationIndex] || '未设置'}}</view>
+          </picker>
+          <view wx:if="{{form.location}}" class="field-clear" bindtap="clearLocation">×</view>
+        </view>
+      </view>
+
+      <view class="form-row">
+        <view class="form-row__label">状态</view>
+        <picker class="picker-field" mode="selector" range="{{statusOptions}}" value="{{statusIndex}}" bindchange="handleUsageStatusSelect">
+          <view class="field-input field-input--inline field-input--picker">{{statusOptions[statusIndex]}}</view>
+        </picker>
       </view>
     </view>
 
-    <view class="field-label">位置</view>
-    <input class="field-input" data-field="location" value="{{form.location}}" placeholder="例如：冰箱冷藏" bindinput="handleInput" />
+    <view class="editor-section">
+      <view class="editor-section__head">
+        <view class="editor-section__icon">▣</view>
+        <view class="editor-section__title">库存信息</view>
+      </view>
+      <view class="editor-section__divider"></view>
 
-    <view class="field-label">到期日期</view>
-    <view class="date-row">
-      <picker mode="date" value="{{form.expirationDate || today}}" bindchange="handleExpirationChange">
-        <view class="field-input">{{form.expirationDate || '选择日期'}}</view>
+      <view class="detail-grid">
+        <view class="detail-grid__item">
+          <view class="field-label">数量</view>
+          <view class="quantity-stepper">
+            <button class="stepper-button" bindtap="decrementQuantity">−</button>
+            <view class="stepper-value">{{form.quantity}}</view>
+            <button class="stepper-button" bindtap="incrementQuantity">＋</button>
+          </view>
+        </view>
+
+        <view class="detail-grid__item">
+          <view class="field-label">单位</view>
+          <input
+            class="field-input"
+            data-field="unit"
+            value="{{form.unit}}"
+            placeholder="盒 / 瓶 / 袋"
+            bindinput="handleInput"
+          />
+        </view>
+      </view>
+
+      <view class="field-label">生产日期</view>
+      <picker class="date-row__picker" mode="date" value="{{form.productionDate || today}}" bindchange="handleProductionDateChange">
+        <view class="field-input field-input--date">{{form.productionDate || '选择日期'}}</view>
       </picker>
-      <button class="date-clear" bindtap="clearExpirationDate">清空</button>
+
+      <view class="field-label">保质期(月)</view>
+      <view class="quantity-stepper quantity-stepper--inline">
+        <button class="stepper-button" bindtap="decrementShelfLifeMonths">−</button>
+        <view class="stepper-value">{{form.shelfLifeMonths || '0'}}</view>
+        <button class="stepper-button" bindtap="incrementShelfLifeMonths">＋</button>
+      </view>
+
+      <view class="field-label">过期日期</view>
+      <view class="field-picker-row">
+        <picker class="date-row__picker" mode="date" value="{{form.expirationDate || today}}" bindchange="handleExpirationDateChange">
+          <view class="field-input field-input--date">{{form.expirationDate || '选择日期'}}</view>
+        </picker>
+        <view wx:if="{{form.expirationDate}}" class="field-clear" bindtap="clearExpirationDate">×</view>
+      </view>
+
+      <view class="field-label">开封日期</view>
+      <view class="field-picker-row">
+        <picker class="date-row__picker" mode="date" value="{{form.openedDate || today}}" bindchange="handleOpenedDateChange">
+          <view class="field-input field-input--date">{{form.openedDate || '选择日期'}}</view>
+        </picker>
+        <view wx:if="{{form.openedDate}}" class="field-clear" bindtap="clearOpenedDate">×</view>
+      </view>
+
+      <view class="description-head">
+        <view class="description-head__label">备注</view>
+        <view class="description-head__count">{{notesCount}}/80</view>
+      </view>
+      <textarea
+        class="field-textarea field-textarea--notes"
+        data-field="notes"
+        value="{{form.notes}}"
+        maxlength="80"
+        placeholder="例如：早餐专用、先吃这一盒"
+        bindinput="handleInput"
+      />
     </view>
 
-    <view class="field-label">备注</view>
-    <textarea class="field-textarea" data-field="notes" value="{{form.notes}}" placeholder="例如：早餐专用" bindinput="handleInput" />
+    <view wx:if="{{isEdit}}" class="editor-section editor-section--danger">
+      <view class="editor-section__head">
+        <view class="editor-section__icon editor-section__icon--danger">!</view>
+        <view class="editor-section__title">危险操作</view>
+      </view>
+      <view class="editor-section__divider"></view>
+      <button class="delete-button" loading="{{deleting}}" bindtap="removeItem">移出库存</button>
+    </view>
 
-    <button class="submit-button" loading="{{submitting}}" bindtap="submit">{{isEdit ? '保存修改' : '创建库存项'}}</button>
-    <button wx:if="{{isEdit}}" class="delete-button" loading="{{deleting}}" bindtap="removeItem">移出库存</button>
+    <view class="bottom-actions">
+      <button class="footer-close-button" bindtap="goBack">关闭</button>
+      <button class="footer-submit-button" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</button>
+    </view>
   </view>
 </view>

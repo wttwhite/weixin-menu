@@ -1,15 +1,47 @@
 import { describe, expect, it } from 'vitest'
 import {
   createPantryItem,
+  createPantryLocation,
+  createPantryCategory,
   getPantryItem,
   deletePantryItem,
   listPantry,
+  listPantryLocations,
+  listPantryCategories,
+  reorderPantryLocations,
+  reorderPantryCategories,
+  deletePantryLocation,
+  deletePantryCategory,
+  updatePantryLocation,
+  updatePantryCategory,
   updatePantryItem
 } from '../../cloudfunctions/api/services/pantry-service'
 import { ERROR_CODES } from '../../shared/constants/error-codes'
 
 function createRepository() {
   const items = []
+  const spaces = new Map([
+    [
+      'space-1',
+      {
+        _id: 'space-1',
+        settings: {
+          pantryCategories: ['dairy', 'dry'],
+          pantryLocations: ['fridge', 'cabinet']
+        }
+      }
+    ],
+    [
+      'space-2',
+      {
+        _id: 'space-2',
+        settings: {
+          pantryCategories: [],
+          pantryLocations: []
+        }
+      }
+    ]
+  ])
   let nextId = 1
   let lastListQuery = null
 
@@ -68,6 +100,31 @@ function createRepository() {
     getLastListQuery() {
       return lastListQuery
     },
+    async getSpace(spaceId) {
+      const space = spaces.get(spaceId)
+      return space ? JSON.parse(JSON.stringify(space)) : null
+    },
+    async updateSpace(spaceId, data) {
+      const current = spaces.get(spaceId)
+      if (!current) {
+        return null
+      }
+
+      const next = {
+        ...current,
+        ...data,
+        settings: {
+          ...(current.settings || {}),
+          ...((data && data.settings) || {})
+        }
+      }
+      spaces.set(spaceId, next)
+      return JSON.parse(JSON.stringify(next))
+    },
+    __getSpaceSettings(spaceId) {
+      const space = spaces.get(spaceId)
+      return JSON.parse(JSON.stringify(space ? space.settings || {} : {}))
+    },
     async listPantryItemsLegacy(spaceId) {
       return items
         .filter((item) => item.spaceId === spaceId && item.deletedAt === '')
@@ -101,6 +158,228 @@ function createRepository() {
 }
 
 describe('pantry service', () => {
+  it('supports pantry category and location CRUD with counts and rename propagation', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await createPantryItem(
+      {
+        spaceId: 'space-1',
+        item: {
+          name: 'Milk',
+          category: 'dairy',
+          location: 'fridge'
+        }
+      },
+      context,
+      repository
+    )
+
+    const listedCategories = await listPantryCategories(
+      {
+        spaceId: 'space-1'
+      },
+      context,
+      repository
+    )
+    expect(listedCategories.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'dairy',
+          pantryItemCount: 1,
+          deletable: false
+        }),
+        expect.objectContaining({
+          name: 'dry',
+          pantryItemCount: 0,
+          deletable: true
+        })
+      ])
+    )
+
+    const createdCategory = await createPantryCategory(
+      {
+        spaceId: 'space-1',
+        name: 'frozen'
+      },
+      context,
+      repository
+    )
+    expect(createdCategory.item).toEqual(
+      expect.objectContaining({
+        name: 'frozen',
+        pantryItemCount: 0,
+        deletable: true
+      })
+    )
+    expect(repository.__getSpaceSettings('space-1').pantryCategories).toContain('frozen')
+
+    const renamedCategory = await updatePantryCategory(
+      {
+        spaceId: 'space-1',
+        previousName: 'dairy',
+        name: 'cold-storage'
+      },
+      context,
+      repository
+    )
+    expect(renamedCategory.item).toEqual(
+      expect.objectContaining({
+        name: 'cold-storage',
+        pantryItemCount: 1
+      })
+    )
+    expect((await repository.getPantryItem('space-1', 'pantry-1')).category).toBe('cold-storage')
+
+    await expect(
+      deletePantryCategory(
+        {
+          spaceId: 'space-1',
+          name: 'cold-storage'
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.CONFLICT
+    })
+
+    const removedCategory = await deletePantryCategory(
+      {
+        spaceId: 'space-1',
+        name: 'frozen'
+      },
+      context,
+      repository
+    )
+    expect(removedCategory).toEqual({
+      deleted: true,
+      name: 'frozen'
+    })
+
+    const listedLocations = await listPantryLocations(
+      {
+        spaceId: 'space-1'
+      },
+      context,
+      repository
+    )
+    expect(listedLocations.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'fridge',
+          pantryItemCount: 1,
+          deletable: false
+        }),
+        expect.objectContaining({
+          name: 'cabinet',
+          pantryItemCount: 0,
+          deletable: true
+        })
+      ])
+    )
+
+    const createdLocation = await createPantryLocation(
+      {
+        spaceId: 'space-1',
+        name: 'freezer'
+      },
+      context,
+      repository
+    )
+    expect(createdLocation.item).toEqual(
+      expect.objectContaining({
+        name: 'freezer',
+        pantryItemCount: 0,
+        deletable: true
+      })
+    )
+    expect(repository.__getSpaceSettings('space-1').pantryLocations).toContain('freezer')
+
+    const renamedLocation = await updatePantryLocation(
+      {
+        spaceId: 'space-1',
+        previousName: 'fridge',
+        name: 'chiller'
+      },
+      context,
+      repository
+    )
+    expect(renamedLocation.item).toEqual(
+      expect.objectContaining({
+        name: 'chiller',
+        pantryItemCount: 1
+      })
+    )
+    expect((await repository.getPantryItem('space-1', 'pantry-1')).location).toBe('chiller')
+
+    await expect(
+      deletePantryLocation(
+        {
+          spaceId: 'space-1',
+          name: 'chiller'
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.CONFLICT
+    })
+
+    const removedLocation = await deletePantryLocation(
+      {
+        spaceId: 'space-1',
+        name: 'freezer'
+      },
+      context,
+      repository
+    )
+    expect(removedLocation).toEqual({
+      deleted: true,
+      name: 'freezer'
+    })
+  })
+
+  it('reorders pantry categories and locations by updating stored settings order', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await createPantryItem(
+      {
+        spaceId: 'space-1',
+        item: {
+          name: 'Milk',
+          category: 'dairy',
+          location: 'fridge'
+        }
+      },
+      context,
+      repository
+    )
+
+    const categoryResult = await reorderPantryCategories(
+      {
+        spaceId: 'space-1',
+        names: ['dry', 'dairy']
+      },
+      context,
+      repository
+    )
+    expect(categoryResult.items.map((item) => item.name)).toEqual(['dry', 'dairy'])
+    expect(repository.__getSpaceSettings('space-1').pantryCategories).toEqual(['dry', 'dairy'])
+
+    const locationResult = await reorderPantryLocations(
+      {
+        spaceId: 'space-1',
+        names: ['cabinet', 'fridge']
+      },
+      context,
+      repository
+    )
+    expect(locationResult.items.map((item) => item.name)).toEqual(['cabinet', 'fridge'])
+    expect(repository.__getSpaceSettings('space-1').pantryLocations).toEqual(['cabinet', 'fridge'])
+  })
+
   it('returns truncation metadata and complete filter options from active items', async () => {
     const repository = createRepository()
     const context = { openid: 'user-1' }
@@ -377,6 +656,7 @@ describe('pantry service', () => {
         quantity: '1',
         unit: 'cup',
         location: 'fridge',
+        usageStatus: 'normal',
         status: 'expiring-soon',
         notes: 'breakfast',
         createdBy: 'user-1',
@@ -526,5 +806,51 @@ describe('pantry service', () => {
     )
 
     expect(afterDelete.items).toEqual([])
+  })
+
+  it('preserves existing usageStatus on update when edit payload does not include it', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await createPantryItem(
+      {
+        spaceId: 'space-1',
+        item: {
+          name: 'Milk',
+          usageStatus: 'opened'
+        }
+      },
+      context,
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
+    )
+
+    const updated = await updatePantryItem(
+      {
+        spaceId: 'space-1',
+        pantryItemId: 'pantry-1',
+        item: {
+          name: 'Fresh Milk'
+        }
+      },
+      context,
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-10T04:00:00.000Z')
+        }
+      }
+    )
+
+    expect(updated.item).toEqual(
+      expect.objectContaining({
+        name: 'Fresh Milk',
+        usageStatus: 'opened'
+      })
+    )
   })
 })

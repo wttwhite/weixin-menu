@@ -10,6 +10,15 @@
       <view class="loading-dot"></view>
     </view>
 
-    <button wx:else class="boot-action" bindtap="runBootstrap">重新尝试</button>
+    <view wx:else class="boot-actions">
+      <button
+        wx:if="{{canInitCollections}}"
+        class="boot-action boot-action-secondary"
+        bindtap="handleInitCollections"
+      >
+        初始化云数据库
+      </button>
+      <button class="boot-action" bindtap="runBootstrap">重新尝试</button>
+    </view>
   </view>
 </view>

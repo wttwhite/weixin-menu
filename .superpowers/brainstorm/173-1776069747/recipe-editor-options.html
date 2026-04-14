@@ -1,0 +1,149 @@
+<h2>菜谱编辑页方案</h2>
+<p class="subtitle">推荐 A：最接近你发的截图，分类管理从菜谱首页右上角进入弹框，编辑页里只负责选择分类。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A. 截图高保真（推荐）</div>
+        <div class="mockup-body" style="padding:14px;background:#f6f8fc;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:40px;height:40px;border-radius:20px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.08)">←</div>
+          </div>
+          <div style="background:#fff;border-radius:26px;padding:18px;box-shadow:0 10px 24px rgba(31,41,55,.08);margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin-bottom:12px;">
+              <div style="width:28px;height:28px;border-radius:14px;background:#eef3ff;display:flex;align-items:center;justify-content:center;color:#5a83ff;">i</div>
+              <span>基本信息</span>
+            </div>
+            <div style="height:1px;background:#eef1f4;margin-bottom:14px;"></div>
+            <div style="display:grid;gap:12px;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <div style="width:84px;color:#27323f;font-weight:700;">菜谱名称</div>
+                <div style="flex:1;height:40px;border:1px solid #edf0f4;border-radius:12px;background:#fff;"></div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:center;">
+                <div style="width:84px;color:#27323f;font-weight:700;">菜谱分类</div>
+                <div style="flex:1;height:40px;border:1px solid #edf0f4;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#9aa3af;">选择分类 <span>⌄</span></div>
+              </div>
+              <div style="height:110px;border-radius:16px;background:#fafbfe;border:1px solid #f0f3f8;"></div>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:26px;padding:18px;box-shadow:0 10px 24px rgba(31,41,55,.08);">
+            <div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin-bottom:12px;">
+              <div style="width:28px;height:28px;border-radius:14px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;">⚙</div>
+              <span>详细属性</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;">
+              <div style="padding:8px 14px;border-radius:999px;background:#2f8b37;color:#fff;font-weight:700;">15分钟内</div>
+              <div style="padding:8px 14px;border-radius:999px;background:#f4f6fb;color:#6b7280;font-weight:700;">15-30分钟</div>
+              <div style="padding:8px 14px;border-radius:999px;background:#f4f6fb;color:#6b7280;font-weight:700;">30-45分钟</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;">
+              <div style="font-weight:700;">推荐指数</div>
+              <div style="color:#f5b31a;font-size:20px;">★ ★ ★ ☆ ☆</div>
+              <div style="color:#6b7280;">3/5</div>
+            </div>
+            <div style="display:flex;gap:12px;">
+              <div style="flex:1;height:90px;border-radius:16px;border:1px dashed #8cb6ff;background:#eef5ff;display:flex;align-items:center;justify-content:center;color:#2e67d1;font-weight:700;">拍照</div>
+              <div style="flex:1;height:90px;border-radius:16px;border:1px dashed #8fd28f;background:#f3fbf3;display:flex;align-items:center;justify-content:center;color:#2f8b37;font-weight:700;">相册</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>截图高保真</h3>
+      <p>分类从首页弹框管理，编辑页下拉选择。固定底部关闭/保存，卡片区块和视觉层级最接近你给的图。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B. 更紧凑的表单</div>
+        <div class="mockup-body" style="padding:14px;background:#f6f8fc;">
+          <div style="background:#fff;border-radius:24px;padding:16px;box-shadow:0 10px 24px rgba(31,41,55,.08);display:grid;gap:12px;">
+            <div style="font-size:20px;font-weight:800;">基本信息</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="height:40px;border-radius:12px;background:#f7f8fb;"></div>
+              <div style="height:40px;border-radius:12px;background:#f7f8fb;"></div>
+            </div>
+            <div style="height:100px;border-radius:16px;background:#f7f8fb;"></div>
+            <div style="font-size:20px;font-weight:800;">详细属性</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="height:90px;border-radius:16px;background:#f7f8fb;"></div>
+              <div style="height:90px;border-radius:16px;background:#f7f8fb;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>紧凑效率优先</h3>
+      <p>滚动更短，但和你给的截图相似度明显低，整体不够“产品感”。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C. 当前结构微调</div>
+        <div class="mockup-body" style="padding:14px;background:#f6f8fc;">
+          <div style="background:#fff;border-radius:24px;padding:16px;box-shadow:0 10px 24px rgba(31,41,55,.08);">
+            <div style="font-size:20px;font-weight:800;margin-bottom:12px;">基本信息</div>
+            <div style="display:grid;gap:12px;">
+              <div style="height:40px;border-radius:12px;background:#f7f8fb;"></div>
+              <div style="height:40px;border-radius:12px;background:#f7f8fb;"></div>
+              <div style="height:40px;border-radius:12px;background:#f7f8fb;"></div>
+              <div style="height:100px;border-radius:16px;background:#f7f8fb;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>低风险微调</h3>
+      <p>实现最快，但和截图差距最大，不值得你现在这轮设计要求。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>分类管理弹框</h3>
+  <p class="subtitle">推荐：从菜谱首页右上角进入。分类有菜谱数量时只允许编辑，不允许删除；数量为 0 才显示删除按钮。</p>
+  <div class="mockup">
+    <div class="mockup-header">分类管理弹框</div>
+    <div class="mockup-body" style="padding:18px;background:#fff;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:22px;font-weight:800;">分类管理</div>
+        <div style="width:36px;height:36px;border-radius:18px;background:#f4f5f8;display:flex;align-items:center;justify-content:center;color:#6b7280;">×</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;">
+        <div style="flex:1;height:44px;border-radius:14px;border:1px solid #edf0f4;"></div>
+        <div style="width:86px;height:44px;border-radius:14px;background:#2f8b37;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;">确定</div>
+      </div>
+      <div style="display:grid;gap:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:18px;background:#fbfcfe;border:1px solid #edf1f5;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:34px;height:34px;border-radius:17px;background:#f2f4f8;display:flex;align-items:center;justify-content:center;color:#6b7280;">⋮⋮</div>
+            <div style="font-weight:700;">健康时蔬</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:17px;background:#eef5ff;color:#4d7edc;display:flex;align-items:center;justify-content:center;">✎</div>
+            <div style="padding:6px 12px;border-radius:999px;background:#f4f5f8;color:#8b95a3;">5个菜谱</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:18px;background:#fbfcfe;border:1px solid #edf1f5;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:34px;height:34px;border-radius:17px;background:#f2f4f8;display:flex;align-items:center;justify-content:center;color:#6b7280;">⋮⋮</div>
+            <div style="font-weight:700;">饮品酒水</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:17px;background:#eef5ff;color:#4d7edc;display:flex;align-items:center;justify-content:center;">✎</div>
+            <div style="width:34px;height:34px;border-radius:17px;background:#ffe9e9;color:#d14b4b;display:flex;align-items:center;justify-content:center;">×</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

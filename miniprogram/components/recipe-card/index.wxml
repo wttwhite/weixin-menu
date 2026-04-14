@@ -1,24 +1,38 @@
 <view class="recipe-card" bindtap="handleTap">
-  <view class="recipe-card__header">
-    <view class="recipe-card__title">{{item.name || '未命名菜谱'}}</view>
-    <view wx:if="{{item.isFavorite}}" class="recipe-card__favorite">★ 收藏</view>
-  </view>
-
-  <view class="recipe-card__meta">{{item.categorySummary || '未分类'}}</view>
-  <view wx:if="{{item.metricSummary}}" class="recipe-card__metric">{{item.metricSummary}}</view>
-  <view wx:if="{{item.summary}}" class="recipe-card__summary">{{item.summary}}</view>
-
-  <view wx:if="{{item.tags && item.tags.length}}" class="recipe-card__tags">
-    <tag-chip
-      wx:for="{{item.tags}}"
-      wx:key="_id"
-      text="{{item.name}}"
-      color="{{item.color}}"
-      plain="{{true}}"
+  <view class="recipe-card__media">
+    <image
+      wx:if="{{item.coverImageUrl}}"
+      class="recipe-card__cover"
+      src="{{item.coverImageUrl}}"
+      mode="aspectFill"
     />
+    <view wx:else class="recipe-card__cover recipe-card__cover--empty">热卖</view>
+    <view wx:if="{{item.category}}" class="recipe-card__category">{{item.category}}</view>
   </view>
 
-  <view wx:elif="{{item.tagSummary}}" class="recipe-card__tag-summary">{{item.tagSummary}}</view>
+  <view class="recipe-card__body">
+    <view class="recipe-card__header">
+      <view class="recipe-card__title">{{item.name || '未命名菜谱'}}</view>
+      <view wx:if="{{item.isFavorite}}" class="recipe-card__favorite">招牌</view>
+    </view>
 
-  <button class="recipe-card__edit" catchtap="handleEditTap">编辑</button>
+    <view wx:if="{{item.recommendationStars}}" class="recipe-card__stars">{{item.recommendationStars}}</view>
+    <view class="recipe-card__meta">{{item.categorySummary || '未分类'}}</view>
+    <view wx:if="{{item.metricSummary}}" class="recipe-card__metric">{{item.metricSummary}}</view>
+    <view wx:if="{{item.summary}}" class="recipe-card__summary">{{item.summary}}</view>
+
+    <view wx:if="{{item.tags && item.tags.length}}" class="recipe-card__tags">
+      <tag-chip
+        wx:for="{{item.tags}}"
+        wx:key="_id"
+        text="{{item.name}}"
+        color="{{item.color}}"
+        plain="{{true}}"
+      />
+    </view>
+
+    <view wx:elif="{{item.tagSummary}}" class="recipe-card__tag-summary">{{item.tagSummary}}</view>
+
+    <button class="recipe-card__edit" catchtap="handleEditTap">编辑</button>
+  </view>
 </view>

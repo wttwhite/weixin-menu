@@ -2,6 +2,7 @@ const { COLLECTIONS } = require('../shared/constants/collections')
 const { ERROR_CODES } = require('../shared/constants/error-codes')
 
 let hasInitialized = false
+const REQUIRED_COLLECTIONS = Object.freeze(Object.values(COLLECTIONS))
 
 function getCloudSdk(cloudSdk) {
   return cloudSdk || require('wx-server-sdk')
@@ -47,6 +48,20 @@ function isDuplicateKeyError(error) {
   return message.includes('duplicate')
 }
 
+function isCollectionAlreadyExistsError(error) {
+  if (!error) {
+    return false
+  }
+
+  const code = String(error.errCode || error.code || '').toUpperCase()
+  if (code.includes('COLLECTION_ALREADY')) {
+    return true
+  }
+
+  const message = `${error.message || ''} ${error.errMsg || ''}`.toLowerCase()
+  return message.includes('already exists') || message.includes('已存在')
+}
+
 function createRepository(options = {}) {
   const cloudSdk = getCloudSdk(options.cloudSdk)
   ensureCloudInit(cloudSdk)
@@ -86,6 +101,33 @@ function createRepository(options = {}) {
       status: item.status,
       name: nameBySpaceId.get(item.spaceId) || ''
     }))
+  }
+
+  async function ensureCollections() {
+    if (!db || typeof db.createCollection !== 'function') {
+      throw new Error('Current database instance does not support createCollection')
+    }
+
+    const created = []
+    const existing = []
+
+    for (const collectionName of REQUIRED_COLLECTIONS) {
+      try {
+        await db.createCollection(collectionName)
+        created.push(collectionName)
+      } catch (error) {
+        if (isCollectionAlreadyExistsError(error)) {
+          existing.push(collectionName)
+          continue
+        }
+        throw error
+      }
+    }
+
+    return {
+      created,
+      existing
+    }
   }
 
   async function createSpace({ name, inviteCode, ownerOpenid }) {
@@ -331,6 +373,7 @@ function createRepository(options = {}) {
   }
 
   return {
+    ensureCollections,
     listMemberships,
     createSpace,
     findSpaceByInviteCode,

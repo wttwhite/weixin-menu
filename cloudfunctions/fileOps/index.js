@@ -94,6 +94,42 @@ function createRepository(options = {}) {
     return result.data[0]
   }
 
+  async function getSpace(spaceId) {
+    const result = await db
+      .collection(COLLECTIONS.SPACES)
+      .where({
+        _id: spaceId
+      })
+      .get()
+    if (!result.data || !result.data.length) {
+      return null
+    }
+    return result.data[0]
+  }
+
+  async function getSpaceSettings(spaceId) {
+    const space = await getSpace(spaceId)
+    return (space && typeof space.settings === 'object' && space.settings) || {}
+  }
+
+  async function updateSpaceSettings(spaceId, settings = {}) {
+    const existing = await getSpace(spaceId)
+    if (!existing) {
+      return null
+    }
+
+    await db.collection(COLLECTIONS.SPACES).doc(spaceId).update({
+      data: {
+        settings
+      }
+    })
+
+    return {
+      ...(existing.settings || {}),
+      ...(settings || {})
+    }
+  }
+
   async function createRecipeImage(data) {
     const created = await db.collection(RECIPE_IMAGES).add({
       data
@@ -263,6 +299,14 @@ function createRepository(options = {}) {
       for (const shoppingItem of payload.shoppingItems || []) {
         await addRecord(connection, COLLECTIONS.SHOPPING_ITEMS, { ...shoppingItem, spaceId })
       }
+
+      if (payload.settings && typeof payload.settings === 'object') {
+        await connection.collection(COLLECTIONS.SPACES).doc(spaceId).update({
+          data: {
+            settings: payload.settings
+          }
+        })
+      }
     }
 
     if (typeof db.startTransaction !== 'function') {
@@ -287,6 +331,7 @@ function createRepository(options = {}) {
     createRecipeImage,
     createBackupRecord,
     findMembership,
+    getSpaceSettings,
     getRecipeImage,
     listRecipeImages,
     listRecipeTags,
@@ -297,6 +342,7 @@ function createRepository(options = {}) {
     listShoppingItems,
     listShoppingLists,
     replaceSpaceData,
+    updateSpaceSettings,
     updateRecipeImage
   }
 }

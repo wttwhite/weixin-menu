@@ -4,14 +4,68 @@
 }
 
 .uploader__label {
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: var(--text-secondary);
+  line-height: 1.6;
 }
 
-.uploader__button {
-  background: #2f86f6;
+.uploader__action-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.uploader__entry {
+  flex: 1;
+  height: 180rpx;
+  border-radius: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  border: 2rpx dashed #dce4f2;
+  background: #f7f9fd;
+}
+
+.uploader__entry--camera {
+  background: #eef5ff;
+  border-color: #bad2ff;
+}
+
+.uploader__entry--album {
+  background: #f4fbf0;
+  border-color: #bcdcb5;
+}
+
+.uploader__entry--hover {
+  opacity: 0.92;
+}
+
+.uploader__entry-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
   color: #fff;
-  font-size: 26rpx;
+  background: #2f86f6;
+}
+
+.uploader__entry--album .uploader__entry-icon {
+  background: #3c9844;
+}
+
+.uploader__entry-text {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #4a5565;
+}
+
+.uploader__hint {
+  font-size: 24rpx;
+  color: var(--text-secondary);
 }
 
 .uploader__list {
@@ -48,11 +102,12 @@
 
 .uploader__remove {
   width: 140rpx;
-  margin: 0;
-  padding: 0;
-  line-height: 58rpx;
+  min-height: 58rpx;
   border-radius: 12rpx;
   background: #f6ecec;
   color: #b44343;
   font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

@@ -1,0 +1,18 @@
+<view class="tabbar-shell">
+  <view class="tabbar-surface">
+    <view
+      wx:for="{{list}}"
+      wx:key="pagePath"
+      class="tabbar-item {{selected === item.pagePath ? 'tabbar-item--active' : ''}}"
+      data-path="{{item.pagePath}}"
+      bindtap="handleSwitchTab"
+    >
+      <image
+        class="tabbar-icon"
+        src="{{selected === item.pagePath ? item.selectedIconPath : item.iconPath}}"
+        mode="aspectFit"
+      />
+      <text class="tabbar-label">{{item.text}}</text>
+    </view>
+  </view>
+</view>

@@ -1,6 +1,7 @@
 const { createShoppingService } = require('../../services/shopping')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const { syncCurrentTabBar } = require('../../utils/tab-bar')
 
 function buildListOptions(lists = []) {
   return (lists || []).map((item) => ({
@@ -39,6 +40,7 @@ Page({
   },
 
   onShow() {
+    syncCurrentTabBar(this, '/pages/shopping/index')
     this.loadShoppingLists()
   },
 

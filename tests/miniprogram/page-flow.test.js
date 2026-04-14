@@ -40,6 +40,44 @@ beforeEach(() => {
 })
 
 describe('boot page flow', () => {
+  it('switches to recipes tab after bootstrap finds an active space', async () => {
+    const switchTab = vi.fn()
+    const setActiveSpaceId = vi.fn()
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          openid: 'user-1',
+          spaces: [{ spaceId: 'space-1', name: 'Family', role: 'owner', status: 'active' }],
+          activeSpaceId: 'space-1',
+          role: 'owner'
+        }
+      }
+    })
+
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      switchTab,
+      redirectTo: vi.fn(),
+      getStorageSync: vi.fn(() => ''),
+      setStorageSync: vi.fn(),
+      removeStorageSync: vi.fn()
+    }
+    global.getApp = () => ({
+      setActiveSpaceId
+    })
+
+    const page = await loadPage('../../miniprogram/pages/boot/index.js')
+    await page.runBootstrap()
+
+    expect(setActiveSpaceId).toHaveBeenCalledWith('space-1')
+    expect(switchTab).toHaveBeenCalledWith({
+      url: '/pages/recipes/index'
+    })
+  })
+
   it('shows a clean error message when cloud capability is unavailable', async () => {
     global.wx = {}
     global.getApp = () => ({
@@ -53,17 +91,110 @@ describe('boot page flow', () => {
     expect(page.data.title).toBe('进入应用失败')
     expect(page.data.detail).toBe('当前微信版本不支持云函数调用，请升级微信后重试')
   })
+
+  it('offers one-click collection initialization when bootstrap fails because collections are missing', async () => {
+    const redirectTo = vi.fn()
+    const switchTab = vi.fn()
+    const showToast = vi.fn()
+    const setActiveSpaceId = vi.fn()
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 1,
+          message: 'Db or Table not exist: space_members',
+          data: null
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            created: ['spaces', 'space_members'],
+            existing: ['recipes']
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            openid: 'user-1',
+            spaces: [],
+            activeSpaceId: null,
+            role: null
+          }
+        }
+      })
+
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      redirectTo,
+      switchTab,
+      showToast,
+      getStorageSync: vi.fn(() => ''),
+      setStorageSync: vi.fn(),
+      removeStorageSync: vi.fn()
+    }
+    global.getApp = () => ({
+      setActiveSpaceId
+    })
+
+    const page = await loadPage('../../miniprogram/pages/boot/index.js')
+    await page.runBootstrap()
+
+    expect(page.data.loading).toBe(false)
+    expect(page.data.canInitCollections).toBe(true)
+    expect(page.data.detail).toBe('云数据库缺少必要集合，可点击下方按钮自动初始化')
+
+    await page.handleInitCollections()
+
+    expect(callFunction).toHaveBeenNthCalledWith(1, {
+      name: 'memberOps',
+      data: {
+        action: 'bootstrap',
+        preferredSpaceId: ''
+      },
+      config: undefined
+    })
+    expect(callFunction).toHaveBeenNthCalledWith(2, {
+      name: 'memberOps',
+      data: {
+        action: 'initCollections'
+      },
+      config: undefined
+    })
+    expect(callFunction).toHaveBeenNthCalledWith(3, {
+      name: 'memberOps',
+      data: {
+        action: 'bootstrap',
+        preferredSpaceId: ''
+      },
+      config: undefined
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: '云数据库初始化完成',
+      icon: 'success'
+    })
+    expect(setActiveSpaceId).toHaveBeenCalledWith('')
+    expect(redirectTo).toHaveBeenCalledWith({
+      url: '/pages/space/index'
+    })
+    expect(switchTab).not.toHaveBeenCalled()
+  })
 })
 
 describe('navigation stack safety', () => {
-  it('reLaunches after switching space', async () => {
-    const reLaunch = vi.fn()
+  it('switches to recipes tab after switching space', async () => {
+    const switchTab = vi.fn()
     const redirectTo = vi.fn()
     global.wx = {
       cloud: {
         callFunction: vi.fn()
       },
-      reLaunch,
+      switchTab,
       redirectTo,
       showToast: vi.fn(),
       navigateTo: vi.fn()
@@ -84,14 +215,14 @@ describe('navigation stack safety', () => {
     })
 
     expect(setActiveSpaceId).toHaveBeenCalledWith('space-2')
-    expect(reLaunch).toHaveBeenCalledWith({
+    expect(switchTab).toHaveBeenCalledWith({
       url: '/pages/recipes/index'
     })
     expect(redirectTo).not.toHaveBeenCalled()
   })
 
-  it('reLaunches after creating a space', async () => {
-    const reLaunch = vi.fn()
+  it('switches to recipes tab after creating a space', async () => {
+    const switchTab = vi.fn()
     const redirectTo = vi.fn()
     const callFunction = vi.fn().mockResolvedValue({
       result: {
@@ -105,7 +236,7 @@ describe('navigation stack safety', () => {
       cloud: {
         callFunction
       },
-      reLaunch,
+      switchTab,
       redirectTo,
       showToast: vi.fn()
     }
@@ -127,14 +258,14 @@ describe('navigation stack safety', () => {
       config: undefined
     })
     expect(setActiveSpaceId).toHaveBeenCalledWith('space-3')
-    expect(reLaunch).toHaveBeenCalledWith({
+    expect(switchTab).toHaveBeenCalledWith({
       url: '/pages/recipes/index'
     })
     expect(redirectTo).not.toHaveBeenCalled()
   })
 
   it('does not call backend when creating space with blank name', async () => {
-    const reLaunch = vi.fn()
+    const switchTab = vi.fn()
     const redirectTo = vi.fn()
     const callFunction = vi.fn()
     const showToast = vi.fn()
@@ -142,7 +273,7 @@ describe('navigation stack safety', () => {
       cloud: {
         callFunction
       },
-      reLaunch,
+      switchTab,
       redirectTo,
       showToast
     }
@@ -161,12 +292,12 @@ describe('navigation stack safety', () => {
     })
     expect(callFunction).not.toHaveBeenCalled()
     expect(setActiveSpaceId).not.toHaveBeenCalled()
-    expect(reLaunch).not.toHaveBeenCalled()
+    expect(switchTab).not.toHaveBeenCalled()
     expect(redirectTo).not.toHaveBeenCalled()
   })
 
-  it('reLaunches after joining a space', async () => {
-    const reLaunch = vi.fn()
+  it('switches to recipes tab after joining a space', async () => {
+    const switchTab = vi.fn()
     const redirectTo = vi.fn()
     const callFunction = vi.fn().mockResolvedValue({
       result: {
@@ -180,7 +311,7 @@ describe('navigation stack safety', () => {
       cloud: {
         callFunction
       },
-      reLaunch,
+      switchTab,
       redirectTo,
       showToast: vi.fn()
     }
@@ -202,14 +333,14 @@ describe('navigation stack safety', () => {
       config: undefined
     })
     expect(setActiveSpaceId).toHaveBeenCalledWith('space-8')
-    expect(reLaunch).toHaveBeenCalledWith({
+    expect(switchTab).toHaveBeenCalledWith({
       url: '/pages/recipes/index'
     })
     expect(redirectTo).not.toHaveBeenCalled()
   })
 
   it('does not call backend when joining with blank invite code', async () => {
-    const reLaunch = vi.fn()
+    const switchTab = vi.fn()
     const redirectTo = vi.fn()
     const callFunction = vi.fn()
     const showToast = vi.fn()
@@ -217,7 +348,7 @@ describe('navigation stack safety', () => {
       cloud: {
         callFunction
       },
-      reLaunch,
+      switchTab,
       redirectTo,
       showToast
     }
@@ -236,7 +367,7 @@ describe('navigation stack safety', () => {
     })
     expect(callFunction).not.toHaveBeenCalled()
     expect(setActiveSpaceId).not.toHaveBeenCalled()
-    expect(reLaunch).not.toHaveBeenCalled()
+    expect(switchTab).not.toHaveBeenCalled()
     expect(redirectTo).not.toHaveBeenCalled()
   })
 })

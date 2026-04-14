@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
   createRecipe,
+  createRecipeCategory,
   createRecipeTag,
   deleteRecipe,
+  deleteRecipeCategory,
   deleteRecipeTag,
   getRecipeDetail,
+  listRecipeCategories,
   listRecipeTags,
   listRecipes,
+  updateRecipeCategory,
   updateRecipe
 } from '../../cloudfunctions/api/services/recipe-service'
 import { ERROR_CODES } from '../../shared/constants/error-codes'
@@ -16,6 +20,26 @@ function createRepository() {
   const tags = []
   const recipeImages = []
   const deletedCloudFiles = []
+  const spaces = new Map([
+    [
+      'space-1',
+      {
+        _id: 'space-1',
+        settings: {
+          recipeCategories: ['健康时蔬', '美味汤羹']
+        }
+      }
+    ],
+    [
+      'space-2',
+      {
+        _id: 'space-2',
+        settings: {
+          recipeCategories: []
+        }
+      }
+    ]
+  ])
   let recipeIndex = 1
   let tagIndex = 1
 
@@ -113,11 +137,35 @@ function createRepository() {
     __seedRecipeImage(image) {
       recipeImages.push({ ...image })
     },
+    async getSpace(spaceId) {
+      const matched = spaces.get(spaceId)
+      return matched ? { ...matched, settings: { ...(matched.settings || {}) } } : null
+    },
+    async updateSpace(spaceId, patch) {
+      const existing = spaces.get(spaceId)
+      if (!existing) {
+        return null
+      }
+      const next = {
+        ...existing,
+        ...patch,
+        settings: {
+          ...(existing.settings || {}),
+          ...((patch && patch.settings) || {})
+        }
+      }
+      spaces.set(spaceId, next)
+      return { ...next, settings: { ...(next.settings || {}) } }
+    },
     __getRecipeImage(imageId) {
       return recipeImages.find((item) => item._id === imageId) || null
     },
     __getDeletedCloudFiles() {
       return [...deletedCloudFiles]
+    },
+    __getSpaceCategories(spaceId) {
+      const matched = spaces.get(spaceId)
+      return matched && matched.settings ? [...(matched.settings.recipeCategories || [])] : []
     }
   }
 }
@@ -286,6 +334,107 @@ describe('recipe service', () => {
       repository
     )
     expect(listedAfterDelete.items).toEqual([])
+  })
+
+  it('supports recipe category CRUD with counts and blocks deleting referenced categories', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Cold Cucumber',
+          category: '健康时蔬'
+        }
+      },
+      context,
+      repository
+    )
+
+    const listed = await listRecipeCategories(
+      {
+        spaceId: 'space-1'
+      },
+      context,
+      repository
+    )
+    expect(listed.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: '健康时蔬',
+          recipeCount: 1,
+          deletable: false
+        }),
+        expect.objectContaining({
+          name: '美味汤羹',
+          recipeCount: 0,
+          deletable: true
+        })
+      ])
+    )
+
+    const created = await createRecipeCategory(
+      {
+        spaceId: 'space-1',
+        name: '精致凉菜'
+      },
+      context,
+      repository
+    )
+    expect(created.item).toEqual(
+      expect.objectContaining({
+        name: '精致凉菜',
+        recipeCount: 0,
+        deletable: true
+      })
+    )
+    expect(repository.__getSpaceCategories('space-1')).toContain('精致凉菜')
+
+    const renamed = await updateRecipeCategory(
+      {
+        spaceId: 'space-1',
+        previousName: '健康时蔬',
+        name: '四季时蔬'
+      },
+      context,
+      repository
+    )
+    expect(renamed.item).toEqual(
+      expect.objectContaining({
+        name: '四季时蔬',
+        recipeCount: 1
+      })
+    )
+    const recipe = await repository.getRecipe('space-1', 'recipe-1')
+    expect(recipe.category).toBe('四季时蔬')
+
+    await expect(
+      deleteRecipeCategory(
+        {
+          spaceId: 'space-1',
+          name: '四季时蔬'
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.CONFLICT
+    })
+
+    const removed = await deleteRecipeCategory(
+      {
+        spaceId: 'space-1',
+        name: '精致凉菜'
+      },
+      context,
+      repository
+    )
+    expect(removed).toEqual({
+      deleted: true,
+      name: '精致凉菜'
+    })
+    expect(repository.__getSpaceCategories('space-1')).not.toContain('精致凉菜')
   })
 
   it('validates required fields and returns INVALID_INPUT', async () => {

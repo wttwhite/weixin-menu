@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createMemberOpsHandler } from '../../cloudfunctions/memberOps/index'
 import { createRepository } from '../../cloudfunctions/memberOps/lib/repository'
 import { bootstrapSession } from '../../cloudfunctions/memberOps/services/bootstrap-service'
@@ -6,6 +6,7 @@ import {
   createSpace as createSpaceService,
   rotateInviteCode as rotateInviteCodeService
 } from '../../cloudfunctions/memberOps/services/space-service'
+import { COLLECTIONS } from '../../shared/constants/collections'
 import { ERROR_CODES } from '../../shared/constants/error-codes'
 import { ROLES } from '../../shared/constants/roles'
 import { createFakeDb, createFakeCloudDbAdapter } from '../helpers/fake-db'
@@ -82,6 +83,7 @@ describe('memberOps.main', () => {
 
     const events = [
       { action: 'bootstrap', preferredSpaceId: 'space-1' },
+      { action: 'initCollections' },
       { action: 'createSpace', name: 'Family' },
       { action: 'joinSpace', inviteCode: 'ABC123' },
       { action: 'listMembers', spaceId: 'space-1' },
@@ -97,6 +99,29 @@ describe('memberOps.main', () => {
     }
 
     expect(repositoryCalls).toBe(0)
+  })
+
+  it('supports init-collections for bootstrapping a fresh cloud environment', async () => {
+    const ensureCollections = vi.fn().mockResolvedValue({
+      created: [COLLECTIONS.SPACES, COLLECTIONS.SPACE_MEMBERS],
+      existing: [COLLECTIONS.RECIPES]
+    })
+
+    const handler = createMemberOpsHandler({
+      createContext: () => ({ openid: 'owner-1' }),
+      createRepository: () => ({
+        ensureCollections
+      })
+    })
+
+    const response = await handler({ action: 'initCollections' })
+
+    expect(response.code).toBe(ERROR_CODES.OK)
+    expect(ensureCollections).toHaveBeenCalledTimes(1)
+    expect(response.data).toEqual({
+      created: [COLLECTIONS.SPACES, COLLECTIONS.SPACE_MEMBERS],
+      existing: [COLLECTIONS.RECIPES]
+    })
   })
 
   it('forbids list-members when current user is not in the space', async () => {
@@ -357,6 +382,54 @@ describe('memberOps repository rotateInviteCode', () => {
           spaceId: 'space-1'
         })
       ])
+    )
+  })
+})
+
+describe('memberOps repository ensureCollections', () => {
+  it('creates all required collections and tolerates existing ones', async () => {
+    const createCollection = vi.fn(async (name) => {
+      if (name === COLLECTIONS.SPACES || name === COLLECTIONS.RECIPES) {
+        const error = new Error(`collection ${name} already exists`)
+        error.code = 'COLLECTION_ALREADY_EXISTS'
+        throw error
+      }
+
+      return {
+        errMsg: 'createCollection:ok'
+      }
+    })
+
+    const repository = createRepository({
+      cloudSdk: {
+        DYNAMIC_CURRENT_ENV: 'test-env',
+        init: vi.fn()
+      },
+      db: {
+        command: {
+          in(values) {
+            return {
+              __op: 'in',
+              value: values
+            }
+          }
+        },
+        createCollection
+      }
+    })
+
+    const result = await repository.ensureCollections()
+
+    expect(createCollection.mock.calls.map(([name]) => name)).toEqual(Object.values(COLLECTIONS))
+    expect(result.created).toEqual(
+      expect.arrayContaining([
+        COLLECTIONS.INVITE_CODE_CLAIMS,
+        COLLECTIONS.SPACE_MEMBERS,
+        COLLECTIONS.RECIPE_IMAGES
+      ])
+    )
+    expect(result.existing).toEqual(
+      expect.arrayContaining([COLLECTIONS.SPACES, COLLECTIONS.RECIPES])
     )
   })
 })

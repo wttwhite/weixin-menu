@@ -32,6 +32,7 @@ function createMemberOpsHandler(options = {}) {
     const action = event.action
     const supportedActions = new Set([
       'bootstrap',
+      'initCollections',
       'createSpace',
       'joinSpace',
       'listMembers',
@@ -60,6 +61,10 @@ function createMemberOpsHandler(options = {}) {
             },
             repository
           )
+          return buildOkResponse(data)
+        }
+        case 'initCollections': {
+          const data = await repository.ensureCollections()
           return buildOkResponse(data)
         }
         case 'createSpace': {

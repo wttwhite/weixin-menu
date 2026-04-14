@@ -28,6 +28,12 @@
 - Every business document should carry `spaceId`.
 - Data reads and writes should be gated through cloud functions.
 
+## Initialization
+
+- The boot page can now call `memberOps.initCollections` to create all required business collections in one click.
+- This removes the need to manually create the collection names in a fresh cloud environment.
+- Collection permission rules are still a separate concern from collection creation. Keep these collections configured as `所有用户不可读写` in the cloud console so only cloud functions and the management side can access them.
+
 ## File Storage Paths
 
 - Recipe images:

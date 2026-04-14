@@ -1,0 +1,80 @@
+<h2>菜谱详情页设计</h2>
+<p class="subtitle">推荐按你给的截图做成“封面 Hero + 操作按钮 + 步骤卡片 + 图集卡片 + 底部关闭”。删除按钮仅对有编辑权限的人显示。关闭按钮：从计划页来则回计划页，否则回菜谱页。</p>
+
+<div class="mockup">
+  <div class="mockup-header">详情页高保真方案（推荐）</div>
+  <div class="mockup-body" style="padding:16px;background:#f6f8fc;">
+    <div style="display:grid;gap:16px;">
+      <div style="position:relative;height:270px;border-radius:28px;overflow:hidden;background:linear-gradient(135deg,#7c5b3f,#4d3525);box-shadow:0 18px 34px rgba(31,41,55,.14);">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.38)),url('https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=80') center/cover;"></div>
+        <div style="position:absolute;left:22px;bottom:24px;color:#fff;">
+          <div style="display:inline-flex;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.22);font-size:14px;font-weight:700;">小吃馒头</div>
+          <div style="margin-top:14px;font-size:34px;font-weight:800;line-height:1.1;">脆皮牛奶</div>
+          <div style="margin-top:8px;font-size:20px;font-weight:700;">好吃</div>
+          <div style="margin-top:12px;display:flex;gap:16px;font-size:15px;opacity:.96;">
+            <span>⏱ 15分钟内</span>
+            <span>★ 4/5</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;">
+        <div style="flex:1;height:64px;border-radius:22px;background:#2f8b37;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;">🖊 编辑</div>
+        <div style="flex:1;height:64px;border-radius:22px;background:#ffe8e8;color:#d14b4b;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;">🗑 删除</div>
+      </div>
+
+      <div style="background:#fff;border-radius:26px;padding:18px;box-shadow:0 10px 24px rgba(31,41,55,.08);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:28px;height:28px;border-radius:14px;background:#eef3ff;display:flex;align-items:center;justify-content:center;">👨‍🍳</div>
+            <div style="font-size:18px;font-weight:800;">制作步骤</div>
+          </div>
+          <div style="font-size:14px;color:#8d96a3;font-weight:700;">1 步</div>
+        </div>
+        <div style="height:1px;background:#edf1f5;margin:14px 0 16px;"></div>
+        <div style="border-radius:20px;background:#f7f9fd;padding:18px;">
+          <div style="font-size:18px;font-weight:800;color:#2f8b37;">步骤 1</div>
+          <div style="margin-top:12px;font-size:18px;line-height:1.8;color:#27323f;">冷冻拿出来刷油 空气炸锅6分钟，翻面再6分钟</div>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:26px;padding:18px;box-shadow:0 10px 24px rgba(31,41,55,.08);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:28px;height:28px;border-radius:14px;background:#eef3ff;display:flex;align-items:center;justify-content:center;">📷</div>
+            <div style="font-size:18px;font-weight:800;">菜谱图集</div>
+          </div>
+          <div style="font-size:14px;color:#8d96a3;font-weight:700;">2 张</div>
+        </div>
+        <div style="height:1px;background:#edf1f5;margin:14px 0 16px;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div style="position:relative;border-radius:18px;overflow:hidden;border:3px solid #2f8b37;height:190px;background:#ddd;"></div>
+          <div style="position:relative;border-radius:18px;overflow:hidden;height:190px;background:#ddd;"></div>
+        </div>
+        <div style="position:relative;top:-56px;left:14px;display:inline-flex;padding:6px 12px;border-radius:999px;background:#2f8b37;color:#fff;font-size:13px;font-weight:800;">封面</div>
+      </div>
+
+      <div style="height:64px;border-radius:22px;background:#edf1f6;color:#27323f;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;margin-top:-26px;">关闭</div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>我会按这个保留</h4>
+    <ul>
+      <li>顶部封面图 Hero 结构</li>
+      <li>编辑/删除并列按钮</li>
+      <li>步骤与图集分卡片展示</li>
+      <li>底部大号关闭按钮</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>不会在这轮扩展</h4>
+    <ul>
+      <li>额外复杂分享动作</li>
+      <li>多来源返回栈之外的深度导航</li>
+      <li>图集拖拽重排</li>
+    </ul>
+  </div>
+</div>

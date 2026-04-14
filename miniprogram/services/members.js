@@ -14,6 +14,14 @@ function createMembersService(dependencies = {}) {
       )
     },
 
+    async initCollections() {
+      return unwrapResponse(
+        await cloudCall('memberOps', {
+          action: 'initCollections'
+        })
+      )
+    },
+
     async listMembers(spaceId) {
       return unwrapResponse(
         await cloudCall('memberOps', {

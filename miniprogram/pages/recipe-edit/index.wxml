@@ -5,7 +5,7 @@
   </view>
 
   <view wx:elif="{{loading}}" class="state-card">
-    <view class="state-title">正在加载菜谱信息...</view>
+    <view class="state-title">{{loadingTitle}}</view>
   </view>
 
   <view wx:elif="{{loadErrorMessage}}" class="state-card">
@@ -14,122 +14,218 @@
     <button class="state-button" bindtap="goBack">返回列表</button>
   </view>
 
-  <view wx:else class="form-card">
-    <view class="form-title">{{isEdit ? '更新菜谱' : '新建菜谱'}}</view>
-    <view class="form-text">维护核心文本、配料步骤和标签，便于共享检索。</view>
-
-    <view class="field-label">名称</view>
-    <input class="field-input" data-field="name" value="{{form.name}}" placeholder="例如：麻婆豆腐" bindinput="handleInput" />
-
-    <view class="field-label">摘要</view>
-    <textarea class="field-textarea" data-field="summary" value="{{form.summary}}" placeholder="一句话描述这道菜" bindinput="handleInput" />
-
-    <view class="field-row">
-      <view class="field-col">
-        <view class="field-label">分类</view>
-        <input class="field-input" data-field="category" value="{{form.category}}" placeholder="热菜/汤/甜品" bindinput="handleInput" />
+  <view wx:else class="editor-shell">
+    <view class="editor-section">
+      <view class="editor-section__head">
+        <view class="editor-section__icon">ⓘ</view>
+        <view class="editor-section__title">基本信息</view>
       </view>
-      <view class="field-col">
-        <view class="field-label">菜系</view>
-        <input class="field-input" data-field="cuisine" value="{{form.cuisine}}" placeholder="川菜/粤菜" bindinput="handleInput" />
-      </view>
-    </view>
+      <view class="editor-section__divider"></view>
 
-    <view class="field-row">
-      <view class="field-col">
-        <view class="field-label">难度</view>
-        <input class="field-input" data-field="difficulty" value="{{form.difficulty}}" placeholder="简单/中等/困难" bindinput="handleInput" />
+      <view class="form-row">
+        <view class="form-row__label"><text class="form-row__required">*</text>菜谱名称</view>
+        <input
+          class="field-input field-input--inline"
+          data-field="name"
+          value="{{form.name}}"
+          placeholder="请输入菜谱名称"
+          bindinput="handleInput"
+        />
       </view>
-      <view class="field-col">
-        <view class="field-label">推荐分</view>
-        <input class="field-input" data-field="recommendationScore" value="{{form.recommendationScore}}" placeholder="0-100" type="number" bindinput="handleInput" />
-      </view>
-    </view>
 
-    <view class="field-row">
-      <view class="field-col">
-        <view class="field-label">份量</view>
-        <input class="field-input" data-field="servings" value="{{form.servings}}" placeholder="2-3 人" bindinput="handleInput" />
+      <view class="form-row">
+        <view class="form-row__label"><text class="form-row__required">*</text>菜谱分类</view>
+        <view class="category-picker" bindtap="openCategorySelector">
+          <view class="{{categoryPickerClass}}">
+            <text>{{selectedCategoryLabel}}</text>
+            <view class="category-picker__arrow"></view>
+          </view>
+        </view>
       </view>
-    </view>
 
-    <view class="field-row">
-      <view class="field-col">
-        <view class="field-label">备菜时长(分钟)</view>
-        <input class="field-input" data-field="prepTimeMinutes" value="{{form.prepTimeMinutes}}" bindinput="handleInput" />
+      <view class="description-head">
+        <view class="description-head__label">菜谱描述</view>
+        <view class="description-head__count">{{summaryCount}}/100</view>
       </view>
-      <view class="field-col">
-        <view class="field-label">烹饪时长(分钟)</view>
-        <input class="field-input" data-field="cookTimeMinutes" value="{{form.cookTimeMinutes}}" bindinput="handleInput" />
-      </view>
-    </view>
-
-    <view class="field-switch">
-      <text>收藏这道菜</text>
-      <switch checked="{{form.isFavorite}}" bindchange="handleSwitchFavorite" />
-    </view>
-
-    <view class="section-title">标签</view>
-    <view class="tag-list">
-      <tag-chip
-        wx:for="{{tagViewItems}}"
-        wx:key="_id"
-        tagId="{{item._id}}"
-        text="{{item.name}}"
-        color="{{item.color}}"
-        selected="{{item.selected}}"
-        bindselect="handleTagToggle"
+      <textarea
+        class="field-textarea field-textarea--hero"
+        data-field="summary"
+        value="{{form.summary}}"
+        maxlength="100"
+        placeholder="简单描述一下这道菜的特色..."
+        bindinput="handleInput"
       />
     </view>
-    <view class="inline-row">
-      <input class="field-input inline-row__input" value="{{newTagName}}" placeholder="添加新标签名称" bindinput="handleNewTagInput" />
-      <button class="inline-row__button" bindtap="createTag">添加标签</button>
-    </view>
 
-    <view class="section-title">配料</view>
-    <view wx:for="{{form.ingredients}}" wx:key="index" class="row-card">
-      <view class="field-label">配料 {{index + 1}}</view>
-      <input class="field-input" data-index="{{index}}" data-field="name" value="{{item.name}}" placeholder="名称" bindinput="handleIngredientInput" />
-      <view class="field-row">
-        <input class="field-input field-col" data-index="{{index}}" data-field="quantity" value="{{item.quantity}}" placeholder="数量" bindinput="handleIngredientInput" />
-        <input class="field-input field-col" data-index="{{index}}" data-field="unit" value="{{item.unit}}" placeholder="单位" bindinput="handleIngredientInput" />
+    <view class="editor-section">
+      <view class="editor-section__head">
+        <view class="editor-section__icon">🛒</view>
+        <view class="editor-section__title">食材与步骤</view>
       </view>
-      <input class="field-input" data-index="{{index}}" data-field="preparation" value="{{item.preparation}}" placeholder="处理方式（可选）" bindinput="handleIngredientInput" />
-      <input class="field-input" data-index="{{index}}" data-field="notes" value="{{item.notes}}" placeholder="备注（可选）" bindinput="handleIngredientInput" />
-      <button class="row-card__remove" data-index="{{index}}" bindtap="removeIngredientRow">删除该配料</button>
+      <view class="editor-section__divider"></view>
+
+      <view class="subsection-title">食材列表</view>
+      <view wx:for="{{ingredientViewItems}}" wx:key="displayIndex" class="row-card row-card--ingredient">
+        <input
+          class="field-input field-input--plain"
+          data-index="{{index}}"
+          data-field="name"
+          value="{{item.name}}"
+          placeholder="如：土豆 2个、五花肉 500g"
+          bindinput="handleIngredientInput"
+        />
+        <view class="row-card__side-actions">
+          <view class="row-card__pill row-card__pill--danger" data-index="{{index}}" bindtap="removeIngredientRow">删除</view>
+        </view>
+      </view>
+      <button class="section-button section-button--soft" bindtap="addIngredientRow">＋ 新增食材</button>
+
+      <view class="subsection-title subsection-title--steps">制作步骤</view>
+      <view wx:for="{{stepViewItems}}" wx:key="displayIndex" class="step-card">
+        <view class="step-card__head">
+          <view>
+            <view class="step-card__title">步骤 {{item.displayIndex}}</view>
+            <view class="step-card__count">{{item.contentCount}}/500</view>
+          </view>
+          <view class="row-card__pill row-card__pill--danger" data-index="{{index}}" bindtap="removeStepRow">删除</view>
+        </view>
+        <textarea
+          class="field-textarea field-textarea--step"
+          data-index="{{index}}"
+          data-field="content"
+          value="{{item.content}}"
+          maxlength="500"
+          placeholder="详细描述制作步骤..."
+          bindinput="handleStepInput"
+        />
+        <input
+          class="field-input field-input--compact"
+          data-index="{{index}}"
+          data-field="tips"
+          value="{{item.tips}}"
+          placeholder="补充提示（可选）"
+          bindinput="handleStepInput"
+        />
+      </view>
+      <button class="section-button section-button--soft" bindtap="addStepRow">＋ 新增步骤</button>
     </view>
-    <button class="section-button" bindtap="addIngredientRow">添加配料行</button>
 
-    <view class="section-title">步骤</view>
-    <view wx:for="{{form.steps}}" wx:key="index" class="row-card">
-      <view class="field-label">步骤 {{index + 1}}</view>
-      <input class="field-input" data-index="{{index}}" data-field="title" value="{{item.title}}" placeholder="标题（可选）" bindinput="handleStepInput" />
-      <textarea class="field-textarea" data-index="{{index}}" data-field="content" value="{{item.content}}" placeholder="步骤内容" bindinput="handleStepInput" />
-      <input class="field-input" data-index="{{index}}" data-field="durationMinutes" value="{{item.durationMinutes}}" placeholder="时长（分钟，可选）" bindinput="handleStepInput" />
-      <input class="field-input" data-index="{{index}}" data-field="tips" value="{{item.tips}}" placeholder="提示（可选）" bindinput="handleStepInput" />
-      <button class="row-card__remove" data-index="{{index}}" bindtap="removeStepRow">删除该步骤</button>
+    <view class="editor-section editor-section--last">
+      <view class="editor-section__head">
+        <view class="editor-section__icon">⚙</view>
+        <view class="editor-section__title">详细属性</view>
+      </view>
+      <view class="editor-section__divider"></view>
+
+      <view class="subsection-title">烹饪时长</view>
+      <view class="duration-chip-list">
+        <view
+          wx:for="{{cookDurationOptions}}"
+          wx:key="value"
+          class="{{item.itemClass}}"
+          data-value="{{item.value}}"
+          bindtap="handleCookTimeOptionTap"
+        >
+          {{item.label}}
+        </view>
+      </view>
+
+      <view class="rating-row">
+        <view class="rating-row__label">推荐指数</view>
+        <view class="rating-row__stars">
+          <text
+            wx:for="{{recommendationStarItems}}"
+            wx:key="value"
+            class="{{item.itemClass}}"
+            data-value="{{item.value}}"
+            bindtap="handleRecommendationTap"
+          >
+            ★
+          </text>
+        </view>
+        <view class="rating-row__value">{{recommendationScoreLabel}}</view>
+      </view>
+
+      <input class="field-input field-input--hidden" data-field="recommendationScore" value="{{form.recommendationScore}}" bindinput="handleInput" />
+
+      <view class="subsection-title">菜谱图片上传</view>
+      <view class="subsection-hint">多张可选封面图</view>
+      <image-uploader
+        label=""
+        items="{{form.images}}"
+        spaceId="{{activeSpaceId}}"
+        recipeId="{{recipeId}}"
+        imageRole="cover"
+        bindpendingadd="handleImagePendingAdd"
+        binduploaded="handleImageUploaded"
+        binduploaderror="handleImageUploadError"
+        bindremove="handleImageRemove"
+      />
+
+      <view class="detail-grid">
+        <view class="detail-grid__item">
+          <view class="field-label">菜系</view>
+          <input class="field-input" data-field="cuisine" value="{{form.cuisine}}" placeholder="例如：川菜" bindinput="handleInput" />
+        </view>
+        <view class="detail-grid__item">
+          <view class="field-label">难度</view>
+          <input class="field-input" data-field="difficulty" value="{{form.difficulty}}" placeholder="简单 / 中等" bindinput="handleInput" />
+        </view>
+        <view class="detail-grid__item">
+          <view class="field-label">份量</view>
+          <input class="field-input" data-field="servings" value="{{form.servings}}" placeholder="2-3 人" bindinput="handleInput" />
+        </view>
+        <view class="detail-grid__item">
+          <view class="field-label">备菜时长(分钟)</view>
+          <input class="field-input" data-field="prepTimeMinutes" value="{{form.prepTimeMinutes}}" placeholder="可选" bindinput="handleInput" />
+        </view>
+      </view>
+
+      <view class="field-switch">
+        <text>收藏这道菜</text>
+        <switch checked="{{form.isFavorite}}" bindchange="handleSwitchFavorite" />
+      </view>
+
+      <view class="subsection-title">标签</view>
+      <view class="tag-list">
+        <tag-chip
+          wx:for="{{tagViewItems}}"
+          wx:key="_id"
+          tagId="{{item._id}}"
+          text="{{item.name}}"
+          color="{{item.color}}"
+          selected="{{item.selected}}"
+          bindselect="handleTagToggle"
+        />
+      </view>
+      <view class="inline-row">
+        <input class="field-input inline-row__input" value="{{newTagName}}" placeholder="添加新标签名称" bindinput="handleNewTagInput" />
+        <button class="inline-row__button" bindtap="createTag">添加标签</button>
+      </view>
+
+      <button wx:if="{{isEdit}}" class="delete-button" loading="{{deleting}}" bindtap="removeRecipe">删除菜谱</button>
     </view>
-    <button class="section-button" bindtap="addStepRow">添加步骤行</button>
 
-    <view class="section-title">菜谱图片</view>
-    <image-uploader
-      label="上传封面或过程图（上传成功后会保留在当前编辑态）"
-      items="{{form.images}}"
-      spaceId="{{activeSpaceId}}"
-      recipeId="{{recipeId}}"
-      imageRole="cover"
-      bindpendingadd="handleImagePendingAdd"
-      binduploaded="handleImageUploaded"
-      binduploaderror="handleImageUploadError"
-      bindremove="handleImageRemove"
-    />
+    <view class="bottom-actions">
+      <button class="footer-close-button" bindtap="goBack">关闭</button>
+      <button class="footer-submit-button" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</button>
+    </view>
+  </view>
 
-    <view class="section-title">备注与来源</view>
-    <textarea class="field-textarea" data-field="notes" value="{{form.notes}}" placeholder="备注（可选）" bindinput="handleInput" />
-    <input class="field-input" data-field="sourceName" value="{{form.sourceName}}" placeholder="来源名称（可选）" bindinput="handleInput" />
-    <input class="field-input" data-field="sourceUrl" value="{{form.sourceUrl}}" placeholder="来源链接（可选）" bindinput="handleInput" />
-
-    <button class="submit-button" loading="{{submitting}}" bindtap="submit">{{isEdit ? '保存修改' : '创建菜谱'}}</button>
-    <button wx:if="{{isEdit}}" class="delete-button" loading="{{deleting}}" bindtap="removeRecipe">删除菜谱</button>
+  <view wx:if="{{showCategorySelector}}" class="category-selector__overlay" catchtap="closeCategorySelector">
+    <view class="category-selector" catchtap="noop">
+      <view class="category-selector__title">选择菜谱分类</view>
+      <view class="category-selector__list">
+        <view
+          wx:for="{{categorySelectorItems}}"
+          wx:key="label"
+          class="{{item.itemClass}}"
+          data-name="{{item.label}}"
+          bindtap="handleCategoryOptionTap"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
   </view>
 </view>

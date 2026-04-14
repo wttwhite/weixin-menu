@@ -1,7 +1,4 @@
 {
   "navigationBarTitleText": "库存",
-  "enablePullDownRefresh": true,
-  "usingComponents": {
-    "pantry-card": "/components/pantry-card/index"
-  }
+  "enablePullDownRefresh": true
 }

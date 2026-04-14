@@ -1,35 +1,48 @@
 <view class="recipes-page">
-  <view class="recipes-hero">
-    <view class="recipes-kicker">Recipe Library</view>
-    <view class="recipes-title">{{activeSpaceId || '尚未选择空间'}}</view>
-    <view class="recipes-text">{{summary}}</view>
-    <view class="recipes-actions">
-      <button class="recipes-button recipes-button--ghost" bindtap="openSpace">切换空间</button>
-      <button class="recipes-button" bindtap="goCreate">新建菜谱</button>
+  <view class="hero-banner">
+    <image class="hero-banner__background" src="/images/food-hero-table.svg" mode="aspectFill" />
+    <view class="hero-banner__overlay">
+      <view class="hero-banner__date">{{currentDateLabel}}</view>
+    </view>
+    <view wx:if="{{showHeroThumbs}}" class="hero-banner__thumbs">
+      <image
+        wx:for="{{heroThumbImages}}"
+        wx:key="index"
+        class="hero-banner__thumb"
+        src="{{item}}"
+        mode="aspectFill"
+      />
+    </view>
+  </view>
+
+  <view class="management-card">
+    <view class="management-card__top">
+      <image
+        wx:if="{{managementImageUrl}}"
+        class="management-card__cover"
+        src="{{managementImageUrl}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="management-card__cover management-card__cover--placeholder">热卖</view>
+
+      <view class="management-card__meta">
+        <view class="management-card__title">菜谱管理</view>
+        <view class="management-card__count">{{managementRecipeCountText}}</view>
+        <view class="management-card__summary">{{managementCategorySummary}}</view>
+      </view>
+
+      <view class="management-card__more" bindtap="openSpaceManager">⋮</view>
+    </view>
+
+    <view class="management-card__actions">
+      <button class="action-pill action-pill--random" bindtap="handleRandomPick">🎲 随机点菜</button>
+      <button class="action-pill action-pill--create" bindtap="goCreate">＋ 新增菜谱</button>
     </view>
   </view>
 
   <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
-
   <view wx:if="{{!errorMessage && truncationMessage}}" class="feedback-card">{{truncationMessage}}</view>
-
   <view wx:if="{{!errorMessage && loading}}" class="feedback-card">正在加载菜谱...</view>
-
-  <view wx:elif="{{items.length}}" class="recipe-list">
-    <recipe-card
-      wx:for="{{items}}"
-      wx:key="_id"
-      item="{{item}}"
-      bindselect="handleSelectRecipe"
-      bindedit="handleEditRecipe"
-    />
-  </view>
-
-  <view wx:elif="{{showEmptyState && activeSpaceId}}" class="empty-card">
-    <view class="empty-card__title">还没有菜谱</view>
-    <view class="empty-card__text">添加第一道菜并维护配料、步骤和标签。</view>
-    <button class="empty-card__button" bindtap="goCreate">立即添加</button>
-  </view>
 
   <view wx:elif="{{!activeSpaceId}}" class="empty-card">
     <view class="empty-card__title">先选择一个空间</view>
@@ -37,7 +50,117 @@
     <button class="empty-card__button" bindtap="openSpace">前往选择空间</button>
   </view>
 
-  <view class="quick-links">
-    <button class="quick-link" bindtap="goPantry">查看库存</button>
+  <view wx:else class="channel-layout">
+    <view class="channel-rail">
+      <view class="channel-rail__inner">
+        <view
+          wx:for="{{sectionViewItems}}"
+          wx:key="key"
+          class="{{item.itemClass}}"
+          data-key="{{item.key}}"
+          bindtap="handleSectionChange"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <view class="channel-surface">
+      <view class="surface-head">
+        <view>
+          <view class="surface-eyebrow">菜谱频道</view>
+          <view class="surface-title">{{activeSectionLabel}}</view>
+        </view>
+        <view class="surface-meta">{{visibleItemsCountText}}</view>
+      </view>
+
+      <view wx:if="{{showVisibleItems}}" class="dish-list">
+        <view wx:for="{{visibleItems}}" wx:key="_id" class="dish-card">
+          <view class="dish-thumb" data-recipe-id="{{item._id}}" bindtap="openRecipeFromCard">
+            <image
+              wx:if="{{item.coverImageUrl}}"
+              class="dish-thumb__image"
+              src="{{item.coverImageUrl}}"
+              mode="aspectFill"
+            />
+            <view wx:else class="dish-thumb__image dish-thumb__image--placeholder">热卖</view>
+          </view>
+
+          <view class="dish-body" data-recipe-id="{{item._id}}" bindtap="openRecipeFromCard">
+            <view class="dish-name">{{item.name}}</view>
+            <view wx:if="{{item.recommendationStars}}" class="dish-stars">{{item.recommendationStars}}</view>
+            <view class="dish-servings">{{item.servingsDisplay}}</view>
+            <view class="dish-summary">{{item.summaryDisplay}}</view>
+          </view>
+
+          <view class="dish-side">
+            <view class="dish-usage">月销 {{item.planUsageCount}}</view>
+            <view
+              class="{{item.selectionClass}}"
+              data-recipe-id="{{item._id}}"
+              bindtap="toggleRecipeSelection"
+            >
+              {{item.selectionSymbol}}
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:else class="empty-card empty-card--inline">
+        <view class="empty-card__title">{{emptyTitle}}</view>
+        <view class="empty-card__text">{{emptyText}}</view>
+        <button class="empty-card__button" bindtap="goCreate">{{emptyButtonText}}</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="cart-bar">
+    <view class="cart-info">
+      <view class="cart-label">已选菜谱</view>
+      <view class="cart-count">{{selectedRecipesCount}} 道菜</view>
+    </view>
+    <view class="cart-primary" bindtap="handlePlanSelectedRecipes">📅 加入计划</view>
+    <view class="cart-secondary" bindtap="clearSelectedRecipes">清空</view>
+  </view>
+
+  <view wx:if="{{showCategoryManager}}" class="category-modal__overlay" catchtap="closeCategoryManager">
+    <view class="category-modal" catchtap="noop">
+      <view class="category-modal__header">
+        <view class="category-modal__title">分类管理</view>
+        <view class="category-modal__close" bindtap="closeCategoryManager">×</view>
+      </view>
+
+      <view class="category-modal__input-row">
+        <input
+          class="category-modal__input"
+          value="{{categoryManagerInput}}"
+          placeholder="输入分类名称"
+          bindinput="handleCategoryManagerInput"
+        />
+        <button class="category-modal__confirm" bindtap="submitCategoryManagerCreate">确定</button>
+      </view>
+
+      <view wx:if="{{categoryManagerLoading}}" class="category-modal__hint">正在读取分类...</view>
+
+      <view wx:else class="category-modal__list">
+        <view wx:for="{{categoryManagerViewItems}}" wx:key="name" class="category-modal__item">
+          <view class="category-modal__drag">⋮⋮</view>
+          <view class="category-modal__name">{{item.name}}</view>
+          <view class="category-modal__actions">
+            <view class="category-modal__edit" data-name="{{item.name}}" bindtap="renameCategory">✎</view>
+            <view wx:if="{{item.showCountBadge}}" class="category-modal__count">{{item.countText}}</view>
+            <view
+              wx:elif="{{item.showDelete}}"
+              class="category-modal__delete"
+              data-name="{{item.name}}"
+              data-deletable="{{item.deletable}}"
+              bindtap="deleteCategory"
+            >
+              ×
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

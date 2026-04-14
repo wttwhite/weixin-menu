@@ -38,4 +38,13 @@ describe('getErrorMessage', () => {
       })
     ).toBe('没有找到对应的数据')
   })
+
+  it('shows a deployment hint when the cloud api does not support the requested action yet', () => {
+    expect(
+      getErrorMessage({
+        code: 404,
+        message: 'Unsupported action'
+      })
+    ).toBe('云函数未更新，请重新部署 api 云函数')
+  })
 })

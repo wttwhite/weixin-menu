@@ -66,17 +66,20 @@ Component({
       return createUploadService()
     },
 
-    async chooseAndUpload() {
+    async chooseAndUpload(sourceTypeOverride) {
       if (this.data.uploading || this.properties.disabled || !this.properties.spaceId) {
         return
       }
 
       let result = null
+      const sourceType = Array.isArray(sourceTypeOverride) && sourceTypeOverride.length
+        ? sourceTypeOverride
+        : ['album', 'camera']
       try {
         result = await wx.chooseMedia({
           count: 1,
           mediaType: ['image'],
-          sourceType: ['album', 'camera']
+          sourceType
         })
       } catch (error) {
         const message = (error && error.message) || (error && error.errMsg) || ''
@@ -164,6 +167,14 @@ Component({
           })
         }
       }
+    },
+
+    async handleCameraTap() {
+      return this.chooseAndUpload(['camera'])
+    },
+
+    async handleAlbumTap() {
+      return this.chooseAndUpload(['album'])
     },
 
     handleRemove(event) {

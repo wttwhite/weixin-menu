@@ -1,0 +1,168 @@
+<h2>菜谱编辑页 A-v2</h2>
+<p class="subtitle">补上了“食材与步骤”区块，并保持你上一轮确认的截图风格。分类管理弹框入口仍放在菜谱首页右上角。</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">编辑页主体</div>
+    <div class="mockup-body" style="padding:14px;background:#f6f8fc;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="width:40px;height:40px;border-radius:20px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.08)">←</div>
+      </div>
+
+      <div style="display:grid;gap:16px;">
+        <div style="background:#fff;border-radius:26px;padding:18px;box-shadow:0 10px 24px rgba(31,41,55,.08);">
+          <div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin-bottom:12px;">
+            <div style="width:28px;height:28px;border-radius:14px;background:#eef3ff;display:flex;align-items:center;justify-content:center;color:#5a83ff;">ⓘ</div>
+            <span>基本信息</span>
+          </div>
+          <div style="height:1px;background:#eef1f4;margin-bottom:14px;"></div>
+          <div style="display:grid;gap:12px;">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <div style="width:88px;color:#27323f;font-weight:700;">菜谱名称</div>
+              <div style="flex:1;height:42px;border:1px solid #edf0f4;border-radius:12px;background:#fff;"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <div style="width:88px;color:#27323f;font-weight:700;">菜谱分类</div>
+              <div style="flex:1;height:42px;border:1px solid #edf0f4;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#9aa3af;">请选择菜谱分类 <span>⌄</span></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;color:#27323f;font-weight:700;margin-bottom:6px;">
+                <span>菜谱描述</span>
+                <span style="font-size:12px;color:#8b95a3;font-weight:600;">0/100</span>
+              </div>
+              <div style="height:108px;border-radius:16px;background:#fafbfe;border:1px solid #f0f3f8;color:#bcc3cf;padding:16px;">简单描述一下这道菜的特色...</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border-radius:26px;padding:18px;box-shadow:0 10px 24px rgba(31,41,55,.08);">
+          <div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin-bottom:12px;">
+            <div style="width:28px;height:28px;border-radius:14px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;">🛒</div>
+            <span>食材与步骤</span>
+          </div>
+          <div style="height:1px;background:#eef1f4;margin-bottom:14px;"></div>
+
+          <div style="font-size:18px;font-weight:800;color:#27323f;margin-bottom:10px;">食材列表</div>
+          <div style="display:grid;gap:12px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:#fafbfe;border:1px solid #f0f3f8;">
+              <div style="flex:1;color:#9aa3af;">如：土豆 2个、五花肉 500g</div>
+              <div style="padding:8px 14px;border-radius:999px;background:#ffe9e9;color:#d14b4b;font-weight:700;">删除</div>
+            </div>
+          </div>
+          <div style="height:50px;border-radius:18px;background:#f4f5f8;display:flex;align-items:center;justify-content:center;font-weight:700;color:#4b5563;margin-bottom:20px;">
+            <span style="display:inline-flex;width:28px;height:28px;border-radius:14px;background:#2f8b37;color:#fff;align-items:center;justify-content:center;margin-right:10px;">＋</span>
+            新增食材
+          </div>
+
+          <div style="font-size:18px;font-weight:800;color:#27323f;margin-bottom:10px;">制作步骤</div>
+          <div style="display:grid;gap:12px;margin-bottom:14px;">
+            <div style="padding:16px;border-radius:18px;background:#fafbfe;border:1px solid #f0f3f8;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div>
+                  <div style="font-size:18px;font-weight:800;color:#27323f;">步骤 1</div>
+                  <div style="font-size:12px;color:#8b95a3;">0/500</div>
+                </div>
+                <div style="padding:8px 14px;border-radius:999px;background:#ffe9e9;color:#d14b4b;font-weight:700;">删除</div>
+              </div>
+              <div style="height:98px;border-radius:16px;background:#fff;color:#bcc3cf;padding:16px;">详细描述制作步骤...</div>
+            </div>
+          </div>
+          <div style="height:50px;border-radius:18px;background:#f4f5f8;display:flex;align-items:center;justify-content:center;font-weight:700;color:#4b5563;">
+            <span style="display:inline-flex;width:28px;height:28px;border-radius:14px;background:#2f8b37;color:#fff;align-items:center;justify-content:center;margin-right:10px;">＋</span>
+            新增步骤
+          </div>
+        </div>
+
+        <div style="background:#fff;border-radius:26px;padding:18px;box-shadow:0 10px 24px rgba(31,41,55,.08);">
+          <div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin-bottom:12px;">
+            <div style="width:28px;height:28px;border-radius:14px;background:#eef3ff;display:flex;align-items:center;justify-content:center;">⚙</div>
+            <span>详细属性</span>
+          </div>
+          <div style="height:1px;background:#eef1f4;margin-bottom:14px;"></div>
+
+          <div style="font-size:16px;font-weight:800;color:#27323f;margin-bottom:12px;">烹饪时长</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+            <div style="padding:8px 14px;border-radius:999px;background:#2f8b37;color:#fff;font-weight:700;">15分钟内</div>
+            <div style="padding:8px 14px;border-radius:999px;background:#f4f6fb;color:#6b7280;font-weight:700;">15-30分钟</div>
+            <div style="padding:8px 14px;border-radius:999px;background:#f4f6fb;color:#6b7280;font-weight:700;">30-45分钟</div>
+            <div style="padding:8px 14px;border-radius:999px;background:#f4f6fb;color:#6b7280;font-weight:700;">45-60分钟</div>
+            <div style="padding:8px 14px;border-radius:999px;background:#f4f6fb;color:#6b7280;font-weight:700;">1小时以上</div>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;">
+            <div style="font-weight:700;">推荐指数</div>
+            <div style="color:#f5b31a;font-size:20px;">★ ★ ★ ☆ ☆</div>
+            <div style="color:#6b7280;">3/5</div>
+          </div>
+
+          <div style="font-size:16px;font-weight:800;color:#27323f;">菜谱图片上传</div>
+          <div style="font-size:12px;color:#8b95a3;margin:4px 0 14px;">多张可选封面图</div>
+          <div style="display:flex;gap:12px;">
+            <div style="flex:1;height:90px;border-radius:16px;border:1px dashed #8cb6ff;background:#eef5ff;display:flex;align-items:center;justify-content:center;color:#2e67d1;font-weight:700;">拍照</div>
+            <div style="flex:1;height:90px;border-radius:16px;border:1px dashed #8fd28f;background:#f3fbf3;display:flex;align-items:center;justify-content:center;color:#2f8b37;font-weight:700;">相册</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:sticky;bottom:0;margin-top:18px;display:flex;gap:12px;">
+        <div style="width:120px;height:54px;border-radius:18px;background:#edf1f6;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#27323f;">关闭</div>
+        <div style="flex:1;height:54px;border-radius:18px;background:#8cc58e;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;">创建菜谱</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">分类管理弹框</div>
+    <div class="mockup-body" style="padding:18px;background:#fff;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:22px;font-weight:800;">分类管理</div>
+        <div style="width:36px;height:36px;border-radius:18px;background:#f4f5f8;display:flex;align-items:center;justify-content:center;color:#6b7280;">×</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;">
+        <div style="flex:1;height:44px;border-radius:14px;border:1px solid #edf0f4;color:#9aa3af;display:flex;align-items:center;padding:0 14px;">输入分类名称</div>
+        <div style="width:86px;height:44px;border-radius:14px;background:#2f8b37;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;">确定</div>
+      </div>
+      <div style="display:grid;gap:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:18px;background:#fbfcfe;border:1px solid #edf1f5;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:34px;height:34px;border-radius:17px;background:#f2f4f8;display:flex;align-items:center;justify-content:center;color:#6b7280;">⋮⋮</div>
+            <div style="font-weight:700;">健康时蔬</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:17px;background:#eef5ff;color:#4d7edc;display:flex;align-items:center;justify-content:center;">✎</div>
+            <div style="padding:6px 12px;border-radius:999px;background:#f4f5f8;color:#8b95a3;">5个菜谱</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:18px;background:#fbfcfe;border:1px solid #edf1f5;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:34px;height:34px;border-radius:17px;background:#f2f4f8;display:flex;align-items:center;justify-content:center;color:#6b7280;">⋮⋮</div>
+            <div style="font-weight:700;">饮品酒水</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:17px;background:#eef5ff;color:#4d7edc;display:flex;align-items:center;justify-content:center;">✎</div>
+            <div style="width:34px;height:34px;border-radius:17px;background:#ffe9e9;color:#d14b4b;display:flex;align-items:center;justify-content:center;">×</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>会保留</h4>
+    <ul>
+      <li>现有保存、删除、图片上传和草稿清理逻辑</li>
+      <li>固定底部关闭/保存动作</li>
+      <li>编辑和新增共用一套页面</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>这轮不做</h4>
+    <ul>
+      <li>分类拖拽排序</li>
+      <li>随机点菜真实业务</li>
+      <li>计划联动写入</li>
+    </ul>
+  </div>
+</div>

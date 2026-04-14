@@ -2,6 +2,14 @@ const { createRecipeService } = require('../../services/recipe')
 const { createUploadService } = require('../../services/upload')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const DEFAULT_CATEGORY_LABEL = '请选择菜谱分类'
+const COOK_DURATION_OPTIONS = Object.freeze([
+  { label: '15分钟内', value: '15' },
+  { label: '15-30分钟', value: '30' },
+  { label: '30-45分钟', value: '45' },
+  { label: '45-60分钟', value: '60' },
+  { label: '1小时以上', value: '61' }
+])
 
 function createEmptyIngredient() {
   return {
@@ -69,6 +77,96 @@ function normalizeImageItems(images = []) {
     .filter((item) => item._id)
 }
 
+function buildCategoryOptions(items = [], currentCategory = '') {
+  const names = Array.from(
+    new Set(
+      (items || [])
+        .map((item) => (item && item.name ? String(item.name).trim() : ''))
+        .filter(Boolean)
+    )
+  )
+  if (currentCategory && !names.includes(currentCategory)) {
+    names.push(currentCategory)
+  }
+  return [DEFAULT_CATEGORY_LABEL].concat(names)
+}
+
+function getCategoryIndex(options = [], category = '') {
+  const index = (options || []).indexOf(category)
+  return index >= 0 ? index : 0
+}
+
+function buildCookDurationOptions(selectedValue = '') {
+  const selected = typeof selectedValue === 'string' ? selectedValue : String(selectedValue || '')
+  return COOK_DURATION_OPTIONS.map((item) => ({
+    ...item,
+    selected: item.value === selected,
+    itemClass: item.value === selected ? 'duration-chip duration-chip--selected' : 'duration-chip'
+  }))
+}
+
+function buildRecommendationStarItems(score = '') {
+  const parsed = Number(score)
+  const normalized = Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+  return [1, 2, 3, 4, 5].map((value) => ({
+    value,
+    active: value <= normalized,
+    itemClass: value <= normalized ? 'rating-star rating-star--active' : 'rating-star'
+  }))
+}
+
+function buildCategorySelectorItems(categoryOptions = [], selectedCategoryIndex = 0) {
+  return (categoryOptions || [])
+    .map((label, index) => ({
+      index,
+      label,
+      disabled: index === 0,
+      itemClass:
+        index === selectedCategoryIndex
+          ? 'category-selector__item category-selector__item--active'
+          : 'category-selector__item'
+    }))
+    .filter((item) => !item.disabled)
+}
+
+function buildIngredientViewItems(ingredients = []) {
+  return normalizeRows(ingredients, createEmptyIngredient).map((item, index) => ({
+    ...item,
+    displayIndex: index + 1
+  }))
+}
+
+function buildStepViewItems(steps = []) {
+  return normalizeRows(steps, createEmptyStep).map((item, index) => ({
+    ...item,
+    displayIndex: index + 1,
+    contentCount: String((item.content || '').length)
+  }))
+}
+
+function buildEditorViewData(options = {}) {
+  const form = options.form || createEmptyForm()
+  const categoryOptions = options.categoryOptions || [DEFAULT_CATEGORY_LABEL]
+  const selectedCategoryIndex =
+    typeof options.selectedCategoryIndex === 'number' ? options.selectedCategoryIndex : 0
+  const isEdit = Boolean(options.isEdit)
+  const categoryLabel = categoryOptions[selectedCategoryIndex] || DEFAULT_CATEGORY_LABEL
+  const recommendationScore = Number(form.recommendationScore)
+  return {
+    ingredientViewItems: buildIngredientViewItems(form.ingredients),
+    stepViewItems: buildStepViewItems(form.steps),
+    selectedCategoryLabel: categoryLabel,
+    categoryPickerClass:
+      selectedCategoryIndex === 0
+        ? 'category-picker__value category-picker__value--placeholder'
+        : 'category-picker__value',
+    categorySelectorItems: buildCategorySelectorItems(categoryOptions, selectedCategoryIndex),
+    summaryCount: String((form.summary || '').length),
+    recommendationScoreLabel: `${Number.isFinite(recommendationScore) ? recommendationScore : 0}/5`,
+    submitButtonLabel: isEdit ? '保存菜谱' : '创建菜谱'
+  }
+}
+
 function removeArrayValue(values = [], value) {
   return (values || []).filter((item) => item !== value)
 }
@@ -85,7 +183,22 @@ Page({
     isEdit: false,
     loadErrorMessage: '',
     availableTags: [],
+    recipeCategories: [],
+    categoryOptions: [DEFAULT_CATEGORY_LABEL],
+    selectedCategoryIndex: 0,
+    selectedCategoryLabel: DEFAULT_CATEGORY_LABEL,
+    categoryPickerClass: 'category-picker__value category-picker__value--placeholder',
+    categorySelectorItems: [],
+    showCategorySelector: false,
+    loadingTitle: '正在准备新菜谱...',
+    summaryCount: '0',
+    cookDurationOptions: buildCookDurationOptions(''),
+    recommendationStarItems: buildRecommendationStarItems(''),
+    recommendationScoreLabel: '0/5',
     tagViewItems: [],
+    ingredientViewItems: buildIngredientViewItems(createEmptyForm().ingredients),
+    stepViewItems: buildStepViewItems(createEmptyForm().steps),
+    submitButtonLabel: '创建菜谱',
     newTagName: '',
     cancelledPendingImageIds: [],
     form: createEmptyForm()
@@ -96,6 +209,7 @@ Page({
     this.setData({
       recipeId,
       isEdit: Boolean(recipeId),
+      loadingTitle: recipeId ? '正在加载菜谱信息...' : '正在准备新菜谱...',
       hasBootstrapped: false
     })
   },
@@ -176,11 +290,15 @@ Page({
 
     try {
       const service = createRecipeService()
-      const tagResult = await service.listRecipeTags(activeSpaceId)
+      const [tagResult, categoryResult] = await Promise.all([
+        service.listRecipeTags(activeSpaceId),
+        service.listRecipeCategories(activeSpaceId)
+      ])
       const nextData = {
         loading: false,
         isBootstrapping: false,
-        availableTags: tagResult.items || []
+        availableTags: tagResult.items || [],
+        recipeCategories: categoryResult.items || []
       }
 
       if (this.data.isEdit && this.data.recipeId) {
@@ -201,25 +319,80 @@ Page({
       }
 
       const selectedTagIds = nextData.form ? nextData.form.tagIds : this.data.form.tagIds
+      const currentCategory = nextData.form ? nextData.form.category || '' : this.data.form.category || ''
+      nextData.categoryOptions = buildCategoryOptions(nextData.recipeCategories, currentCategory)
+      nextData.selectedCategoryIndex = getCategoryIndex(nextData.categoryOptions, currentCategory)
+      nextData.cookDurationOptions = buildCookDurationOptions(
+        nextData.form ? nextData.form.cookTimeMinutes : this.data.form.cookTimeMinutes
+      )
+      nextData.recommendationStarItems = buildRecommendationStarItems(
+        nextData.form ? nextData.form.recommendationScore : this.data.form.recommendationScore
+      )
       nextData.tagViewItems = buildTagViewItems(nextData.availableTags, selectedTagIds)
+      Object.assign(
+        nextData,
+        buildEditorViewData({
+          form: nextData.form || this.data.form,
+          categoryOptions: nextData.categoryOptions,
+          selectedCategoryIndex: nextData.selectedCategoryIndex,
+          isEdit: this.data.isEdit
+        })
+      )
       this.setData(nextData)
     } catch (error) {
-      this.setData({
+      const nextData = {
         loading: false,
         isBootstrapping: false,
         loadErrorMessage: getErrorMessage(error),
+        recipeCategories: [],
+        categoryOptions: [DEFAULT_CATEGORY_LABEL],
+        selectedCategoryIndex: 0,
+        cookDurationOptions: buildCookDurationOptions(''),
+        recommendationStarItems: buildRecommendationStarItems(''),
         tagViewItems: [],
         cancelledPendingImageIds: [],
         form: createEmptyForm()
-      })
+      }
+      Object.assign(
+        nextData,
+        buildEditorViewData({
+          form: nextData.form,
+          categoryOptions: nextData.categoryOptions,
+          selectedCategoryIndex: nextData.selectedCategoryIndex,
+          isEdit: this.data.isEdit
+        })
+      )
+      this.setData(nextData)
     }
   },
 
   handleInput(event) {
     const field = event.currentTarget.dataset.field
-    this.setData({
+    const nextData = {
       [`form.${field}`]: event.detail.value
-    })
+    }
+    if (field === 'recommendationScore') {
+      nextData.recommendationStarItems = buildRecommendationStarItems(event.detail.value)
+    }
+    if (field === 'cookTimeMinutes') {
+      nextData.cookDurationOptions = buildCookDurationOptions(event.detail.value)
+    }
+    if (field === 'summary' || field === 'recommendationScore' || field === 'cookTimeMinutes') {
+      const nextForm = {
+        ...this.data.form,
+        [field]: event.detail.value
+      }
+      Object.assign(
+        nextData,
+        buildEditorViewData({
+          form: nextForm,
+          categoryOptions: this.data.categoryOptions,
+          selectedCategoryIndex: this.data.selectedCategoryIndex,
+          isEdit: this.data.isEdit
+        })
+      )
+    }
+    this.setData(nextData)
   },
 
   handleSwitchFavorite(event) {
@@ -231,25 +404,45 @@ Page({
   handleIngredientInput(event) {
     const index = Number(event.currentTarget.dataset.index)
     const field = event.currentTarget.dataset.field
+    const ingredients = (this.data.form.ingredients || []).map((item, currentIndex) =>
+      currentIndex === index
+        ? {
+            ...item,
+            [field]: event.detail.value
+          }
+        : item
+    )
     this.setData({
-      [`form.ingredients[${index}].${field}`]: event.detail.value
+      'form.ingredients': ingredients,
+      ingredientViewItems: buildIngredientViewItems(ingredients)
     })
   },
 
   handleStepInput(event) {
     const index = Number(event.currentTarget.dataset.index)
     const field = event.currentTarget.dataset.field
+    const steps = (this.data.form.steps || []).map((item, currentIndex) =>
+      currentIndex === index
+        ? {
+            ...item,
+            [field]: event.detail.value
+          }
+        : item
+    )
     this.setData({
-      [`form.steps[${index}].${field}`]: event.detail.value
+      'form.steps': steps,
+      stepViewItems: buildStepViewItems(steps)
     })
   },
 
   addIngredientRow() {
+    const ingredients = this.data.form.ingredients.concat(createEmptyIngredient())
     this.setData({
       form: {
         ...this.data.form,
-        ingredients: this.data.form.ingredients.concat(createEmptyIngredient())
-      }
+        ingredients
+      },
+      ingredientViewItems: buildIngredientViewItems(ingredients)
     })
   },
 
@@ -257,16 +450,19 @@ Page({
     const index = Number(event.currentTarget.dataset.index)
     const ingredients = this.data.form.ingredients.filter((item, currentIndex) => currentIndex !== index)
     this.setData({
-      'form.ingredients': ingredients.length ? ingredients : [createEmptyIngredient()]
+      'form.ingredients': ingredients.length ? ingredients : [createEmptyIngredient()],
+      ingredientViewItems: buildIngredientViewItems(ingredients.length ? ingredients : [createEmptyIngredient()])
     })
   },
 
   addStepRow() {
+    const steps = this.data.form.steps.concat(createEmptyStep())
     this.setData({
       form: {
         ...this.data.form,
-        steps: this.data.form.steps.concat(createEmptyStep())
-      }
+        steps
+      },
+      stepViewItems: buildStepViewItems(steps)
     })
   },
 
@@ -274,7 +470,8 @@ Page({
     const index = Number(event.currentTarget.dataset.index)
     const steps = this.data.form.steps.filter((item, currentIndex) => currentIndex !== index)
     this.setData({
-      'form.steps': steps.length ? steps : [createEmptyStep()]
+      'form.steps': steps.length ? steps : [createEmptyStep()],
+      stepViewItems: buildStepViewItems(steps.length ? steps : [createEmptyStep()])
     })
   },
 
@@ -298,6 +495,111 @@ Page({
   handleNewTagInput(event) {
     this.setData({
       newTagName: event.detail.value
+    })
+  },
+
+  handleCategoryChange(event) {
+    const selectedCategoryIndex = Number(event.detail.value)
+    const nextForm = {
+      ...this.data.form,
+      category:
+        selectedCategoryIndex > 0
+          ? this.data.categoryOptions[selectedCategoryIndex]
+          : ''
+    }
+    const nextData = {
+      selectedCategoryIndex,
+      form: nextForm
+    }
+    Object.assign(
+      nextData,
+      buildEditorViewData({
+        form: nextForm,
+        categoryOptions: this.data.categoryOptions,
+        selectedCategoryIndex,
+        isEdit: this.data.isEdit
+      })
+    )
+    this.setData(nextData)
+  },
+
+  openCategorySelector() {
+    if (!this.data.categorySelectorItems || !this.data.categorySelectorItems.length) {
+      return
+    }
+    this.setData({
+      showCategorySelector: true
+    })
+  },
+
+  closeCategorySelector() {
+    this.setData({
+      showCategorySelector: false
+    })
+  },
+
+  handleCategoryOptionTap(event) {
+    const name = event.currentTarget.dataset.name || ''
+    if (!name) {
+      return
+    }
+
+    const selectedCategoryIndex = getCategoryIndex(this.data.categoryOptions, name)
+    const nextForm = {
+      ...this.data.form,
+      category: name
+    }
+    const nextData = {
+      selectedCategoryIndex,
+      form: nextForm,
+      showCategorySelector: false
+    }
+    Object.assign(
+      nextData,
+      buildEditorViewData({
+        form: nextForm,
+        categoryOptions: this.data.categoryOptions,
+        selectedCategoryIndex,
+        isEdit: this.data.isEdit
+      })
+    )
+    this.setData(nextData)
+  },
+
+  handleCookTimeOptionTap(event) {
+    const value = String(event.currentTarget.dataset.value || '')
+    const nextForm = {
+      ...this.data.form,
+      cookTimeMinutes: value
+    }
+    this.setData({
+      form: nextForm,
+      cookDurationOptions: buildCookDurationOptions(value),
+      recommendationScoreLabel: this.data.recommendationScoreLabel,
+      ...buildEditorViewData({
+        form: nextForm,
+        categoryOptions: this.data.categoryOptions,
+        selectedCategoryIndex: this.data.selectedCategoryIndex,
+        isEdit: this.data.isEdit
+      })
+    })
+  },
+
+  handleRecommendationTap(event) {
+    const value = Number(event.currentTarget.dataset.value || 0)
+    const nextForm = {
+      ...this.data.form,
+      recommendationScore: value
+    }
+    this.setData({
+      form: nextForm,
+      recommendationStarItems: buildRecommendationStarItems(value),
+      ...buildEditorViewData({
+        form: nextForm,
+        categoryOptions: this.data.categoryOptions,
+        selectedCategoryIndex: this.data.selectedCategoryIndex,
+        isEdit: this.data.isEdit
+      })
     })
   },
 

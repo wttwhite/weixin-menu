@@ -141,6 +141,170 @@ describe('meal-plans page flow', () => {
     expect(page.data.summary).toBe('已安排 120 条用餐计划。')
     expect(page.data.truncationMessage).toBe('当前仅显示部分计划，请继续缩小范围或等待分页支持。')
   })
+
+  it('builds a month calendar and filters plans by selected day', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'meal-1',
+              planDate: '2026-04-03',
+              mealType: 'dinner',
+              recipes: [{ recipeId: 'recipe-1', recipeNameSnapshot: '鸡汤', recipe: { _id: 'recipe-1', name: '鸡汤' } }]
+            },
+            {
+              _id: 'meal-2',
+              planDate: '2026-04-11',
+              mealType: 'lunch',
+              recipes: [{ recipeId: 'recipe-2', recipeNameSnapshot: '炒菠菜', recipe: { _id: 'recipe-2', name: '炒菠菜' } }]
+            }
+          ]
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    await page.loadMealPlans()
+
+    expect(page.data.calendarItems.some((item) => item.date === '2026-04-03' && item.hasPlans)).toBe(true)
+    expect(page.data.calendarItems.some((item) => item.date === '2026-04-11' && item.hasPlans)).toBe(true)
+
+    page.handleCalendarDateSelect({
+      currentTarget: {
+        dataset: {
+          date: '2026-04-03'
+        }
+      }
+    })
+
+    expect(page.data.selectedDate).toBe('2026-04-03')
+    expect(page.data.selectedPlans).toHaveLength(1)
+    expect(page.data.selectedPlans[0].mealTypeLabel).toBe('晚餐')
+  })
+
+  it('opens inventory check modal for the selected day and compares recipe ingredients with pantry stock', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'meal-1',
+                planDate: '2026-04-03',
+                mealType: 'dinner',
+                recipes: [
+                  { recipeId: 'recipe-1', recipeNameSnapshot: '鸡汤', recipe: { _id: 'recipe-1', name: '鸡汤' } },
+                  { recipeId: 'recipe-2', recipeNameSnapshot: '炒菠菜', recipe: { _id: 'recipe-2', name: '炒菠菜' } }
+                ]
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'recipe-1',
+              name: '鸡汤',
+              ingredients: [
+                { name: '鸡肉', quantity: '1', unit: '袋' },
+                { name: '黑木耳', quantity: '1', unit: '把' }
+              ]
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'recipe-2',
+              name: '炒菠菜',
+              ingredients: [{ name: '菠菜', quantity: '1', unit: '份' }]
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'pantry-1',
+                name: '鸡肉',
+                quantity: '1',
+                unit: '袋',
+                usageStatus: 'normal',
+                status: 'fresh'
+              }
+            ]
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    await page.loadMealPlans()
+    page.handleCalendarDateSelect({
+      currentTarget: {
+        dataset: {
+          date: '2026-04-03'
+        }
+      }
+    })
+    await page.openInventoryCheck()
+    await flushAsyncWork()
+
+    expect(page.data.showInventoryModal).toBe(true)
+    expect(page.data.inventorySummary.totalText).toBe('3')
+    expect(page.data.inventorySummary.inStockText).toBe('1')
+    expect(page.data.inventorySummary.missingText).toBe('2')
+    expect(page.data.inventoryItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: '鸡肉',
+          statusText: '有库存'
+        }),
+        expect.objectContaining({
+          name: '黑木耳',
+          statusText: '缺货'
+        }),
+        expect.objectContaining({
+          name: '菠菜',
+          statusText: '缺货'
+        })
+      ])
+    )
+  })
 })
 
 describe('meal-plan edit page flow', () => {

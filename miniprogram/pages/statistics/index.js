@@ -1,6 +1,7 @@
 const { createStatisticsService } = require('../../services/statistics')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const { syncCurrentTabBar } = require('../../utils/tab-bar')
 
 Page({
   data: {
@@ -25,6 +26,7 @@ Page({
   },
 
   onShow() {
+    syncCurrentTabBar(this, '/pages/statistics/index')
     this.loadDashboard()
   },
 

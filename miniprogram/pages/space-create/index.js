@@ -1,6 +1,7 @@
 const { createSessionService } = require('../../services/session')
 const { getErrorMessage } = require('../../utils/error')
 const { setActiveSpaceId } = require('../../utils/app-session')
+const { switchToTab } = require('../../utils/tab-bar')
 
 Page({
   data: {
@@ -39,9 +40,7 @@ Page({
         title: '空间创建成功',
         icon: 'success'
       })
-      wx.reLaunch({
-        url: '/pages/recipes/index'
-      })
+      await switchToTab('/pages/recipes/index')
     } catch (error) {
       wx.showToast({
         title: getErrorMessage(error),

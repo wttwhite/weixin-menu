@@ -47,16 +47,48 @@ describe('normalizePantryItemWrite', () => {
         expirationDate: '2026-04-15',
         now: '2026-04-10'
       })
-    ).toEqual({
-      name: 'Milk',
-      category: 'dairy',
-      quantity: '1',
-      unit: 'box',
-      location: 'fridge',
-      notes: 'use soon',
-      expirationDate: '2026-04-15',
-      status: 'fresh'
-    })
+    ).toEqual(
+      expect.objectContaining({
+        name: 'Milk',
+        category: 'dairy',
+        quantity: '1',
+        unit: 'box',
+        usageStatus: 'normal',
+        location: 'fridge',
+        notes: 'use soon',
+        expirationDate: '2026-04-15',
+        status: 'fresh',
+        productionDate: '',
+        shelfLifeMonths: '',
+        openedDate: ''
+      })
+    )
+  })
+
+  it('keeps supported manual usageStatus values and falls back to normal on unknown values', () => {
+    expect(
+      normalizePantryItemWrite({
+        name: 'Yogurt',
+        usageStatus: 'opened',
+        now: '2026-04-10'
+      })
+    ).toEqual(
+      expect.objectContaining({
+        usageStatus: 'opened'
+      })
+    )
+
+    expect(
+      normalizePantryItemWrite({
+        name: 'Yogurt',
+        usageStatus: 'mystery',
+        now: '2026-04-10'
+      })
+    ).toEqual(
+      expect.objectContaining({
+        usageStatus: 'normal'
+      })
+    )
   })
 
   it('drops impossible expiration dates during normalization', () => {
@@ -69,6 +101,30 @@ describe('normalizePantryItemWrite', () => {
     ).toEqual(
       expect.objectContaining({
         expirationDate: ''
+      })
+    )
+  })
+
+  it('derives expiration date from production date and shelf life months while keeping extra pantry fields', () => {
+    expect(
+      normalizePantryItemWrite({
+        name: 'Yogurt',
+        quantity: '3',
+        productionDate: '2026-01-15',
+        shelfLifeMonths: '2',
+        openedDate: '2026-01-20',
+        usageStatus: 'discarded',
+        now: '2026-02-01'
+      })
+    ).toEqual(
+      expect.objectContaining({
+        quantity: '3',
+        productionDate: '2026-01-15',
+        shelfLifeMonths: '2',
+        openedDate: '2026-01-20',
+        expirationDate: '2026-03-15',
+        usageStatus: 'discarded',
+        status: 'fresh'
       })
     )
   })

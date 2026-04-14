@@ -1,6 +1,7 @@
 const { createSessionService } = require('../../services/session')
 const { getErrorMessage } = require('../../utils/error')
 const { setActiveSpaceId } = require('../../utils/app-session')
+const { switchToTab } = require('../../utils/tab-bar')
 
 function buildSpaceCards(spaces, activeSpaceId) {
   return (spaces || []).map((space) => ({
@@ -60,9 +61,7 @@ Page({
     try {
       const result = await createSessionService().switchSpace(nextSpaceId)
       setActiveSpaceId(result.activeSpaceId)
-      wx.reLaunch({
-        url: '/pages/recipes/index'
-      })
+      await switchToTab('/pages/recipes/index')
     } catch (error) {
       wx.showToast({
         title: getErrorMessage(error),

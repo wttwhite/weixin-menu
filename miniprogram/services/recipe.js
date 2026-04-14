@@ -79,6 +79,46 @@ function createRecipeService(dependencies = {}) {
       )
     },
 
+    async listRecipeCategories(spaceId) {
+      return unwrapResponse(
+        await cloudCall('api', {
+          action: 'listRecipeCategories',
+          spaceId
+        })
+      )
+    },
+
+    async createRecipeCategory(spaceId, name) {
+      return unwrapResponse(
+        await cloudCall('api', {
+          action: 'createRecipeCategory',
+          spaceId,
+          name
+        })
+      )
+    },
+
+    async updateRecipeCategory(spaceId, previousName, name) {
+      return unwrapResponse(
+        await cloudCall('api', {
+          action: 'updateRecipeCategory',
+          spaceId,
+          previousName,
+          name
+        })
+      )
+    },
+
+    async deleteRecipeCategory(spaceId, name) {
+      return unwrapResponse(
+        await cloudCall('api', {
+          action: 'deleteRecipeCategory',
+          spaceId,
+          name
+        })
+      )
+    },
+
     async createRecipeTag(spaceId, tag) {
       return unwrapResponse(
         await cloudCall('api', {
@@ -125,6 +165,22 @@ async function listRecipeTags(spaceId, dependencies = {}) {
   return createRecipeService(dependencies).listRecipeTags(spaceId)
 }
 
+async function listRecipeCategories(spaceId, dependencies = {}) {
+  return createRecipeService(dependencies).listRecipeCategories(spaceId)
+}
+
+async function createRecipeCategory(spaceId, name, dependencies = {}) {
+  return createRecipeService(dependencies).createRecipeCategory(spaceId, name)
+}
+
+async function updateRecipeCategory(spaceId, previousName, name, dependencies = {}) {
+  return createRecipeService(dependencies).updateRecipeCategory(spaceId, previousName, name)
+}
+
+async function deleteRecipeCategory(spaceId, name, dependencies = {}) {
+  return createRecipeService(dependencies).deleteRecipeCategory(spaceId, name)
+}
+
 async function createRecipeTag(spaceId, tag, dependencies = {}) {
   return createRecipeService(dependencies).createRecipeTag(spaceId, tag)
 }
@@ -135,12 +191,16 @@ async function deleteRecipeTag(spaceId, tagId, dependencies = {}) {
 
 module.exports = {
   createRecipe,
+  createRecipeCategory,
   createRecipeService,
   createRecipeTag,
   deleteRecipe,
+  deleteRecipeCategory,
   deleteRecipeTag,
   getRecipeDetail,
+  listRecipeCategories,
   listRecipeTags,
   listRecipes,
+  updateRecipeCategory,
   updateRecipe
 }

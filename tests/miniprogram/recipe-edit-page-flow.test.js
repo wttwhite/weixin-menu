@@ -73,6 +73,81 @@ describe('recipe edit page flow', () => {
     expect(Object.prototype.hasOwnProperty.call(page.data.form, 'recommendationScore')).toBe(true)
   })
 
+  it('loads recipe categories for selector and updates form state when selecting category, duration, and recommendation', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              { name: '健康时蔬', recipeCount: 2 },
+              { name: '美味汤羹', recipeCount: 1 }
+            ]
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({})
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(page.data.categoryOptions).toEqual(['请选择菜谱分类', '健康时蔬', '美味汤羹'])
+
+    page.openCategorySelector()
+    expect(page.data.showCategorySelector).toBe(true)
+
+    page.handleCategoryOptionTap({
+      currentTarget: {
+        dataset: {
+          name: '美味汤羹'
+        }
+      }
+    })
+    expect(page.data.form.category).toBe('美味汤羹')
+    expect(page.data.showCategorySelector).toBe(false)
+
+    page.handleCookTimeOptionTap({
+      currentTarget: {
+        dataset: {
+          value: '30'
+        }
+      }
+    })
+    expect(page.data.form.cookTimeMinutes).toBe('30')
+
+    page.handleRecommendationTap({
+      currentTarget: {
+        dataset: {
+          value: 4
+        }
+      }
+    })
+    expect(page.data.form.recommendationScore).toBe(4)
+  })
+
   it('does not re-bootstrap and wipe dirty form edits on hide/show cycle', async () => {
     const callFunction = vi
       .fn()
@@ -81,6 +156,14 @@ describe('recipe edit page flow', () => {
           code: 0,
           data: {
             items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '家常热菜', recipeCount: 1 }]
           }
         }
       })
@@ -129,7 +212,7 @@ describe('recipe edit page flow', () => {
     await flushAsyncWork()
 
     expect(page.data.form.name).toBe('Local Draft Name')
-    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(callFunction).toHaveBeenCalledTimes(3)
   })
 
   it('filters stale tagIds when bootstrapping existing recipe into edit form', async () => {
@@ -140,6 +223,14 @@ describe('recipe edit page flow', () => {
           code: 0,
           data: {
             items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '家常热菜', recipeCount: 1 }]
           }
         }
       })
@@ -199,7 +290,23 @@ describe('recipe edit page flow', () => {
         result: {
           code: 0,
           data: {
+            items: []
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
             items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '家常热菜', recipeCount: 1 }]
           }
         }
       })
@@ -228,7 +335,7 @@ describe('recipe edit page flow', () => {
     page.onShow()
     await waitUntilLoaded(page)
 
-    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(callFunction).toHaveBeenCalledTimes(4)
     expect(page.data.loadErrorMessage).toBe('')
     expect(page.data.availableTags).toEqual([
       expect.objectContaining({
@@ -238,14 +345,24 @@ describe('recipe edit page flow', () => {
   })
 
   it('retries bootstrap when activeSpaceId was initially missing and later becomes available', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      result: {
-        code: 0,
-        data: {
-          items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ _id: 'tag-1', name: '家常', color: '#E6A23C' }]
+          }
         }
-      }
-    })
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '家常热菜', recipeCount: 1 }]
+          }
+        }
+      })
     const globalData = {
       activeSpaceId: ''
     }
@@ -273,7 +390,7 @@ describe('recipe edit page flow', () => {
     page.onShow()
     await waitUntilLoaded(page)
 
-    expect(callFunction).toHaveBeenCalledTimes(1)
+    expect(callFunction).toHaveBeenCalledTimes(2)
     expect(page.data.activeSpaceId).toBe('space-1')
     expect(page.data.loadErrorMessage).toBe('')
   })
@@ -293,7 +410,23 @@ describe('recipe edit page flow', () => {
         result: {
           code: 0,
           data: {
+            items: [{ name: '旧分类', recipeCount: 1 }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
             items: [{ _id: 'tag-2', name: '新空间标签', color: '#67C23A' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '新分类', recipeCount: 1 }]
           }
         }
       })
@@ -329,7 +462,7 @@ describe('recipe edit page flow', () => {
     page.onShow()
     await waitUntilLoaded(page)
 
-    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(callFunction).toHaveBeenCalledTimes(4)
     expect(page.data.activeSpaceId).toBe('space-2')
     expect(page.data.form.name).toBe('')
     expect(page.data.availableTags).toEqual([

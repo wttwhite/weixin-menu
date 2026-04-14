@@ -1,104 +1,531 @@
 .meal-plans-page {
   min-height: 100vh;
-  padding: 32rpx 28rpx 140rpx;
-  background: #f4f6fb;
+  display: flex;
+  flex-direction: column;
+  padding: 18rpx 18rpx calc(env(safe-area-inset-bottom) + 26rpx);
   box-sizing: border-box;
+  background:
+    linear-gradient(180deg, #f6f7fb 0%, #eef1f7 100%);
 }
 
-.page-header {
+.plans-hero {
+  position: relative;
+  height: 272rpx;
+  overflow: hidden;
+  border-radius: 34rpx;
+  box-shadow: 0 24rpx 44rpx rgba(36, 52, 82, 0.14);
+}
+
+.plans-hero__background {
+  width: 100%;
+  height: 100%;
+}
+
+.plans-hero__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: linear-gradient(135deg, rgba(47, 139, 55, 0.84), rgba(95, 170, 88, 0.72));
+  color: #fff;
+  text-align: center;
+}
+
+.plans-hero__date {
+  font-size: 24rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.plans-hero__title {
+  font-size: 60rpx;
+  font-weight: 800;
+}
+
+.plans-hero__subtitle {
+  font-size: 28rpx;
+  opacity: 0.96;
+}
+
+.plans-hero__stat {
+  margin-top: 8rpx;
+  min-width: 148rpx;
+  padding: 20rpx 28rpx;
   border-radius: 28rpx;
-  padding: 28rpx;
-  background: linear-gradient(135deg, #f9fbff 0%, #eaf1ff 100%);
-  box-shadow: 0 14rpx 28rpx rgba(29, 53, 87, 0.08);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10rpx);
 }
 
-.page-title {
-  font-size: 40rpx;
-  font-weight: 600;
-  color: #1b2432;
+.plans-hero__stat-value {
+  font-size: 70rpx;
+  line-height: 1;
+  font-weight: 800;
 }
 
-.page-summary {
+.plans-hero__stat-label {
+  margin-top: 8rpx;
+  font-size: 28rpx;
+}
+
+.feedback-card,
+.empty-card,
+.calendar-panel,
+.plans-day-card {
+  margin-top: 18rpx;
+  border-radius: 30rpx;
+  padding: 24rpx;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 18rpx 34rpx rgba(56, 63, 79, 0.1);
+}
+
+.feedback-card {
+  font-size: 26rpx;
+  color: #5b6575;
+}
+
+.feedback-card--error {
+  color: #8c2f2f;
+}
+
+.feedback-card--inline {
+  margin-top: 14rpx;
+  background: #f7f9fc;
+  box-shadow: none;
+}
+
+.empty-card__title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #27323f;
+}
+
+.empty-card__text {
   margin-top: 12rpx;
   font-size: 26rpx;
-  color: #4f5f7a;
+  line-height: 1.7;
+  color: #7a808d;
 }
 
-.page-space {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #5f7394;
+.empty-card__button {
+  margin-top: 18rpx;
+  height: 82rpx;
+  line-height: 82rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #3c9844, #2d7f34);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 700;
 }
 
-.space-button {
-  margin-top: 20rpx;
-  background: #335d9f;
+.empty-card--inline {
+  margin-top: 12rpx;
+  box-shadow: none;
+}
+
+.calendar-panel__nav {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.calendar-nav__button {
+  width: 72rpx;
+  min-width: 72rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  background: #f2f4f8;
+  color: #394556;
+  font-size: 42rpx;
+  font-weight: 500;
+  text-align: center;
+}
+
+.calendar-nav__month {
+  flex: 1;
+  min-width: 0;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  background: #f7f8fb;
+  border: 1px solid #e4e8ef;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #27323f;
+  text-align: center;
+}
+
+.calendar-nav__today {
+  flex: none;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0 26rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  background: #2f8b37;
   color: #fff;
   font-size: 26rpx;
+  font-weight: 700;
 }
 
-.error-text {
-  margin-top: 20rpx;
-  color: #b44343;
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+
+.calendar-weekdays__item {
+  text-align: center;
+  font-size: 24rpx;
+  color: #8a90a0;
+  font-weight: 700;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.calendar-cell {
+  min-height: 88rpx;
+  border-radius: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fb;
+  border: 2rpx solid transparent;
+  color: #384454;
+}
+
+.calendar-cell--blank {
+  background: transparent;
+}
+
+.calendar-cell--has-plans {
+  background: #fff9e8;
+}
+
+.calendar-cell--today {
+  background: #e8f5e9;
+}
+
+.calendar-cell--selected {
+  border-color: #2f8b37;
+  box-shadow: inset 0 0 0 2rpx rgba(47, 139, 55, 0.08);
+}
+
+.calendar-cell__day {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.calendar-cell__dot {
+  width: 10rpx;
+  height: 10rpx;
+  margin-top: 8rpx;
+  border-radius: 999rpx;
+  background: #4c7fe4;
+}
+
+.calendar-cell__dot--selected {
+  background: #2f8b37;
+}
+
+.plans-day-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.plans-day-card__title {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #27323f;
+}
+
+.plans-day-card__meta {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #7a808d;
+}
+
+.plans-day-card__action {
+  flex: none;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0 24rpx;
+  height: 74rpx;
+  line-height: 74rpx;
+  border-radius: 999rpx;
+  background: #2f8b37;
+  color: #fff;
   font-size: 26rpx;
+  font-weight: 700;
 }
 
-.empty-state {
-  margin-top: 26rpx;
-  padding: 32rpx;
+.plan-card-list {
+  display: grid;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.plan-card {
+  display: flex;
+  gap: 18rpx;
+  align-items: flex-start;
+  padding: 18rpx;
+  border-radius: 28rpx;
+  background: #f8faff;
+}
+
+.plan-card__icon {
+  width: 76rpx;
+  min-width: 76rpx;
+  height: 76rpx;
+  border-radius: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e3ecfb;
+  font-size: 36rpx;
+}
+
+.plan-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.plan-card__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #27323f;
+}
+
+.plan-card__status {
+  flex: none;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.plan-card__status--done {
+  color: #4c7fe4;
+}
+
+.plan-card__status--today {
+  color: #2f8b37;
+}
+
+.plan-card__status--upcoming {
+  color: #8a90a0;
+}
+
+.plan-card__meta {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #7a808d;
+}
+
+.plan-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+.plan-card__tag {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #dce7fb;
+  color: #3d5f9d;
+  font-size: 22rpx;
+}
+
+.inventory-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  box-sizing: border-box;
+  background: rgba(18, 28, 45, 0.36);
+  backdrop-filter: blur(8rpx);
+}
+
+.inventory-modal__panel {
+  width: 100%;
+  max-height: 82vh;
+  overflow: auto;
+  border-radius: 34rpx;
+  padding: 24rpx;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 28rpx 50rpx rgba(22, 35, 54, 0.22);
+}
+
+.inventory-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.inventory-modal__title {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #182234;
+}
+
+.inventory-modal__date {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #8a90a0;
+}
+
+.inventory-modal__close {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f2f4f8;
+  color: #667084;
+  font-size: 36rpx;
+}
+
+.inventory-modal__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14rpx;
+  margin-top: 22rpx;
+  padding: 16rpx;
+  border-radius: 28rpx;
+  background: #f8fafc;
+}
+
+.inventory-stat {
+  padding: 20rpx 12rpx;
   border-radius: 24rpx;
   background: #ffffff;
   text-align: center;
 }
 
-.empty-title {
-  font-size: 32rpx;
-  color: #1f2a3c;
-  font-weight: 600;
+.inventory-stat--ok {
+  background: #e8f5e9;
 }
 
-.empty-text {
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  color: #63728a;
+.inventory-stat--missing {
+  background: #fdeaea;
 }
 
-.empty-button {
-  margin-top: 22rpx;
-  background: #335d9f;
-  color: #fff;
-  font-size: 26rpx;
+.inventory-stat__value {
+  font-size: 54rpx;
+  font-weight: 800;
+  color: #27323f;
 }
 
-.group-card {
-  margin-top: 22rpx;
-  border-radius: 24rpx;
-  padding: 20rpx;
-  background: #ffffff;
+.inventory-stat__label {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #5f6876;
 }
 
-.group-date {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #2c3f63;
-}
-
-.group-list {
-  margin-top: 16rpx;
-  display: flex;
-  flex-direction: column;
+.inventory-list {
+  display: grid;
   gap: 14rpx;
+  margin-top: 20rpx;
 }
 
-.fab-add {
-  position: fixed;
-  right: 28rpx;
-  bottom: 34rpx;
-  width: auto;
-  padding: 0 28rpx;
-  background: #2c5aa0;
-  color: #fff;
+.inventory-item {
+  display: flex;
+  gap: 16rpx;
+  align-items: flex-start;
+  padding: 18rpx;
+  border-radius: 26rpx;
+  background: #f9fafc;
+}
+
+.inventory-item__icon {
+  width: 64rpx;
+  min-width: 64rpx;
+  height: 64rpx;
   border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.inventory-item__icon--ok {
+  background: #2fc769;
+  color: #fff;
+}
+
+.inventory-item__icon--missing {
+  background: #fde8e6;
+  color: #dc4b40;
+}
+
+.inventory-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.inventory-item__name {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #27323f;
+}
+
+.inventory-item__meta {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #6c7788;
+}
+
+.inventory-item__status {
+  flex: none;
   font-size: 28rpx;
-  box-shadow: 0 12rpx 22rpx rgba(44, 90, 160, 0.25);
+  font-weight: 800;
+}
+
+.inventory-item__status--ok {
+  color: #2f8b37;
+}
+
+.inventory-item__status--missing {
+  color: #dc4b40;
+}
+
+.inventory-modal__primary {
+  margin-top: 22rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 999rpx;
+  background: #2f8b37;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 800;
 }
