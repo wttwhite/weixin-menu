@@ -38,18 +38,17 @@
   margin-top: 26rpx;
 }
 
-.statistics-button {
+.stat-btn {
   flex: 1;
-  background: #fff;
-  color: #543825;
-  padding: 20rpx 0;
-  font-size: 26rpx;
+  --td-button-primary-bg-color: #fff;
+  --td-button-primary-color: #543825;
+  --td-button-primary-border-color: #fff;
 }
 
-.statistics-button--ghost {
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
-  border: 2rpx solid rgba(255, 255, 255, 0.25);
+.stat-btn--ghost {
+  --td-button-outline-primary-color: rgba(255, 255, 255, 0.9);
+  --td-button-outline-primary-border-color: rgba(255, 255, 255, 0.3);
+  --td-button-outline-primary-active-bg-color: rgba(255, 255, 255, 0.1);
 }
 
 .feedback-card,
@@ -110,10 +109,4 @@
   line-height: 1.7;
 }
 
-.placeholder-button {
-  margin-top: 30rpx;
-  padding: 22rpx 0;
-  background: var(--brand);
-  color: #fff;
-  font-size: 28rpx;
-}
+

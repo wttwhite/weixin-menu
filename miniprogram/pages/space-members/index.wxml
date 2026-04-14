@@ -20,14 +20,17 @@
         <view class="member-card__role">{{item.roleLabel}}</view>
       </view>
       <view class="member-card__id">{{item.openid || item.id}}</view>
-      <button
+      <t-button
         wx:if="{{role === 'owner' && !item.isCurrentUser}}"
         class="member-card__remove"
+        theme="danger"
+        variant="outline"
+        size="small"
         data-member-openid="{{item.openid}}"
         bindtap="handleRemoveMember"
       >
         移除
-      </button>
+      </t-button>
     </view>
   </view>
 
@@ -36,6 +39,6 @@
   <view wx:if="{{role === 'owner'}}" class="invite-card">
     <view class="invite-card__title">邀请码</view>
     <view class="invite-card__value">{{inviteCode || '点击下方刷新生成邀请码'}}</view>
-    <button class="invite-card__button" bindtap="handleRotateInviteCode">刷新邀请码</button>
+    <t-button class="invite-card__button" theme="primary" block bindtap="handleRotateInviteCode">刷新邀请码</t-button>
   </view>
 </view>

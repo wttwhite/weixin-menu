@@ -3,14 +3,23 @@
     <view class="form-title">创建一个新的菜单空间</view>
     <view class="form-text">适合家庭、合租、团队厨房等场景。创建后会自动切换到新空间。</view>
 
-    <view class="field-label">空间名称</view>
-    <input
-      class="field-input"
-      placeholder="例如：白塔路小分队"
-      value="{{name}}"
-      bindinput="handleNameInput"
-    />
+    <view class="field-wrap">
+      <t-input
+        label="空间名称"
+        placeholder="例如：白塔路小分队"
+        value="{{name}}"
+        bindinput="handleNameInput"
+        clearable
+        custom-style="background: #fff; border-radius: 20rpx;"
+      />
+    </view>
 
-    <button class="submit-button" loading="{{submitting}}" bindtap="submit">创建并进入</button>
+    <t-button
+      class="submit-btn"
+      theme="primary"
+      block
+      loading="{{submitting}}"
+      bindtap="submit"
+    >创建并进入</t-button>
   </view>
 </view>

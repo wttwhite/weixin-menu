@@ -3,8 +3,8 @@
     <view class="backup-title">{{activeSpaceId || '尚未选择空间'}}</view>
     <view class="backup-text">导出或导入当前空间的结构化数据与图片文件。</view>
     <view class="backup-actions">
-      <button class="backup-button" loading="{{exporting}}" bindtap="handleExport">导出备份</button>
-      <button wx:if="{{role === 'owner'}}" class="backup-button backup-button--ghost" loading="{{importing}}" bindtap="handleImport">导入备份</button>
+      <t-button class="backup-btn" theme="primary" loading="{{exporting}}" bindtap="handleExport">导出备份</t-button>
+      <t-button wx:if="{{role === 'owner'}}" class="backup-btn backup-btn--ghost" variant="outline" loading="{{importing}}" bindtap="handleImport">导入备份</t-button>
     </view>
   </view>
 
@@ -17,14 +17,17 @@
       <view class="record-card__status">{{item.status}}</view>
       <view wx:if="{{item.fileName}}" class="record-card__time">{{item.fileName}}</view>
       <view class="record-card__time">{{item.updatedAt || item.createdAt}}</view>
-      <button
+      <t-button
         wx:if="{{item.fileId}}"
         class="record-card__button"
+        theme="primary"
+        variant="outline"
+        size="small"
         data-file-id="{{item.fileId}}"
         bindtap="handleCopyRecordUrl"
       >
         复制下载链接
-      </button>
+      </t-button>
     </view>
   </view>
 

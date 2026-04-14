@@ -13,28 +13,15 @@
 .title {
   font-size: 36rpx;
   font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 24rpx;
 }
 
 .field {
-  margin-top: 22rpx;
-}
-
-.label {
-  font-size: 24rpx;
-  color: var(--text-secondary);
-}
-
-.input,
-.textarea {
-  margin-top: 10rpx;
-  border-radius: 18rpx;
-  background: #fff;
-  padding: 18rpx 20rpx;
-  font-size: 28rpx;
-}
-
-.textarea {
-  min-height: 140rpx;
+  margin-top: 16rpx;
+  --td-input-label-color: var(--text-secondary);
+  --td-input-placeholder-color: #c0aba0;
+  --td-input-border-bottom-color: rgba(197, 106, 61, 0.18);
 }
 
 .inline-fields {
@@ -46,10 +33,9 @@
   flex: 1;
 }
 
-.submit {
-  margin-top: 26rpx;
-  background: var(--brand);
-  color: #fff;
-  padding: 22rpx 0;
-  font-size: 28rpx;
+.submit-btn {
+  margin-top: 30rpx;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }

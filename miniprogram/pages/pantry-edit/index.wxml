@@ -11,7 +11,7 @@
   <view wx:elif="{{loadErrorMessage}}" class="state-card">
     <view class="state-title">库存项加载失败</view>
     <view class="state-text">{{loadErrorMessage}}</view>
-    <button class="state-button" bindtap="goBack">返回列表</button>
+    <t-button class="state-button" theme="primary" bindtap="goBack">返回列表</t-button>
   </view>
 
   <view wx:else class="editor-shell">
@@ -138,12 +138,12 @@
         <view class="editor-section__title">危险操作</view>
       </view>
       <view class="editor-section__divider"></view>
-      <button class="delete-button" loading="{{deleting}}" bindtap="removeItem">移出库存</button>
+      <t-button class="delete-button" theme="danger" variant="outline" loading="{{deleting}}" bindtap="removeItem">移出库存</t-button>
     </view>
 
     <view class="bottom-actions">
-      <button class="footer-close-button" bindtap="goBack">关闭</button>
-      <button class="footer-submit-button" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</button>
+      <t-button class="footer-close-btn" theme="default" bindtap="goBack">关闭</t-button>
+      <t-button class="footer-submit-btn" theme="primary" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</t-button>
     </view>
   </view>
 </view>

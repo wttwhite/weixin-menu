@@ -5,20 +5,18 @@
     <view class="boot-detail">{{detail}}</view>
 
     <view wx:if="{{loading}}" class="boot-loading">
-      <view class="loading-dot"></view>
-      <view class="loading-dot"></view>
-      <view class="loading-dot"></view>
+      <t-loading theme="dots" size="60rpx" inherit-color />
     </view>
 
     <view wx:else class="boot-actions">
-      <button
+      <t-button
         wx:if="{{canInitCollections}}"
-        class="boot-action boot-action-secondary"
+        block
+        variant="outline"
+        theme="primary"
         bindtap="handleInitCollections"
-      >
-        初始化云数据库
-      </button>
-      <button class="boot-action" bindtap="runBootstrap">重新尝试</button>
+      >初始化云数据库</t-button>
+      <t-button block theme="primary" bindtap="runBootstrap">重新尝试</t-button>
     </view>
   </view>
 </view>

@@ -28,13 +28,13 @@
 }
 
 .uploader__entry--camera {
-  background: #eef5ff;
-  border-color: #bad2ff;
+  background: rgba(197, 106, 61, 0.08);
+  border-color: rgba(197, 106, 61, 0.3);
 }
 
 .uploader__entry--album {
-  background: #f4fbf0;
-  border-color: #bcdcb5;
+  background: rgba(197, 106, 61, 0.04);
+  border-color: rgba(197, 106, 61, 0.2);
 }
 
 .uploader__entry--hover {
@@ -50,11 +50,11 @@
   justify-content: center;
   font-size: 34rpx;
   color: #fff;
-  background: #2f86f6;
+  background: var(--brand, #c56a3d);
 }
 
 .uploader__entry--album .uploader__entry-icon {
-  background: #3c9844;
+  background: var(--brand-strong, #a34e24);
 }
 
 .uploader__entry-text {

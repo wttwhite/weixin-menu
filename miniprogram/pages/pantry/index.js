@@ -480,7 +480,18 @@ Page({
     locationManagerInput: '',
     locationManagerLoading: false,
     locationManagerItems: [],
-    locationManagerViewItems: []
+    locationManagerViewItems: [],
+    scrollHeight: 400
+  },
+
+  onReady() {
+    wx.createSelectorQuery()
+      .in(this)
+      .select('.channel-layout')
+      .boundingClientRect((rect) => {
+        if (rect && rect.height > 0) this.setData({ scrollHeight: rect.height })
+      })
+      .exec()
   },
 
   onShow() {
@@ -532,7 +543,17 @@ Page({
       processedCountText: `已处理 ${processedCount} 项`
     }
 
-    this.setData(updates)
+    this.setData(updates, () => {
+      wx.createSelectorQuery()
+        .in(this)
+        .select('.channel-layout')
+        .boundingClientRect((rect) => {
+          if (rect && rect.height > 0 && rect.height !== this.data.scrollHeight) {
+            this.setData({ scrollHeight: rect.height })
+          }
+        })
+        .exec()
+    })
   },
 
   async loadPantry() {

@@ -18,7 +18,7 @@
   <view wx:if="{{!activeSpaceId}}" class="empty-card">
     <view class="empty-card__title">先选择一个空间</view>
     <view class="empty-card__text">空间用于团队共享菜谱、库存、计划和采购数据。</view>
-    <button class="empty-card__button" bindtap="openSpace">前往选择空间</button>
+    <t-button class="empty-card__button" theme="primary" block bindtap="openSpace">前往选择空间</t-button>
   </view>
 
   <view wx:elif="{{loading}}" class="feedback-card">正在读取计划...</view>
@@ -29,7 +29,7 @@
         <view class="calendar-nav__button" bindtap="goPrevMonth">‹</view>
         <view class="calendar-nav__month">{{viewMonthLabel}}</view>
         <view class="calendar-nav__button" bindtap="goNextMonth">›</view>
-        <button class="calendar-nav__today" bindtap="goToday">回到今日</button>
+        <t-button class="calendar-nav__today" theme="primary" size="small" shape="round" bindtap="goToday">回到今日</t-button>
       </view>
 
       <view class="calendar-weekdays">
@@ -56,8 +56,8 @@
           <view class="plans-day-card__title">{{selectedDateTitle}}</view>
           <view class="plans-day-card__meta">{{selectedPlanCountText}}</view>
         </view>
-        <button wx:if="{{selectedPlans.length}}" class="plans-day-card__action" bindtap="openInventoryCheck">检查食材库存</button>
-        <button wx:else class="plans-day-card__action" bindtap="goCreate">添加安排</button>
+        <t-button wx:if="{{selectedPlans.length}}" class="plans-day-card__action" theme="primary" size="small" shape="round" bindtap="openInventoryCheck">检查食材库存</t-button>
+        <t-button wx:else class="plans-day-card__action" theme="primary" size="small" shape="round" bindtap="goCreate">添加安排</t-button>
       </view>
 
       <view wx:if="{{selectedPlans.length}}" class="plan-card-list">
@@ -124,7 +124,7 @@
             </view>
           </view>
 
-          <button class="inventory-modal__primary" bindtap="generateShoppingList">{{inventoryGenerateButtonText}}</button>
+          <t-button class="inventory-modal__primary" theme="primary" block bindtap="generateShoppingList">{{inventoryGenerateButtonText}}</t-button>
         </view>
       </view>
     </view>

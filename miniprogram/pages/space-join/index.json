@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "加入空间"
+  "navigationBarTitleText": "加入空间",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-input": "tdesign-miniprogram/input/input"
+  }
 }

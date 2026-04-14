@@ -4,9 +4,9 @@
     <view class="statistics-title">{{activeSpaceId || '尚未选择空间'}}</view>
     <view class="statistics-text">查看空间内菜谱、库存与采购进展。</view>
     <view class="statistics-actions">
-      <button class="statistics-button statistics-button--ghost" bindtap="openSpace">切换空间</button>
-      <button class="statistics-button" bindtap="openMembers">成员管理</button>
-      <button class="statistics-button" bindtap="openBackup">备份中心</button>
+      <t-button class="stat-btn stat-btn--ghost" variant="outline" bindtap="openSpace">切换空间</t-button>
+      <t-button class="stat-btn" theme="primary" bindtap="openMembers">成员管理</t-button>
+      <t-button class="stat-btn" theme="primary" bindtap="openBackup">备份中心</t-button>
     </view>
   </view>
 

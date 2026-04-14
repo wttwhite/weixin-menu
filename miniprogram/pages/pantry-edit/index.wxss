@@ -39,15 +39,9 @@
 
 .state-button {
   margin-top: 20rpx;
-  background: #2f8b37;
-  color: #fff;
-  font-size: 28rpx;
-}
-
-.editor-section__head {
-  display: flex;
-  align-items: center;
-  gap: 14rpx;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }
 
 .editor-section__icon {
@@ -57,8 +51,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #eef6ef;
-  color: #2f8b37;
+  background: rgba(197, 106, 61, 0.12);
+  color: var(--brand);
   font-size: 26rpx;
   font-weight: 700;
 }
@@ -188,8 +182,8 @@
   margin: 0;
   padding: 0;
   border-radius: 14rpx;
-  background: #eef3ef;
-  color: #2f8b37;
+  background: rgba(197, 106, 61, 0.12);
+  color: var(--brand);
   font-size: 30rpx;
   font-weight: 700;
 }
@@ -266,21 +260,8 @@
 
 .delete-button {
   margin-top: 6rpx;
-  width: auto;
-  min-width: 0;
-  padding: 0 28rpx;
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  height: 74rpx;
-  line-height: 74rpx;
-  border-radius: 999rpx;
-  background: #ffe9e9;
-  color: #d14b4b;
-  font-size: 28rpx;
-  font-weight: 700;
+  --td-button-danger-outline-color: #d14b4b;
+  --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
 }
 
 .bottom-actions {
@@ -292,25 +273,16 @@
   gap: 14rpx;
 }
 
-.footer-close-button,
-.footer-submit-button {
-  margin: 0;
-  height: 88rpx;
-  line-height: 88rpx;
-  border-radius: 24rpx;
-  font-size: 32rpx;
-  font-weight: 800;
-  box-shadow: 0 16rpx 28rpx rgba(56, 63, 79, 0.12);
-}
-
-.footer-close-button {
+.footer-close-btn {
   width: 170rpx;
-  background: #edf1f6;
-  color: #27323f;
+  --td-button-default-bg-color: #edf1f6;
+  --td-button-default-color: #27323f;
+  --td-button-default-border-color: transparent;
 }
 
-.footer-submit-button {
+.footer-submit-btn {
   flex: 1;
-  background: linear-gradient(135deg, #3c9844, #2d7f34);
-  color: #fff;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }

@@ -31,17 +31,23 @@
   margin-top: 24rpx;
 }
 
-.backup-button {
+.backup-btn {
   flex: 1;
-  background: #fff;
-  color: #31405a;
-  font-size: 26rpx;
+  --td-button-primary-bg-color: #fff;
+  --td-button-primary-color: #31405a;
+  --td-button-primary-border-color: #fff;
 }
 
-.backup-button--ghost {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  border: 2rpx solid rgba(255, 255, 255, 0.28);
+.backup-btn--ghost {
+  --td-button-outline-primary-color: rgba(255, 255, 255, 0.9);
+  --td-button-outline-primary-border-color: rgba(255, 255, 255, 0.35);
+  --td-button-outline-primary-active-bg-color: rgba(255, 255, 255, 0.12);
+}
+
+.record-card__button {
+  margin-top: 14rpx;
+  --td-button-outline-primary-color: var(--brand);
+  --td-button-outline-primary-border-color: var(--brand);
 }
 
 .feedback-card,
@@ -78,11 +84,4 @@
   margin-top: 8rpx;
   font-size: 24rpx;
   color: var(--text-secondary);
-}
-
-.record-card__button {
-  margin-top: 14rpx;
-  background: var(--brand);
-  color: #fff;
-  font-size: 24rpx;
 }

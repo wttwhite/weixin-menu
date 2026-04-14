@@ -21,7 +21,7 @@
     </view>
 
     <view class="management-card__actions">
-      <button class="action-pill action-pill--create" bindtap="goCreate">＋ 添加库存</button>
+      <t-button class="action-pill" theme="primary" shape="round" bindtap="goCreate">＋ 添加库存</t-button>
     </view>
   </view>
 
@@ -31,10 +31,10 @@
   <view wx:if="{{!activeSpaceId}}" class="empty-card">
     <view class="empty-card__title">先选择一个空间</view>
     <view class="empty-card__text">空间用于团队共享库存、菜谱、计划和采购数据。</view>
-    <button class="empty-card__button" bindtap="openSpace">前往选择空间</button>
+    <t-button class="empty-card__button" theme="primary" block bindtap="openSpace">前往选择空间</t-button>
   </view>
 
-  <view wx:else>
+  <view wx:else class="pantry-body">
     <view class="search-card">
       <view class="search-card__row">
         <view class="search-box">
@@ -52,12 +52,11 @@
 
         <view class="processed-toggle" bindtap="handleToggleProcessed">{{showProcessedText}}</view>
       </view>
-
     </view>
 
     <view class="channel-layout">
       <view class="channel-rail">
-        <scroll-view class="channel-rail__scroll" scroll-y="true">
+        <scroll-view class="channel-rail__scroll" scroll-y="true" show-scrollbar="{{false}}" style="height:{{scrollHeight}}px">
           <view class="channel-rail__inner">
             <view
               wx:for="{{categoryViewItems}}"
@@ -72,7 +71,7 @@
         </scroll-view>
       </view>
 
-      <view class="channel-surface">
+      <view class="channel-column">
         <view class="surface-head">
           <view>
             <view class="surface-eyebrow">共享库存</view>
@@ -83,7 +82,8 @@
 
         <view class="surface-subtitle">{{summary}}</view>
 
-        <scroll-view class="channel-surface__scroll" scroll-y="true">
+        <view class="channel-surface">
+          <scroll-view class="channel-surface__scroll" scroll-y="{{showVisibleItems}}" style="height:{{scrollHeight}}px">
           <view wx:if="{{!errorMessage && loading}}" class="feedback-card feedback-card--inline">正在加载库存...</view>
 
           <view wx:elif="{{showVisibleItems}}" class="pantry-list">
@@ -132,9 +132,10 @@
           <view wx:elif="{{showEmptyState}}" class="empty-card empty-card--inline">
             <view class="empty-card__title">{{emptyTitle}}</view>
             <view class="empty-card__text">{{emptyMessage}}</view>
-            <button wx:if="{{!items.length}}" class="empty-card__button" bindtap="goCreate">立即添加</button>
+            <t-button wx:if="{{!items.length}}" class="empty-card__button" theme="primary" block bindtap="goCreate">立即添加</t-button>
           </view>
         </scroll-view>
+        </view>
       </view>
     </view>
   </view>
@@ -160,7 +161,7 @@
               placeholder="输入分类名称"
               bindinput="handleCategoryManagerInput"
             />
-            <button class="settings-modal__confirm" bindtap="submitCategoryManagerCreate">确定</button>
+            <t-button class="settings-modal__confirm" theme="primary" size="small" bindtap="submitCategoryManagerCreate">确定</t-button>
           </view>
 
           <view wx:if="{{categoryManagerLoading}}" class="settings-modal__hint">正在读取分类...</view>
@@ -217,7 +218,7 @@
               placeholder="输入位置名称"
               bindinput="handleLocationManagerInput"
             />
-            <button class="settings-modal__confirm" bindtap="submitLocationManagerCreate">确定</button>
+            <t-button class="settings-modal__confirm" theme="primary" size="small" bindtap="submitLocationManagerCreate">确定</t-button>
           </view>
 
           <view wx:if="{{locationManagerLoading}}" class="settings-modal__hint">正在读取位置...</view>

@@ -94,9 +94,15 @@
 
 .member-card__remove {
   margin-top: 14rpx;
-  background: #fff2f2;
-  color: #a64d4d;
-  font-size: 24rpx;
+  --td-button-danger-outline-color: #d14b4b;
+  --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
+}
+
+.invite-card__button {
+  margin-top: 18rpx;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }
 
 .invite-card__title {
@@ -110,11 +116,4 @@
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 4rpx;
-}
-
-.invite-card__button {
-  margin-top: 18rpx;
-  background: var(--brand);
-  color: #fff;
-  font-size: 26rpx;
 }

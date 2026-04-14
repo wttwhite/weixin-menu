@@ -78,7 +78,7 @@
           <view class="row-card__pill row-card__pill--danger" data-index="{{index}}" bindtap="removeIngredientRow">删除</view>
         </view>
       </view>
-      <button class="section-button section-button--soft" bindtap="addIngredientRow">＋ 新增食材</button>
+      <t-button class="section-button section-button--soft" bindtap="addIngredientRow">＋ 新增食材</t-button>
 
       <view class="subsection-title subsection-title--steps">制作步骤</view>
       <view wx:for="{{stepViewItems}}" wx:key="displayIndex" class="step-card">
@@ -107,7 +107,7 @@
           bindinput="handleStepInput"
         />
       </view>
-      <button class="section-button section-button--soft" bindtap="addStepRow">＋ 新增步骤</button>
+      <t-button class="section-button section-button--soft" bindtap="addStepRow">＋ 新增步骤</t-button>
     </view>
 
     <view class="editor-section editor-section--last">
@@ -200,15 +200,15 @@
       </view>
       <view class="inline-row">
         <input class="field-input inline-row__input" value="{{newTagName}}" placeholder="添加新标签名称" bindinput="handleNewTagInput" />
-        <button class="inline-row__button" bindtap="createTag">添加标签</button>
+        <t-button class="inline-row__button" theme="primary" variant="outline" size="small" bindtap="createTag">添加标签</t-button>
       </view>
 
-      <button wx:if="{{isEdit}}" class="delete-button" loading="{{deleting}}" bindtap="removeRecipe">删除菜谱</button>
+      <t-button wx:if="{{isEdit}}" class="delete-button" theme="danger" variant="outline" loading="{{deleting}}" bindtap="removeRecipe">删除菜谱</t-button>
     </view>
 
     <view class="bottom-actions">
-      <button class="footer-close-button" bindtap="goBack">关闭</button>
-      <button class="footer-submit-button" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</button>
+      <t-button class="footer-close-btn" theme="default" bindtap="goBack">关闭</t-button>
+      <t-button class="footer-submit-btn" theme="primary" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</t-button>
     </view>
   </view>
 

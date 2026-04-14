@@ -45,9 +45,9 @@
           bindinput="handleRecipeFieldInput"
         />
 
-        <button class="recipe-row__remove" data-index="{{index}}" bindtap="removeRecipeRow">删除这道菜</button>
+        <t-button class="recipe-row__remove" theme="danger" variant="outline" size="small" data-index="{{index}}" bindtap="removeRecipeRow">删除这道菜</t-button>
       </view>
-      <button class="recipe-row__add" bindtap="addRecipeRow">添加计划菜谱</button>
+      <t-button class="recipe-row__add" theme="primary" variant="outline" size="small" bindtap="addRecipeRow">添加计划菜谱</t-button>
     </view>
 
     <view class="field">
@@ -63,18 +63,21 @@
   </view>
 
   <view class="action-row">
-    <button class="ghost-button" bindtap="goBack">取消</button>
-    <button class="primary-button" loading="{{submitting}}" bindtap="submit">
+    <t-button class="ghost-btn" theme="default" variant="outline" bindtap="goBack">取消</t-button>
+    <t-button class="primary-btn" theme="primary" loading="{{submitting}}" bindtap="submit">
       {{isEdit ? '保存变更' : '创建计划'}}
-    </button>
+    </t-button>
   </view>
 
-  <button
+  <t-button
     wx:if="{{isEdit}}"
-    class="danger-button"
+    class="danger-btn"
+    theme="danger"
+    variant="outline"
+    block
     loading="{{deleting}}"
     bindtap="removeMealPlan"
   >
     删除计划
-  </button>
+  </t-button>
 </view>

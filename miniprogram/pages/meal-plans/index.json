@@ -2,6 +2,8 @@
   "navigationBarTitleText": "计划",
   "enablePullDownRefresh": true,
   "usingComponents": {
-    "meal-plan-card": "/components/meal-plan-card/index"
+    "meal-plan-card": "/components/meal-plan-card/index",
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-input": "tdesign-miniprogram/input/input"
   }
 }

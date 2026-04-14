@@ -2,6 +2,8 @@
   "navigationBarTitleText": "菜谱",
   "enablePullDownRefresh": true,
   "usingComponents": {
-    "recipe-card": "/components/recipe-card/index"
+    "recipe-card": "/components/recipe-card/index",
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-input": "tdesign-miniprogram/input/input"
   }
 }

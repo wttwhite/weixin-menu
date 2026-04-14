@@ -1,3 +1,8 @@
 {
-  "navigationBarTitleText": "编辑采购项"
+  "navigationBarTitleText": "编辑采购项",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-input": "tdesign-miniprogram/input/input",
+    "t-textarea": "tdesign-miniprogram/textarea/textarea"
+  }
 }

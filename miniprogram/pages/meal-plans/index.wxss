@@ -29,7 +29,7 @@
   align-items: center;
   justify-content: center;
   gap: 10rpx;
-  background: linear-gradient(135deg, rgba(47, 139, 55, 0.84), rgba(95, 170, 88, 0.72));
+  background: linear-gradient(135deg, rgba(163, 78, 36, 0.84), rgba(197, 106, 61, 0.72));
   color: #fff;
   text-align: center;
 }
@@ -111,13 +111,9 @@
 
 .empty-card__button {
   margin-top: 18rpx;
-  height: 82rpx;
-  line-height: 82rpx;
-  border-radius: 999rpx;
-  background: linear-gradient(135deg, #3c9844, #2d7f34);
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 700;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }
 
 .empty-card--inline {
@@ -159,18 +155,9 @@
 }
 
 .calendar-nav__today {
-  flex: none;
-  width: auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0 26rpx;
-  height: 72rpx;
-  line-height: 72rpx;
-  border-radius: 999rpx;
-  background: #2f8b37;
-  color: #fff;
-  font-size: 26rpx;
-  font-weight: 700;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }
 
 .calendar-weekdays {
@@ -215,12 +202,12 @@
 }
 
 .calendar-cell--today {
-  background: #e8f5e9;
+  background: rgba(197, 106, 61, 0.1);
 }
 
 .calendar-cell--selected {
-  border-color: #2f8b37;
-  box-shadow: inset 0 0 0 2rpx rgba(47, 139, 55, 0.08);
+  border-color: var(--brand);
+  box-shadow: inset 0 0 0 2rpx rgba(197, 106, 61, 0.08);
 }
 
 .calendar-cell__day {
@@ -237,7 +224,7 @@
 }
 
 .calendar-cell__dot--selected {
-  background: #2f8b37;
+  background: var(--brand);
 }
 
 .plans-day-card__head {
@@ -260,18 +247,9 @@
 }
 
 .plans-day-card__action {
-  flex: none;
-  width: auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0 24rpx;
-  height: 74rpx;
-  line-height: 74rpx;
-  border-radius: 999rpx;
-  background: #2f8b37;
-  color: #fff;
-  font-size: 26rpx;
-  font-weight: 700;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }
 
 .plan-card-list {
@@ -332,7 +310,7 @@
 }
 
 .plan-card__status--today {
-  color: #2f8b37;
+  color: var(--brand);
 }
 
 .plan-card__status--upcoming {
@@ -432,7 +410,7 @@
 }
 
 .inventory-stat--ok {
-  background: #e8f5e9;
+  background: rgba(197, 106, 61, 0.1);
 }
 
 .inventory-stat--missing {
@@ -512,7 +490,7 @@
 }
 
 .inventory-item__status--ok {
-  color: #2f8b37;
+  color: var(--brand);
 }
 
 .inventory-item__status--missing {
@@ -521,11 +499,7 @@
 
 .inventory-modal__primary {
   margin-top: 22rpx;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 999rpx;
-  background: #2f8b37;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 800;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }

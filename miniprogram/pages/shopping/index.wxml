@@ -4,8 +4,8 @@
     <view class="shopping-title">{{activeSpaceId || '尚未选择空间'}}</view>
     <view class="shopping-text">{{summary}}</view>
     <view class="shopping-actions">
-      <button class="shopping-button shopping-button--ghost" bindtap="openSpace">切换空间</button>
-      <button class="shopping-button" bindtap="createList">新建清单</button>
+      <t-button class="shopping-btn shopping-btn--ghost" variant="outline" bindtap="openSpace">切换空间</t-button>
+      <t-button class="shopping-btn" theme="primary" bindtap="createList">新建清单</t-button>
     </view>
   </view>
 
@@ -20,10 +20,8 @@
 
   <view wx:elif="{{selectedShoppingList}}">
     <view class="toolbar-card">
-      <button class="toolbar-button" bindtap="goAddManualItem">手动添加</button>
-      <button class="toolbar-button toolbar-button--ghost" loading="{{generating}}" bindtap="generateFromMealPlans">
-        从用餐计划生成
-      </button>
+      <t-button class="toolbar-btn" theme="primary" bindtap="goAddManualItem">手动添加</t-button>
+      <t-button class="toolbar-btn toolbar-btn--outline" theme="primary" variant="outline" loading="{{generating}}" bindtap="generateFromMealPlans">从用餐计划生成</t-button>
     </view>
 
     <view wx:if="{{items.length}}" class="items-list">
@@ -41,14 +39,14 @@
             </view>
           </label>
         </checkbox-group>
-        <button class="item-edit" data-shopping-item-id="{{item._id}}" bindtap="goEditItem">编辑</button>
+        <t-button class="item-edit" theme="primary" variant="outline" size="small" data-shopping-item-id="{{item._id}}" bindtap="goEditItem">编辑</t-button>
       </view>
     </view>
 
     <view wx:else class="empty-card">
       <view class="empty-title">暂无采购项</view>
       <view class="empty-text">{{emptyMessage}}</view>
-      <button class="empty-button" bindtap="goAddManualItem">添加第一项</button>
+      <t-button class="empty-button" theme="primary" block bindtap="goAddManualItem">添加第一项</t-button>
     </view>
   </view>
 </view>

@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "启动中"
+  "navigationBarTitleText": "启动中",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-loading": "tdesign-miniprogram/loading/loading"
+  }
 }

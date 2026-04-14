@@ -98,24 +98,22 @@
   gap: 14rpx;
 }
 
-.action-button {
+.action-btn {
   flex: 1;
   margin: 0;
-  height: 96rpx;
-  line-height: 96rpx;
-  border-radius: 24rpx;
-  font-size: 34rpx;
-  font-weight: 800;
+  --td-button-height: 96rpx;
+  --td-button-font-size: 34rpx;
 }
 
-.action-button--edit {
-  background: linear-gradient(135deg, #3c9844, #2d7f34);
-  color: #fff;
+.action-btn--edit {
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }
 
-.action-button--delete {
-  background: #ffeaea;
-  color: #d14b4b;
+.action-btn--delete {
+  --td-button-danger-outline-color: #d14b4b;
+  --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
 }
 
 .card-head {
@@ -171,9 +169,9 @@
 
 .card-button {
   margin-top: 18rpx;
-  background: #2f8b37;
-  color: #fff;
-  font-size: 28rpx;
+  --td-button-primary-bg-color: var(--brand);
+  --td-button-primary-active-bg-color: var(--brand-strong);
+  --td-button-primary-border-color: var(--brand);
 }
 
 .step-panel {
@@ -185,7 +183,7 @@
 .step-panel__title {
   font-size: 34rpx;
   font-weight: 800;
-  color: #2f8b37;
+  color: var(--brand);
 }
 
 .step-panel__content {
@@ -209,7 +207,7 @@
 }
 
 .gallery-item--cover {
-  border: 4rpx solid #2f8b37;
+  border: 4rpx solid var(--brand);
 }
 
 .gallery-image {
@@ -224,7 +222,7 @@
   bottom: 12rpx;
   padding: 6rpx 12rpx;
   border-radius: 999rpx;
-  background: #2f8b37;
+  background: var(--brand);
   color: #fff;
   font-size: 22rpx;
   font-weight: 800;
@@ -253,15 +251,10 @@
   bottom: calc(env(safe-area-inset-bottom) + 14rpx);
 }
 
-.footer-close-button {
-  width: 100%;
-  margin: 0;
-  height: 88rpx;
-  line-height: 88rpx;
-  border-radius: 24rpx;
-  background: #edf1f6;
-  color: #27323f;
-  font-size: 34rpx;
-  font-weight: 800;
-  box-shadow: 0 16rpx 28rpx rgba(56, 63, 79, 0.12);
+.footer-close-btn {
+  --td-button-default-bg-color: #edf1f6;
+  --td-button-default-color: #27323f;
+  --td-button-default-border-color: transparent;
+  --td-button-height: 88rpx;
+  --td-button-font-size: 34rpx;
 }

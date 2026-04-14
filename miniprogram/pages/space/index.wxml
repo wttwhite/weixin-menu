@@ -6,27 +6,31 @@
   </view>
 
   <view class="action-row">
-    <button class="primary-action" bindtap="goCreate">创建空间</button>
-    <button class="secondary-action" bindtap="goJoin">加入空间</button>
+    <t-button class="action-btn" theme="primary" block bindtap="goCreate">创建空间</t-button>
+    <t-button class="action-btn" theme="primary" variant="outline" block bindtap="goJoin">加入空间</t-button>
   </view>
 
   <view wx:if="{{loading}}" class="status-card">正在加载空间列表...</view>
   <view wx:elif="{{errorMessage}}" class="status-card status-error">{{errorMessage}}</view>
 
   <view wx:elif="{{spaces.length}}" class="space-list">
-    <button
-      wx:for="{{spaces}}"
-      wx:key="id"
-      class="space-item {{item.isActive ? 'space-item-active' : ''}}"
-      data-space-id="{{item.id}}"
-      bindtap="handleSwitchSpace"
-    >
-      <view class="space-item-top">
-        <view class="space-name">{{item.name}}</view>
-        <view class="space-role">{{item.roleLabel}}</view>
-      </view>
-      <view class="space-state">{{item.isActive ? '当前使用中' : '点击切换到这个空间'}}</view>
-    </button>
+    <t-cell-group custom-style="border-radius: 32rpx; overflow: hidden; box-shadow: 0 4rpx 24rpx rgba(47,36,28,0.07);">
+      <t-cell
+        wx:for="{{spaces}}"
+        wx:key="id"
+        class="space-cell {{item.isActive ? 'space-cell-active' : ''}}"
+        data-space-id="{{item.id}}"
+        bindtap="handleSwitchSpace"
+        hover-class="space-cell-hover"
+      >
+        <view slot="title" class="space-cell-title">
+          <text class="space-name">{{item.name}}</text>
+          <text class="space-role">{{item.roleLabel}}</text>
+        </view>
+        <view slot="description" class="space-state">{{item.isActive ? '当前使用中' : '点击切换到这个空间'}}</view>
+        <view slot="right-icon" class="space-active-dot {{item.isActive ? 'dot-on' : 'dot-off'}}"></view>
+      </t-cell>
+    </t-cell-group>
   </view>
 
   <view wx:else class="empty-card">

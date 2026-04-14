@@ -34,7 +34,7 @@
 }
 
 .tabbar-item--active {
-  color: #2f8b37;
+  color: var(--brand, #c56a3d);
 }
 
 .tabbar-icon {

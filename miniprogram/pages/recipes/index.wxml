@@ -35,8 +35,8 @@
     </view>
 
     <view class="management-card__actions">
-      <button class="action-pill action-pill--random" bindtap="handleRandomPick">🎲 随机点菜</button>
-      <button class="action-pill action-pill--create" bindtap="goCreate">＋ 新增菜谱</button>
+      <t-button class="action-pill" theme="default" shape="round" bindtap="handleRandomPick">🎲 随机点菜</t-button>
+      <t-button class="action-pill action-pill--create" theme="primary" shape="round" bindtap="goCreate">＋ 新增菜谱</t-button>
     </view>
   </view>
 
@@ -47,7 +47,7 @@
   <view wx:elif="{{!activeSpaceId}}" class="empty-card">
     <view class="empty-card__title">先选择一个空间</view>
     <view class="empty-card__text">空间用于团队共享菜谱、库存、计划和采购数据。</view>
-    <button class="empty-card__button" bindtap="openSpace">前往选择空间</button>
+    <t-button class="empty-card__button" theme="primary" block bindtap="openSpace">前往选择空间</t-button>
   </view>
 
   <view wx:else class="channel-layout">
@@ -109,7 +109,7 @@
       <view wx:else class="empty-card empty-card--inline">
         <view class="empty-card__title">{{emptyTitle}}</view>
         <view class="empty-card__text">{{emptyText}}</view>
-        <button class="empty-card__button" bindtap="goCreate">{{emptyButtonText}}</button>
+        <t-button class="empty-card__button" theme="primary" block bindtap="goCreate">{{emptyButtonText}}</t-button>
       </view>
     </view>
   </view>
@@ -137,7 +137,7 @@
           placeholder="输入分类名称"
           bindinput="handleCategoryManagerInput"
         />
-        <button class="category-modal__confirm" bindtap="submitCategoryManagerCreate">确定</button>
+        <t-button class="category-modal__confirm" theme="primary" size="medium" bindtap="submitCategoryManagerCreate">确定</t-button>
       </view>
 
       <view wx:if="{{categoryManagerLoading}}" class="category-modal__hint">正在读取分类...</view>
