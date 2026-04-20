@@ -137,7 +137,9 @@ async function createShoppingList(event = {}, context = {}, repository = {}, opt
 
   const item = await repository.createShoppingList({
     spaceId: event.spaceId,
-    title: write.title,
+    name: write.name,
+    listDate: write.listDate,
+    status: write.status,
     notes: write.notes,
     createdAt: now,
     updatedAt: now,
@@ -166,10 +168,28 @@ async function updateShoppingList(event = {}, context = {}, repository = {}, opt
     updatedBy: context.openid || ''
   }
 
-  if (Object.prototype.hasOwnProperty.call(input, 'title')) {
-    const normalized = normalizeShoppingListWrite(input)
-    listPatch.title = normalized.title
-    listPatch.notes = normalized.notes
+  if (Object.prototype.hasOwnProperty.call(input, 'name')) {
+    listPatch.name = normalizeShoppingListWrite({
+      name: input.name
+    }).name || existingList.name || '采购清单'
+  }
+
+  if (Object.prototype.hasOwnProperty.call(input, 'listDate')) {
+    listPatch.listDate = normalizeShoppingListWrite({
+      listDate: input.listDate
+    }).listDate
+  }
+
+  if (Object.prototype.hasOwnProperty.call(input, 'status')) {
+    listPatch.status = normalizeShoppingListWrite({
+      status: input.status
+    }).status
+  }
+
+  if (Object.prototype.hasOwnProperty.call(input, 'notes')) {
+    listPatch.notes = normalizeShoppingListWrite({
+      notes: input.notes
+    }).notes
   }
 
   const itemDraft = input.itemDraft
@@ -193,7 +213,7 @@ async function updateShoppingList(event = {}, context = {}, repository = {}, opt
         spaceId: event.spaceId,
         shoppingListId: event.shoppingListId,
         ...normalizedItem,
-        checked: false,
+        isChecked: normalizedItem.isChecked,
         createdAt: now,
         updatedAt: now,
         deletedAt: '',
@@ -304,12 +324,11 @@ async function toggleShoppingItemChecked(event = {}, context = {}, repository = 
   assertExpectedUpdatedAt(existing.updatedAt, event.expectedUpdatedAt)
 
   const checked =
-    typeof event.checked === 'boolean' ? event.checked : !Boolean(existing.checked)
+    typeof event.checked === 'boolean' ? event.checked : !Boolean(existing.isChecked)
   const now = resolveServerInstant(options)
 
   const item = await repository.updateShoppingItem(event.spaceId, event.shoppingListId, event.shoppingItemId, {
-    checked,
-    checkedAt: checked ? now : '',
+    isChecked: checked,
     updatedAt: now,
     updatedBy: context.openid || ''
   })

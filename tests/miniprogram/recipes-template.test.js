@@ -19,8 +19,8 @@ describe('recipes page template styles', () => {
     const template = readFileSync('miniprogram/pages/recipes/index.wxml', 'utf8')
 
     expect(template).toMatch(/<view class="management-card__more" bindtap="openSpaceManager">/)
-    expect(template).toMatch(/<button class="action-pill action-pill--random" bindtap="handleRandomPick">/)
-    expect(template).toMatch(/<button class="action-pill action-pill--create" bindtap="goCreate">/)
+    expect(template).toMatch(/<t-button class="action-pill" theme="default" shape="round" bindtap="handleRandomPick">/)
+    expect(template).toMatch(/<t-button class="action-pill action-pill--create" theme="primary" shape="round" bindtap="goCreate">/)
     expect(template).toMatch(/<view class="cart-primary" bindtap="handlePlanSelectedRecipes">/)
     expect(template).toMatch(/<view class="cart-secondary" bindtap="clearSelectedRecipes">/)
     expect(template).toMatch(/<view[\s\S]*class="\{\{item\.itemClass\}\}"[\s\S]*bindtap="handleSectionChange"/)

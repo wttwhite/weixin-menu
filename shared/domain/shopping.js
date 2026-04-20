@@ -19,7 +19,9 @@ function formatQuantity(value) {
 
 function normalizeShoppingListWrite(input = {}) {
   return {
-    title: normalizeText(input.title) || '采购清单',
+    name: normalizeText(input.name) || '采购清单',
+    listDate: normalizeText(input.listDate),
+    status: normalizeText(input.status) || 'open',
     notes: normalizeText(input.notes)
   }
 }
@@ -27,10 +29,17 @@ function normalizeShoppingListWrite(input = {}) {
 function normalizeShoppingItemWrite(input = {}) {
   return {
     name: normalizeText(input.name),
+    category: normalizeText(input.category),
     quantity: normalizeText(input.quantity),
     unit: normalizeText(input.unit),
+    isChecked: Boolean(input.isChecked),
     notes: normalizeText(input.notes),
-    sourceType: normalizeText(input.sourceType) || 'manual'
+    sourceType: normalizeText(input.sourceType) || 'manual',
+    sourceRefType: normalizeText(input.sourceRefType),
+    sourceRefId: normalizeText(input.sourceRefId),
+    recipeId: normalizeText(input.recipeId) || null,
+    mealPlanId: normalizeText(input.mealPlanId) || null,
+    sortOrder: Number.isFinite(Number(input.sortOrder)) ? Math.max(0, Math.floor(Number(input.sortOrder))) : 0
   }
 }
 
@@ -56,7 +65,7 @@ function buildShoppingItemsFromMealPlans(mealPlans = []) {
           mergedByKey.set(key, {
             ...normalized,
             quantity: normalized.quantity || '1',
-            checked: false
+            isChecked: false
           })
           return
         }
@@ -78,7 +87,7 @@ function buildShoppingItemsFromMealPlans(mealPlans = []) {
 
 function buildShoppingProgress(items = []) {
   const total = (items || []).length
-  const checked = (items || []).filter((item) => Boolean(item && item.checked)).length
+  const checked = (items || []).filter((item) => Boolean(item && item.isChecked)).length
   const percent = total ? Math.round((checked / total) * 100) : 0
   return {
     total,

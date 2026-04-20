@@ -286,9 +286,8 @@ function buildInventoryCheckResult(selectedPlans = [], recipeDetails = [], pantr
   })
 
   const availablePantryItems = (pantryItems || []).filter((item) => {
-    const usageStatus = normalizeText(item.usageStatus)
-    const freshnessStatus = normalizeText(item.status)
-    return usageStatus !== 'used-up' && usageStatus !== 'discarded' && freshnessStatus !== 'expired'
+    const pantryStatus = normalizeText(item.status)
+    return pantryStatus !== 'empty' && pantryStatus !== 'discarded' && pantryStatus !== 'expired'
   })
 
   const stockMap = new Map()

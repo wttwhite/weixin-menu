@@ -656,8 +656,9 @@ describe('pantry service', () => {
         quantity: '1',
         unit: 'cup',
         location: 'fridge',
-        usageStatus: 'normal',
-        status: 'expiring-soon',
+        status: 'expiring',
+        handledType: null,
+        handledAt: null,
         notes: 'breakfast',
         createdBy: 'user-1',
         deletedAt: ''
@@ -693,7 +694,7 @@ describe('pantry service', () => {
         _id: 'pantry-1',
         name: 'Greek Yogurt',
         quantity: '2',
-        status: 'fresh',
+        status: 'active',
         updatedBy: 'user-1'
       })
     )
@@ -703,7 +704,7 @@ describe('pantry service', () => {
         spaceId: 'space-1',
         filters: {
           category: 'dairy',
-          status: 'fresh'
+          status: 'active'
         },
         now: '2026-04-10'
       },
@@ -808,7 +809,7 @@ describe('pantry service', () => {
     expect(afterDelete.items).toEqual([])
   })
 
-  it('preserves existing usageStatus on update when edit payload does not include it', async () => {
+  it('preserves existing status on update when edit payload does not include it', async () => {
     const repository = createRepository()
     const context = { openid: 'user-1' }
 
@@ -817,7 +818,7 @@ describe('pantry service', () => {
         spaceId: 'space-1',
         item: {
           name: 'Milk',
-          usageStatus: 'opened'
+          status: 'opened'
         }
       },
       context,
@@ -849,7 +850,7 @@ describe('pantry service', () => {
     expect(updated.item).toEqual(
       expect.objectContaining({
         name: 'Fresh Milk',
-        usageStatus: 'opened'
+        status: 'opened'
       })
     )
   })

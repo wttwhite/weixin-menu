@@ -125,7 +125,7 @@ describe('pantry edit page flow', () => {
               productionDate: '2026-01-10',
               shelfLifeMonths: '3',
               openedDate: '2026-01-18',
-              usageStatus: 'opened',
+              status: 'opened',
               expirationDate: '2026-04-10',
               notes: 'test'
             }
@@ -163,7 +163,7 @@ describe('pantry edit page flow', () => {
     expect(page.data.form.name).toBe('Milk')
     expect(page.data.categoryOptions).toEqual(['未设置', 'dairy', 'produce'])
     expect(page.data.locationOptions).toEqual(['未设置', 'fridge', 'freezer'])
-    expect(page.data.form.usageStatus).toBe('opened')
+    expect(page.data.form.status).toBe('opened')
     expect(page.data.form.expirationDate).toBe('2026-04-10')
     expect(page.data.loadErrorMessage).toBe('')
   })
@@ -217,7 +217,7 @@ describe('pantry edit page flow', () => {
 
     expect(page.data.form.category).toBe('produce')
     expect(page.data.form.location).toBe('freezer')
-    expect(page.data.form.usageStatus).toBe('used-up')
+    expect(page.data.form.status).toBe('empty')
     expect(page.data.form.quantity).toBe('2')
     expect(page.data.form.shelfLifeMonths).toBe('1')
     expect(page.data.form.productionDate).toBe('2026-01-10')

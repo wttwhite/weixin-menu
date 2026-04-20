@@ -7,16 +7,31 @@ describe('createShoppingService', () => {
       .fn()
       .mockResolvedValueOnce({ result: { code: 0, data: { items: [] } } })
       .mockResolvedValueOnce({ result: { code: 0, data: { item: { _id: 'list-1' } } } })
-      .mockResolvedValueOnce({ result: { code: 0, data: { item: { _id: 'list-1', title: 'updated' } } } })
+      .mockResolvedValueOnce({ result: { code: 0, data: { item: { _id: 'list-1', name: 'updated' } } } })
       .mockResolvedValueOnce({ result: { code: 0, data: { shoppingListId: 'list-1', deleted: true } } })
       .mockResolvedValueOnce({ result: { code: 0, data: { items: [{ _id: 'item-1' }] } } })
-      .mockResolvedValueOnce({ result: { code: 0, data: { item: { _id: 'item-1', checked: true } } } })
+      .mockResolvedValueOnce({ result: { code: 0, data: { item: { _id: 'item-1', isChecked: true } } } })
 
     const service = createShoppingService({ callCloud })
 
     await service.listShoppingLists('space-1')
-    await service.createShoppingList('space-1', { title: 'Weekend' })
-    await service.updateShoppingList('space-1', 'list-1', { title: 'Updated' }, 'list-updated-at')
+    await service.createShoppingList('space-1', {
+      name: 'Weekend',
+      listDate: '2026-04-16',
+      status: 'open',
+      notes: ''
+    })
+    await service.updateShoppingList(
+      'space-1',
+      'list-1',
+      {
+        name: 'Updated',
+        listDate: '2026-04-17',
+        status: 'completed',
+        notes: 'done'
+      },
+      'list-updated-at'
+    )
     await service.deleteShoppingList('space-1', 'list-1', 'list-updated-at')
     await service.generateShoppingItemsFromPlan('space-1', 'list-1', 'list-updated-at')
     await service.toggleShoppingItemChecked('space-1', 'list-1', 'item-1', true, 'item-updated-at', 'list-updated-at')
@@ -28,13 +43,23 @@ describe('createShoppingService', () => {
     expect(callCloud).toHaveBeenNthCalledWith(2, 'api', {
       action: 'createShoppingList',
       spaceId: 'space-1',
-      shoppingList: { title: 'Weekend' }
+      shoppingList: {
+        name: 'Weekend',
+        listDate: '2026-04-16',
+        status: 'open',
+        notes: ''
+      }
     })
     expect(callCloud).toHaveBeenNthCalledWith(3, 'api', {
       action: 'updateShoppingList',
       spaceId: 'space-1',
       shoppingListId: 'list-1',
-      shoppingList: { title: 'Updated' },
+      shoppingList: {
+        name: 'Updated',
+        listDate: '2026-04-17',
+        status: 'completed',
+        notes: 'done'
+      },
       expectedUpdatedAt: 'list-updated-at'
     })
     expect(callCloud).toHaveBeenNthCalledWith(4, 'api', {

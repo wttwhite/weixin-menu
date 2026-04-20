@@ -116,7 +116,12 @@ describe('shopping service', () => {
     const created = await createShoppingList(
       {
         spaceId: 'space-1',
-        shoppingList: { title: 'Weekend List' }
+        shoppingList: {
+          name: 'Weekend List',
+          listDate: '2026-04-12',
+          status: 'open',
+          notes: 'Weekend restock'
+        }
       },
       context,
       repository,
@@ -127,7 +132,10 @@ describe('shopping service', () => {
 
     expect(created.item).toEqual(
       expect.objectContaining({
-        title: 'Weekend List'
+        name: 'Weekend List',
+        listDate: '2026-04-12',
+        status: 'open',
+        notes: 'Weekend restock'
       })
     )
 
@@ -135,7 +143,12 @@ describe('shopping service', () => {
       {
         spaceId: 'space-1',
         shoppingListId: created.item._id,
-        shoppingList: { title: 'Updated Weekend List' }
+        shoppingList: {
+          name: 'Updated Weekend List',
+          listDate: '2026-04-13',
+          status: 'completed',
+          notes: 'Updated notes'
+        }
       },
       context,
       repository,
@@ -143,14 +156,23 @@ describe('shopping service', () => {
         clock: { now: () => new Date('2026-04-12T09:00:00.000Z') }
       }
     )
-    expect(updated.item.title).toBe('Updated Weekend List')
+    expect(updated.item).toEqual(
+      expect.objectContaining({
+        name: 'Updated Weekend List',
+        listDate: '2026-04-13',
+        status: 'completed',
+        notes: 'Updated notes'
+      })
+    )
 
     const listed = await listShoppingLists({ spaceId: 'space-1' }, context, repository)
     expect(listed.items).toHaveLength(1)
     expect(listed.items[0]).toEqual(
       expect.objectContaining({
         _id: created.item._id,
-        title: 'Updated Weekend List',
+        name: 'Updated Weekend List',
+        listDate: '2026-04-13',
+        status: 'completed',
         progress: {
           total: 0,
           checked: 0,
@@ -166,7 +188,11 @@ describe('shopping service', () => {
     const created = await createShoppingList(
       {
         spaceId: 'space-1',
-        shoppingList: { title: 'Generated List' }
+        shoppingList: {
+          name: 'Generated List',
+          listDate: '2026-04-12',
+          status: 'open'
+        }
       },
       context,
       repository,
@@ -190,10 +216,11 @@ describe('shopping service', () => {
     expect(generated.items).toEqual([
       expect.objectContaining({
         name: 'Egg',
+        category: '',
         quantity: '3',
         unit: 'pcs',
         sourceType: 'generated',
-        checked: false
+        isChecked: false
       })
     ])
 
@@ -210,7 +237,7 @@ describe('shopping service', () => {
         clock: { now: () => new Date('2026-04-12T08:20:00.000Z') }
       }
     )
-    expect(toggled.item.checked).toBe(true)
+    expect(toggled.item.isChecked).toBe(true)
   })
 
   it('soft deletes shopping lists', async () => {
@@ -219,7 +246,11 @@ describe('shopping service', () => {
     const created = await createShoppingList(
       {
         spaceId: 'space-1',
-        shoppingList: { title: 'Delete Me' }
+        shoppingList: {
+          name: 'Delete Me',
+          listDate: '2026-04-12',
+          status: 'open'
+        }
       },
       context,
       repository
@@ -255,7 +286,11 @@ describe('shopping service', () => {
     const created = await createShoppingList(
       {
         spaceId: 'space-1',
-        shoppingList: { title: 'Generated List' }
+        shoppingList: {
+          name: 'Generated List',
+          listDate: '2026-04-12',
+          status: 'open'
+        }
       },
       context,
       repository
@@ -285,7 +320,11 @@ describe('shopping service', () => {
     const created = await createShoppingList(
       {
         spaceId: 'space-1',
-        shoppingList: { title: 'Conflict List' }
+        shoppingList: {
+          name: 'Conflict List',
+          listDate: '2026-04-12',
+          status: 'open'
+        }
       },
       context,
       repository,
@@ -300,7 +339,11 @@ describe('shopping service', () => {
           spaceId: 'space-1',
           shoppingListId: created.item._id,
           expectedUpdatedAt: 'stale-version',
-          shoppingList: { title: 'Renamed' }
+          shoppingList: {
+            name: 'Renamed',
+            listDate: '2026-04-13',
+            status: 'completed'
+          }
         },
         context,
         repository,

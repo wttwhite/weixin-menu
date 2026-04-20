@@ -13,6 +13,10 @@ function normalizeId(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function normalizeFilePath(value) {
+  return normalizeId(value).replace(/\\/g, '/')
+}
+
 function resolveNowIso(options = {}) {
   if (typeof options.nowIso === 'function') {
     return options.nowIso()
@@ -40,12 +44,201 @@ function resolveRandomId(options = {}) {
 }
 
 function buildImportedImageCloudPath(spaceId, image = {}) {
-  const path = normalizeId(image.cloudPath)
+  const path = normalizeId(image.cloudPath || image.backupFilePath || image.filePath)
   const extMatch = path.match(/(\.[a-z0-9]+)$/i)
   const ext = extMatch ? extMatch[1].toLowerCase() : '.bin'
   const recipeId = normalizeId(image.recipeId) || 'imported'
   const role = normalizeId(image.imageRole) || 'gallery'
   return `spaces/${spaceId}/recipes/${recipeId}/images/${role}/${image._id}${ext}`
+}
+
+function getRecordId(item = {}) {
+  return normalizeId(item._id || item.id)
+}
+
+function dedupeItemsById(items = []) {
+  const map = new Map()
+  for (const item of items || []) {
+    const id = getRecordId(item)
+    if (!id) {
+      continue
+    }
+    map.set(id, {
+      ...item,
+      _id: id
+    })
+  }
+  return Array.from(map.values())
+}
+
+function normalizeRecipeTagShape(tag = {}) {
+  const _id = getRecordId(tag)
+  return _id
+    ? {
+        ...tag,
+        _id
+      }
+    : null
+}
+
+function normalizeRecipeImageShape(image = {}, fallbackRecipeId = '') {
+  const _id = getRecordId(image)
+  return _id
+    ? {
+        ...image,
+        _id,
+        recipeId: normalizeId(image.recipeId) || fallbackRecipeId,
+        cloudPath: normalizeId(image.cloudPath || image.filePath),
+        backupFilePath: normalizeFilePath(image.backupFilePath || image.filePath),
+        uploadStatus: normalizeId(image.uploadStatus) || 'confirmed'
+      }
+    : null
+}
+
+function normalizeRecipeShape(recipe = {}) {
+  const _id = getRecordId(recipe)
+  if (!_id) {
+    return null
+  }
+
+  const tags = (Array.isArray(recipe.tags) ? recipe.tags : [])
+    .map((item) => normalizeRecipeTagShape(item))
+    .filter(Boolean)
+  const images = (Array.isArray(recipe.images) ? recipe.images : [])
+    .map((item) => normalizeRecipeImageShape(item, _id))
+    .filter(Boolean)
+
+  return {
+    ...recipe,
+    _id,
+    coverImageId: normalizeId(recipe.coverImageId),
+    tagIds: Array.isArray(recipe.tagIds) && recipe.tagIds.length
+      ? recipe.tagIds.map((tagId) => normalizeId(tagId)).filter(Boolean)
+      : tags.map((tag) => tag._id),
+    tags,
+    images
+  }
+}
+
+function normalizePantryShape(item = {}) {
+  const _id = getRecordId(item)
+  return _id
+    ? {
+        ...item,
+        _id
+      }
+    : null
+}
+
+function normalizeMealPlanShape(plan = {}) {
+  const _id = getRecordId(plan)
+  if (!_id) {
+    return null
+  }
+
+  return {
+    ...plan,
+    _id,
+    recipes: (Array.isArray(plan.recipes) ? plan.recipes : []).map((entry) => ({
+      ...entry,
+      _id: getRecordId(entry)
+    }))
+  }
+}
+
+function normalizeShoppingItemShape(item = {}, fallbackShoppingListId = '') {
+  const _id = getRecordId(item)
+  return _id
+    ? {
+        ...item,
+        _id,
+        shoppingListId: normalizeId(item.shoppingListId) || fallbackShoppingListId,
+        isChecked: item.isChecked === true || item.checked === true
+      }
+    : null
+}
+
+function normalizeShoppingListShape(list = {}) {
+  const _id = getRecordId(list)
+  if (!_id) {
+    return null
+  }
+
+  const items = (Array.isArray(list.items) ? list.items : [])
+    .map((item) => normalizeShoppingItemShape(item, _id))
+    .filter(Boolean)
+
+  return {
+    ...list,
+    _id,
+    items
+  }
+}
+
+function normalizeImportedBackupPayload(payload = {}) {
+  const recipes = (Array.isArray(payload.recipes) ? payload.recipes : [])
+    .map((recipe) => normalizeRecipeShape(recipe))
+    .filter(Boolean)
+  const recipeTags = dedupeItemsById(
+    recipes
+      .flatMap((recipe) => recipe.tags || [])
+      .concat(
+        (Array.isArray(payload.recipeTags) ? payload.recipeTags : [])
+          .map((item) => normalizeRecipeTagShape(item))
+          .filter(Boolean)
+      )
+  )
+  const recipeImages = dedupeItemsById(
+    recipes
+      .flatMap((recipe) => recipe.images || [])
+      .concat(
+        (Array.isArray(payload.recipeImages) ? payload.recipeImages : [])
+          .map((item) => normalizeRecipeImageShape(item))
+          .filter(Boolean)
+      )
+  )
+  const pantryItems = (Array.isArray(payload.pantryItems) ? payload.pantryItems : [])
+    .map((item) => normalizePantryShape(item))
+    .filter(Boolean)
+  const mealPlans = (Array.isArray(payload.mealPlans) ? payload.mealPlans : [])
+    .map((plan) => normalizeMealPlanShape(plan))
+    .filter(Boolean)
+  const shoppingListsWithItems = (Array.isArray(payload.shoppingLists) ? payload.shoppingLists : [])
+    .map((list) => normalizeShoppingListShape(list))
+    .filter(Boolean)
+  const shoppingLists = shoppingListsWithItems.map((list) => {
+    const next = { ...list }
+    delete next.items
+    return next
+  })
+  const shoppingItems = dedupeItemsById(
+    shoppingListsWithItems
+      .flatMap((list) => list.items || [])
+      .concat(
+        (Array.isArray(payload.shoppingItems) ? payload.shoppingItems : [])
+          .map((item) => normalizeShoppingItemShape(item))
+          .filter(Boolean)
+      )
+  )
+
+  return {
+    ...payload,
+    recipes,
+    recipeTags,
+    recipeImages,
+    pantryItems,
+    mealPlans,
+    shoppingLists,
+    shoppingItems
+  }
+}
+
+function getBackupZipPathForImage(image = {}) {
+  const backupFilePath = normalizeFilePath(image.backupFilePath || image.filePath)
+  if (backupFilePath) {
+    return `files/${backupFilePath.replace(/^files\//, '')}`
+  }
+  return normalizeImageFileName(image)
 }
 
 function buildIdMap(items = [], options = {}) {
@@ -163,6 +356,13 @@ async function buildBackupPayload(spaceId, repository, nowIso) {
     shoppingItems,
     settings: settings || {}
   }
+}
+
+function stripBackupOnlyImageFields(image = {}) {
+  const next = { ...image }
+  delete next.backupFilePath
+  delete next.filePath
+  return next
 }
 
 async function exportSpaceBackup(event = {}, context = {}, repository = {}, storageService = {}, options = {}) {
@@ -288,6 +488,7 @@ async function importSpaceBackup(event = {}, context = {}, repository = {}, stor
     if (!validateBackupPayload(payload)) {
       throw toAppError('Invalid backup payload', ERROR_CODES.BACKUP_IMPORT_INVALID)
     }
+    payload = normalizeImportedBackupPayload(payload)
 
     const remappedPayload = remapImportedPayload(payload, options)
     const importedRecipeImages = []
@@ -298,7 +499,7 @@ async function importSpaceBackup(event = {}, context = {}, repository = {}, stor
         importedRecipeImages.push(remappedImage)
         continue
       }
-      const backupFile = zip.file(normalizeImageFileName(sourceImage))
+      const backupFile = zip.file(getBackupZipPathForImage(sourceImage))
       if (!backupFile) {
         throw toAppError('Backup image file is missing', ERROR_CODES.BACKUP_FILE_MISSING)
       }
@@ -311,7 +512,7 @@ async function importSpaceBackup(event = {}, context = {}, repository = {}, stor
       if (!sourceImage || sourceImage.deletedAt || sourceImage.uploadStatus !== 'confirmed') {
         continue
       }
-      const backupFile = zip.file(normalizeImageFileName(sourceImage))
+      const backupFile = zip.file(getBackupZipPathForImage(sourceImage))
       const buffer = await backupFile.async('nodebuffer')
       let upload
       try {
@@ -324,7 +525,7 @@ async function importSpaceBackup(event = {}, context = {}, repository = {}, stor
       }
       uploadedImportedFileIds.push(upload.fileId)
       importedRecipeImages[index] = {
-        ...image,
+        ...stripBackupOnlyImageFields(image),
         fileId: upload.fileId,
         cloudPath: upload.cloudPath,
         uploadStatus: 'confirmed'

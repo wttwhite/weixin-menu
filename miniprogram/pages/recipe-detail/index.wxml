@@ -22,8 +22,8 @@
     </view>
 
     <view class="action-row">
-      <t-button wx:if="{{canManageRecipe}}" class="action-btn action-btn--edit" theme="primary" bindtap="goEdit">🖊 编辑</t-button>
-      <t-button wx:if="{{canManageRecipe}}" class="action-btn action-btn--delete" theme="danger" variant="outline" bindtap="removeRecipe">🗑 删除</t-button>
+      <t-button wx:if="{{canManageRecipe}}" class="action-btn action-btn--edit action-button action-button--edit" theme="primary" bindtap="goEdit">🖊 编辑</t-button>
+      <t-button wx:if="{{canManageRecipe}}" class="action-btn action-btn--delete action-button action-button--delete" theme="danger" variant="outline" bindtap="removeRecipe">🗑 删除</t-button>
     </view>
 
     <view class="card">
@@ -84,6 +84,6 @@
   </view>
 
   <view wx:if="{{item && !loading && !errorMessage}}" class="bottom-actions">
-    <t-button class="footer-close-btn" theme="default" block bindtap="goBack">关闭</t-button>
+    <t-button class="footer-close-btn footer-close-button" theme="default" block bindtap="goBack">关闭</t-button>
   </view>
 </view>

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildShoppingItemsFromMealPlans, normalizeShoppingItemWrite } from '../../shared/domain/shopping'
+import {
+  buildShoppingItemsFromMealPlans,
+  normalizeShoppingItemWrite,
+  normalizeShoppingListWrite
+} from '../../shared/domain/shopping'
 
 describe('shopping domain', () => {
   it('creates generated shopping items from meal-plan recipe ingredients', () => {
@@ -37,37 +41,82 @@ describe('shopping domain', () => {
     expect(result[0]).toEqual(
       expect.objectContaining({
         name: 'Tofu',
+        category: '',
         quantity: '3',
         unit: 'box',
+        isChecked: false,
         sourceType: 'generated',
-        checked: false
+        sourceRefType: '',
+        sourceRefId: '',
+        recipeId: null,
+        mealPlanId: null,
+        notes: '',
+        sortOrder: 1
       })
     )
     expect(result[1]).toEqual(
       expect.objectContaining({
         name: 'Tomato',
+        category: '',
         quantity: '2',
         unit: 'pcs',
-        sourceType: 'generated'
+        isChecked: false,
+        sourceType: 'generated',
+        sourceRefType: '',
+        sourceRefId: '',
+        recipeId: null,
+        mealPlanId: null,
+        notes: '',
+        sortOrder: 2
       })
     )
+  })
+
+  it('normalizes shopping list writes with original project field names', () => {
+    const list = normalizeShoppingListWrite({
+      name: '  Weekend List ',
+      listDate: ' 2026-04-16 ',
+      status: ' completed ',
+      notes: ' 周末补货 '
+    })
+
+    expect(list).toEqual({
+      name: 'Weekend List',
+      listDate: '2026-04-16',
+      status: 'completed',
+      notes: '周末补货'
+    })
   })
 
   it('normalizes manual shopping writes', () => {
     const item = normalizeShoppingItemWrite({
       name: '  milk ',
+      category: '  dairy ',
       quantity: ' 2 ',
       unit: ' box ',
       notes: ' low fat ',
-      sourceType: 'manual'
+      sourceType: 'manual',
+      sourceRefType: ' meal_plan ',
+      sourceRefId: ' plan-1 ',
+      recipeId: ' recipe-1 ',
+      mealPlanId: ' meal-1 ',
+      sortOrder: 4,
+      isChecked: true
     })
 
     expect(item).toEqual({
       name: 'milk',
+      category: 'dairy',
       quantity: '2',
       unit: 'box',
       notes: 'low fat',
-      sourceType: 'manual'
+      isChecked: true,
+      sourceType: 'manual',
+      sourceRefType: 'meal_plan',
+      sourceRefId: 'plan-1',
+      recipeId: 'recipe-1',
+      mealPlanId: 'meal-1',
+      sortOrder: 4
     })
   })
 })

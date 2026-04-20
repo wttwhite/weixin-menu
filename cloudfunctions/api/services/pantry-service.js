@@ -4,7 +4,7 @@ const {
   derivePantryStatus,
   matchesPantryFilters,
   normalizePantryItemWrite,
-  normalizeUsageStatus
+  normalizePantryStatus
 } = require('../shared/domain/pantry')
 
 function toAppError(message, code, data = null) {
@@ -380,13 +380,34 @@ async function reorderPantryManagedItems(event = {}, context = {}, repository = 
 }
 
 function normalizeStoredItem(item, now) {
+  const storedStatus = normalizePantryStatus(item.status, 'active')
   return {
     ...item,
-    usageStatus: normalizeUsageStatus(item.usageStatus, 'normal'),
+    storedStatus,
+    handledType: normalizeManagerName(item.handledType) || null,
+    handledAt: normalizeManagerName(item.handledAt) || null,
     status: derivePantryStatus({
+      status: storedStatus,
       expirationDate: item.expirationDate,
       now
     })
+  }
+}
+
+function applyHandledState(normalizedItem = {}, serverInstant = '') {
+  const nextStatus = normalizePantryStatus(normalizedItem.status, 'active')
+  if (nextStatus === 'empty' || nextStatus === 'discarded') {
+    return {
+      ...normalizedItem,
+      handledType: normalizedItem.handledType || nextStatus,
+      handledAt: normalizedItem.handledAt || serverInstant
+    }
+  }
+
+  return {
+    ...normalizedItem,
+    handledType: null,
+    handledAt: null
   }
 }
 
@@ -446,10 +467,11 @@ async function createPantryItem(event = {}, context = {}, repository = {}, optio
     now
   })
   validateWritePayload(normalizedItem, event.item || {})
+  const nextItem = applyHandledState(normalizedItem, serverInstant)
 
   const created = await repository.createPantryItem({
     spaceId: event.spaceId,
-    ...normalizedItem,
+    ...nextItem,
     createdAt: serverInstant,
     updatedAt: serverInstant,
     deletedAt: '',
@@ -479,16 +501,13 @@ async function updatePantryItem(event = {}, context = {}, repository = {}, optio
   const normalizedItem = normalizePantryItemWrite({
     ...existing,
     ...rawUpdate,
-    usageStatus:
-      Object.prototype.hasOwnProperty.call(rawUpdate, 'usageStatus')
-        ? rawUpdate.usageStatus
-        : existing.usageStatus,
     now
   })
   validateWritePayload(normalizedItem, rawUpdate)
+  const nextItem = applyHandledState(normalizedItem, serverInstant)
 
   const updated = await repository.updatePantryItem(event.spaceId, event.pantryItemId, {
-    ...normalizedItem,
+    ...nextItem,
     updatedAt: serverInstant,
     updatedBy: context.openid || ''
   })

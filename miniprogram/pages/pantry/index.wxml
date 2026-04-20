@@ -14,7 +14,6 @@
         <view class="management-card__title">库存管理</view>
         <view class="management-card__count">{{managementCountText}}</view>
         <view class="management-card__summary">{{managementStatusText}}</view>
-        <view class="management-card__summary management-card__summary--accent">{{managementCategoryCountText}}</view>
       </view>
 
       <view class="management-card__more" bindtap="openSettingsModal">⋮</view>
@@ -56,7 +55,7 @@
 
     <view class="channel-layout">
       <view class="channel-rail">
-        <scroll-view class="channel-rail__scroll" scroll-y="true" show-scrollbar="{{false}}" style="height:{{scrollHeight}}px">
+        <scroll-view class="channel-rail__scroll" scroll-y="true" show-scrollbar="{{false}}" style="height:{{railScrollHeight}}px">
           <view class="channel-rail__inner">
             <view
               wx:for="{{categoryViewItems}}"
@@ -65,7 +64,10 @@
               data-key="{{item.key}}"
               bindtap="handleCategoryChange"
             >
-              <view class="rail-item__label">{{item.label}}</view>
+              <view class="rail-item__content">
+                <view class="rail-item__label">{{item.label}}</view>
+                <view class="rail-item__count">{{item.countText}}</view>
+              </view>
             </view>
           </view>
         </scroll-view>
@@ -83,14 +85,12 @@
         <view class="surface-subtitle">{{summary}}</view>
 
         <view class="channel-surface">
-          <scroll-view class="channel-surface__scroll" scroll-y="{{showVisibleItems}}" style="height:{{scrollHeight}}px">
+          <scroll-view class="channel-surface__scroll" scroll-y="{{showVisibleItems}}" show-scrollbar="{{false}}" bindscroll="handleSurfaceScroll" style="height:{{surfaceScrollHeight}}px">
           <view wx:if="{{!errorMessage && loading}}" class="feedback-card feedback-card--inline">正在加载库存...</view>
 
           <view wx:elif="{{showVisibleItems}}" class="pantry-list">
             <view wx:for="{{visibleItems}}" wx:key="_id" class="pantry-item">
               <view class="pantry-item__main" data-pantry-item-id="{{item._id}}" bindtap="handleOpenItem">
-                <view class="pantry-item__thumb">{{item.cardThumbText}}</view>
-
                 <view class="pantry-item__body">
                   <view class="pantry-item__header">
                     <view class="pantry-item__name">{{item.name}}</view>
@@ -135,6 +135,7 @@
             <t-button wx:if="{{!items.length}}" class="empty-card__button" theme="primary" block bindtap="goCreate">立即添加</t-button>
           </view>
         </scroll-view>
+          <view wx:if="{{customScrollbarVisible}}" class="custom-scrollbar" style="height:{{customScrollbarThumbH}}px;top:{{customScrollbarThumbTop}}px"></view>
         </view>
       </view>
     </view>

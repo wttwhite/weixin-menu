@@ -260,6 +260,8 @@
 
 .delete-button {
   margin-top: 6rpx;
+  width: auto;
+  align-self: flex-start;
   --td-button-danger-outline-color: #d14b4b;
   --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
 }

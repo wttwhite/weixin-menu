@@ -6,15 +6,11 @@ const { syncCurrentTabBar } = require('../../utils/tab-bar')
 
 const DEFAULT_MANAGEMENT_CATEGORY_COUNT_TEXT = '暂无分类'
 const UNCATEGORIZED_KEY = '__uncategorized__'
-const USAGE_SEQUENCE = ['normal', 'opened', 'used-up', 'discarded']
+const STORED_STATUS_SEQUENCE = ['active', 'opened', 'empty', 'discarded']
 const MANAGER_DRAG_SWAP_THRESHOLD = 56
 
-const STATUS_META = {
-  fresh: {
-    label: '新鲜',
-    className: 'freshness-badge freshness-badge--fresh'
-  },
-  'expiring-soon': {
+const FRESHNESS_META = {
+  expiring: {
     label: '临期',
     className: 'freshness-badge freshness-badge--expiring-soon'
   },
@@ -23,6 +19,40 @@ const STATUS_META = {
     className: 'freshness-badge freshness-badge--expired'
   }
 }
+
+const STORED_STATUS_META = {
+  active: {
+    label: '正常',
+    className: 'usage-badge usage-badge--normal',
+    actionLabel: '开封',
+    actionIcon: '◔'
+  },
+  opened: {
+    label: '已开封',
+    className: 'usage-badge usage-badge--opened',
+    actionLabel: '用完',
+    actionIcon: '✓'
+  },
+  empty: {
+    label: '已用完',
+    className: 'usage-badge usage-badge--used-up',
+    actionLabel: '废弃',
+    actionIcon: '🗑'
+  },
+  discarded: {
+    label: '已丢弃',
+    className: 'usage-badge usage-badge--discarded',
+    actionLabel: '恢复',
+    actionIcon: '↺'
+  }
+}
+
+const STATUS_ACTION_ITEMS = [
+  { value: 'active', label: '标记为正常' },
+  { value: 'opened', label: '标记为已开封' },
+  { value: 'empty', label: '标记为已用完' },
+  { value: 'discarded', label: '标记为已丢弃' }
+]
 
 const MANAGER_CONFIG = {
   category: {
@@ -55,33 +85,6 @@ const MANAGER_CONFIG = {
   }
 }
 
-const USAGE_META = {
-  normal: {
-    label: '未开封',
-    className: 'usage-badge usage-badge--normal',
-    actionLabel: '开封',
-    actionIcon: '◔'
-  },
-  opened: {
-    label: '已开封',
-    className: 'usage-badge usage-badge--opened',
-    actionLabel: '用完',
-    actionIcon: '✓'
-  },
-  'used-up': {
-    label: '已用完',
-    className: 'usage-badge usage-badge--used-up',
-    actionLabel: '废弃',
-    actionIcon: '🗑'
-  },
-  discarded: {
-    label: '已废弃',
-    className: 'usage-badge usage-badge--discarded',
-    actionLabel: '恢复',
-    actionIcon: '↺'
-  }
-}
-
 function createDateLabel(now = new Date()) {
   const year = now.getFullYear()
   const month = now.getMonth() + 1
@@ -93,9 +96,9 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function normalizeUsageStatus(value) {
+function normalizeStoredStatus(value) {
   const text = normalizeText(value)
-  return USAGE_SEQUENCE.includes(text) ? text : 'normal'
+  return STORED_STATUS_SEQUENCE.includes(text) ? text : 'active'
 }
 
 function getCategoryKey(category) {
@@ -185,26 +188,27 @@ function buildQuantityDisplay(item = {}) {
 }
 
 function buildDisplayItem(item = {}) {
-  const statusMeta = STATUS_META[item.status] || STATUS_META.fresh
-  const usageStatus = normalizeUsageStatus(item.usageStatus)
-  const usageMeta = USAGE_META[usageStatus]
+  const actualStatus = normalizeText(item.status) || 'active'
+  const storedStatus = normalizeStoredStatus(item.storedStatus || item.status)
+  const storedMeta = STORED_STATUS_META[storedStatus] || STORED_STATUS_META.active
+  const freshnessMeta = FRESHNESS_META[actualStatus] || null
   const location = normalizeText(item.location)
   const notes = normalizeText(item.notes)
   const expirationDate = normalizeText(item.expirationDate)
 
   return {
     ...item,
+    storedStatus,
     categoryKey: getCategoryKey(item.category),
     categoryLabel: getCategoryLabel(item.category),
     quantityDisplay: buildQuantityDisplay(item),
-    statusLabel: item.status === 'fresh' ? '' : statusMeta.label,
-    statusClass: statusMeta.className,
-    showStatusBadge: item.status !== 'fresh',
-    usageStatus,
-    usageStatusLabel: usageMeta.label,
-    usageStatusClass: usageMeta.className,
-    usageActionLabel: usageMeta.actionLabel,
-    usageActionIcon: usageMeta.actionIcon,
+    statusLabel: freshnessMeta ? freshnessMeta.label : '',
+    statusClass: freshnessMeta ? freshnessMeta.className : '',
+    showStatusBadge: Boolean(freshnessMeta),
+    usageStatusLabel: storedMeta.label,
+    usageStatusClass: storedMeta.className,
+    usageActionLabel: storedMeta.actionLabel,
+    usageActionIcon: '⋯',
     deleteActionIcon: '🗑',
     locationLabel: location || '未设置位置',
     dateLabel: expirationDate ? `到期 ${expirationDate}` : '未设置到期',
@@ -219,7 +223,7 @@ function buildDisplayItems(items = []) {
 }
 
 function isProcessedItem(item = {}) {
-  return item.usageStatus === 'used-up' || item.usageStatus === 'discarded'
+  return item.status === 'empty' || item.status === 'discarded'
 }
 
 function matchesKeyword(item = {}, keyword = '') {
@@ -253,8 +257,8 @@ function filterVisibleItems(items = [], options = {}) {
 
 function buildFreshnessSummary(items = []) {
   const counts = {
-    fresh: 0,
-    'expiring-soon': 0,
+    active: 0,
+    expiring: 0,
     expired: 0
   }
 
@@ -264,44 +268,27 @@ function buildFreshnessSummary(items = []) {
     }
   })
 
-  return `新鲜 ${counts.fresh} · 临期 ${counts['expiring-soon']} · 过期 ${counts.expired}`
+  return `正常 ${counts.active} · 临期 ${counts.expiring} · 过期 ${counts.expired}`
 }
 
 function buildManagementStatusText(items = []) {
   const counts = {
-    normal: 0,
+    active: 0,
     opened: 0,
-    'expiring-soon': 0,
+    expiring: 0,
     expired: 0,
-    'used-up': 0,
+    empty: 0,
     discarded: 0
   }
 
   ;(items || []).forEach((item) => {
-    const usageStatus = normalizeUsageStatus(item.usageStatus)
-    const freshnessStatus = normalizeText(item.status)
-
-    if (usageStatus === 'normal' && freshnessStatus === 'fresh') {
-      counts.normal += 1
-    }
-    if (usageStatus === 'opened') {
-      counts.opened += 1
-    }
-    if (freshnessStatus === 'expiring-soon') {
-      counts['expiring-soon'] += 1
-    }
-    if (freshnessStatus === 'expired') {
-      counts.expired += 1
-    }
-    if (usageStatus === 'used-up') {
-      counts['used-up'] += 1
-    }
-    if (usageStatus === 'discarded') {
-      counts.discarded += 1
+    const actualStatus = normalizeText(item.status)
+    if (counts[actualStatus] !== undefined) {
+      counts[actualStatus] += 1
     }
   })
 
-  return `正常 ${counts.normal} · 已开封 ${counts.opened} · 即将过期 ${counts['expiring-soon']} · 已过期 ${counts.expired} · 已用完 ${counts['used-up']} · 已丢弃 ${counts.discarded}`
+  return `正常 ${counts.active} · 已开封 ${counts.opened} · 即将过期 ${counts.expiring} · 已过期 ${counts.expired} · 已用完 ${counts.empty} · 已丢弃 ${counts.discarded}`
 }
 
 function buildManagementCategoryCountText(categoryOptions = []) {
@@ -396,12 +383,6 @@ function buildSummary(items = [], total = 0, limit = 0, hasMore = false) {
   return `当前空间共 ${total || items.length} 项库存，可按分类和关键词快速筛选。`
 }
 
-function getNextUsageStatus(usageStatus) {
-  const current = normalizeUsageStatus(usageStatus)
-  const index = USAGE_SEQUENCE.indexOf(current)
-  return USAGE_SEQUENCE[(index + 1) % USAGE_SEQUENCE.length]
-}
-
 function replaceItem(items = [], nextItem = {}) {
   return (items || []).map((item) => (item._id === nextItem._id ? nextItem : item))
 }
@@ -415,7 +396,10 @@ function toPantryWritePayload(item = {}, usageStatus) {
     location: normalizeText(item.location),
     expirationDate: normalizeText(item.expirationDate),
     notes: normalizeText(item.notes),
-    usageStatus: normalizeUsageStatus(usageStatus)
+    productionDate: normalizeText(item.productionDate),
+    shelfLifeMonths: normalizeText(item.shelfLifeMonths),
+    openedDate: normalizeText(item.openedDate),
+    status: normalizeStoredStatus(usageStatus)
   }
 }
 
@@ -481,17 +465,23 @@ Page({
     locationManagerLoading: false,
     locationManagerItems: [],
     locationManagerViewItems: [],
-    scrollHeight: 400
+    railScrollHeight: 400,
+    surfaceScrollHeight: 400,
+    customScrollbarVisible: false,
+    customScrollbarThumbH: 0,
+    customScrollbarThumbTop: 0
   },
 
   onReady() {
-    wx.createSelectorQuery()
-      .in(this)
-      .select('.channel-layout')
-      .boundingClientRect((rect) => {
-        if (rect && rect.height > 0) this.setData({ scrollHeight: rect.height })
-      })
-      .exec()
+    const query = wx.createSelectorQuery().in(this)
+    query.select('.channel-layout').boundingClientRect()
+    query.select('.channel-surface').boundingClientRect()
+    query.exec((res) => {
+      const next = {}
+      if (res[0] && res[0].height > 0) next.railScrollHeight = res[0].height
+      if (res[1] && res[1].height > 0) next.surfaceScrollHeight = res[1].height
+      if (Object.keys(next).length) this.setData(next)
+    })
   },
 
   onShow() {
@@ -544,15 +534,15 @@ Page({
     }
 
     this.setData(updates, () => {
-      wx.createSelectorQuery()
-        .in(this)
-        .select('.channel-layout')
-        .boundingClientRect((rect) => {
-          if (rect && rect.height > 0 && rect.height !== this.data.scrollHeight) {
-            this.setData({ scrollHeight: rect.height })
-          }
-        })
-        .exec()
+      const query = wx.createSelectorQuery().in(this)
+      query.select('.channel-layout').boundingClientRect()
+      query.select('.channel-surface').boundingClientRect()
+      query.exec((res) => {
+        const next = {}
+        if (res[0] && res[0].height > 0 && res[0].height !== this.data.railScrollHeight) next.railScrollHeight = res[0].height
+        if (res[1] && res[1].height > 0 && res[1].height !== this.data.surfaceScrollHeight) next.surfaceScrollHeight = res[1].height
+        if (Object.keys(next).length) this.setData(next)
+      })
     })
   },
 
@@ -629,6 +619,27 @@ Page({
         summary: '库存加载失败，请稍后重试。'
       })
     }
+  },
+
+  handleSurfaceScroll(event) {
+    const { scrollTop, scrollHeight } = event.detail
+    const viewH = this.data.surfaceScrollHeight
+    if (!scrollHeight || scrollHeight <= viewH) return
+
+    const minThumbH = 48
+    const thumbH = Math.max(minThumbH, Math.round((viewH / scrollHeight) * viewH))
+    const maxTop = viewH - thumbH
+    const thumbTop = Math.round((scrollTop / (scrollHeight - viewH)) * maxTop)
+
+    if (this._scrollbarTimer) clearTimeout(this._scrollbarTimer)
+    this.setData({
+      customScrollbarVisible: true,
+      customScrollbarThumbH: thumbH,
+      customScrollbarThumbTop: thumbTop
+    })
+    this._scrollbarTimer = setTimeout(() => {
+      this.setData({ customScrollbarVisible: false })
+    }, 800)
   },
 
   handleSearchInput(event) {
@@ -1062,7 +1073,25 @@ Page({
       return
     }
 
-    const nextUsageStatus = getNextUsageStatus(currentItem.usageStatus)
+    let nextUsageStatus = ''
+    if (typeof wx !== 'undefined' && typeof wx.showActionSheet === 'function') {
+      const actionResult = await wx.showActionSheet({
+        itemList: STATUS_ACTION_ITEMS.map((item) => item.label)
+      })
+      if (actionResult.cancel) {
+        return
+      }
+      const selected = STATUS_ACTION_ITEMS[actionResult.tapIndex]
+      nextUsageStatus = selected ? selected.value : ''
+    } else {
+      const current = normalizeStoredStatus(currentItem.storedStatus)
+      const index = STORED_STATUS_SEQUENCE.indexOf(current)
+      nextUsageStatus = STORED_STATUS_SEQUENCE[(index + 1) % STORED_STATUS_SEQUENCE.length]
+    }
+
+    if (!nextUsageStatus || nextUsageStatus === currentItem.storedStatus) {
+      return
+    }
 
     try {
       const result = await createPantryService().updatePantryItem(
@@ -1070,7 +1099,7 @@ Page({
         pantryItemId,
         toPantryWritePayload(currentItem, nextUsageStatus)
       )
-      const updatedItem = buildDisplayItem(result.item || { ...currentItem, usageStatus: nextUsageStatus })
+      const updatedItem = buildDisplayItem(result.item || { ...currentItem, storedStatus: nextUsageStatus, status: nextUsageStatus })
       this.syncDerivedState({
         items: replaceItem(this.data.items || [], updatedItem)
       })

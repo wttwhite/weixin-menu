@@ -1,5 +1,6 @@
 .edit-page {
   min-height: 100vh;
+  overflow-x: hidden;
   padding: 28rpx 24rpx 180rpx;
   background:
     radial-gradient(circle at top, rgba(255, 230, 186, 0.3), transparent 28%),
@@ -324,6 +325,8 @@
 
 .delete-button {
   margin-top: 24rpx;
+  width: auto;
+  align-self: flex-start;
   --td-button-danger-outline-color: #d14b4b;
   --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
 }

@@ -19,8 +19,8 @@ describe('recipe edit template', () => {
     expect(template.includes('bindtap="goBack"')).toBe(true)
     expect(template.includes('class="editor-section"')).toBe(true)
     expect(template.includes('class="bottom-actions"')).toBe(true)
-    expect(template.includes('class="footer-close-button"')).toBe(true)
-    expect(template.includes('class="footer-submit-button"')).toBe(true)
+    expect(template).toMatch(/class="[^"]*footer-close-button[^"]*"/)
+    expect(template).toMatch(/class="[^"]*footer-submit-button[^"]*"/)
   })
 
   it('uses a picker for recipe category and interactive chips for duration and recommendation', () => {

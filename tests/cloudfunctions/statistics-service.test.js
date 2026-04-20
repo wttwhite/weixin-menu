@@ -9,8 +9,8 @@ function createRepository() {
   ]
   const shoppingLists = [{ _id: 'list-1', deletedAt: '' }]
   const shoppingItems = [
-    { _id: 'item-1', checked: true, deletedAt: '' },
-    { _id: 'item-2', checked: false, deletedAt: '' }
+    { _id: 'item-1', isChecked: true, deletedAt: '' },
+    { _id: 'item-2', isChecked: false, deletedAt: '' }
   ]
   const members = [{ openid: 'user-1' }, { openid: 'user-2' }]
 

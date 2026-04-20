@@ -309,6 +309,190 @@ describe('backup service', () => {
     })
   })
 
+  it('imports an original the-ai-menu backup manifest with id-based records and nested shopping items', async () => {
+    const repository = createRepository()
+    const storageService = createStorageService()
+    const zip = new JSZip()
+    zip.file(
+      'backup.json',
+      JSON.stringify({
+        version: '1.0.0',
+        exportTime: '2026-04-12T00:00:00.000Z',
+        recipes: [
+          {
+            id: 'recipe-old-1',
+            name: 'Tomato Egg',
+            summary: 'Classic',
+            category: '家常',
+            coverImageId: 'image-old-1',
+            createdAt: '2026-04-10T00:00:00.000Z',
+            updatedAt: '2026-04-11T00:00:00.000Z',
+            ingredients: [
+              {
+                id: 'ingredient-old-1',
+                recipeId: 'recipe-old-1',
+                name: 'Tomato',
+                quantity: '2',
+                unit: 'pcs',
+                sortOrder: 1,
+                createdAt: '2026-04-10T00:00:00.000Z',
+                updatedAt: '2026-04-10T00:00:00.000Z'
+              }
+            ],
+            steps: [
+              {
+                id: 'step-old-1',
+                recipeId: 'recipe-old-1',
+                stepNo: 1,
+                content: 'Cook',
+                sortOrder: 1,
+                createdAt: '2026-04-10T00:00:00.000Z',
+                updatedAt: '2026-04-10T00:00:00.000Z'
+              }
+            ],
+            tags: [
+              {
+                id: 'tag-old-1',
+                name: '家常',
+                color: '#E6A23C',
+                createdAt: '2026-04-10T00:00:00.000Z',
+                updatedAt: '2026-04-10T00:00:00.000Z'
+              }
+            ],
+            images: [
+              {
+                id: 'image-old-1',
+                recipeId: 'recipe-old-1',
+                filePath: 'uploads/recipes/recipe-old-1/cover/image-old-1.jpg',
+                mimeType: 'image/jpeg',
+                fileSize: 12,
+                sortOrder: 1,
+                imageRole: 'cover',
+                uploadStatus: 'confirmed',
+                uploadSessionId: 'session-old-1',
+                createdAt: '2026-04-10T00:00:00.000Z',
+                updatedAt: '2026-04-10T00:00:00.000Z'
+              }
+            ]
+          }
+        ],
+        pantryItems: [
+          {
+            id: 'pantry-old-1',
+            name: 'Egg',
+            category: '蛋类',
+            location: '冷藏',
+            quantity: '6',
+            unit: '个',
+            status: 'active',
+            createdAt: '2026-04-10T00:00:00.000Z',
+            updatedAt: '2026-04-10T00:00:00.000Z'
+          }
+        ],
+        mealPlans: [
+          {
+            id: 'meal-old-1',
+            planDate: '2026-04-12',
+            mealType: 'dinner',
+            status: 'planned',
+            notes: '',
+            createdAt: '2026-04-10T00:00:00.000Z',
+            updatedAt: '2026-04-10T00:00:00.000Z',
+            recipes: [
+              {
+                id: 'meal-recipe-old-1',
+                mealPlanId: 'meal-old-1',
+                recipeId: 'recipe-old-1',
+                recipeNameSnapshot: 'Tomato Egg',
+                servingsOverride: '2',
+                sortOrder: 1,
+                notes: '',
+                createdAt: '2026-04-10T00:00:00.000Z',
+                updatedAt: '2026-04-10T00:00:00.000Z'
+              }
+            ]
+          }
+        ],
+        shoppingLists: [
+          {
+            id: 'shopping-old-1',
+            name: 'Weekend',
+            listDate: '2026-04-12',
+            status: 'open',
+            notes: 'legacy',
+            createdAt: '2026-04-10T00:00:00.000Z',
+            updatedAt: '2026-04-10T00:00:00.000Z',
+            items: [
+              {
+                id: 'shopping-item-old-1',
+                shoppingListId: 'shopping-old-1',
+                name: 'Egg',
+                category: '蛋类',
+                quantity: '6',
+                unit: '个',
+                isChecked: false,
+                sourceType: 'manual',
+                sourceRefType: '',
+                sourceRefId: '',
+                recipeId: null,
+                mealPlanId: null,
+                notes: '',
+                sortOrder: 1,
+                createdAt: '2026-04-10T00:00:00.000Z',
+                updatedAt: '2026-04-10T00:00:00.000Z'
+              }
+            ]
+          }
+        ],
+        settings: {
+          pantryCategories: ['蛋类'],
+          pantryLocations: ['冷藏'],
+          customCategories: ['家常']
+        }
+      })
+    )
+    zip.file('files/uploads/recipes/recipe-old-1/cover/image-old-1.jpg', 'legacy-image-bytes')
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' })
+    storageService.setDownloadedFile('cloud://temp/legacy-backup', buffer)
+
+    const result = await importSpaceBackup(
+      { spaceId: 'space-1', tempFileId: 'cloud://temp/legacy-backup' },
+      { openid: 'user-1' },
+      repository,
+      storageService,
+      {
+        nowIso: () => '2026-04-12T12:00:00.000Z',
+        randomId: (() => {
+          let index = 0
+          return () => `mapped-${++index}`
+        })()
+      }
+    )
+
+    expect(result.summary).toEqual({
+      recipes: 1,
+      recipeTags: 1,
+      recipeImages: 1,
+      pantryItems: 1,
+      mealPlans: 1,
+      shoppingLists: 1,
+      shoppingItems: 1
+    })
+    expect(repository.getImported().recipes[0]._id).toBe('mapped-1')
+    expect(repository.getImported().recipeTags[0]._id).toBe('mapped-2')
+    expect(repository.getImported().recipeImages[0]._id).toBe('mapped-3')
+    expect(repository.getImported().recipeImages[0].recipeId).toBe('mapped-1')
+    expect(repository.getImported().shoppingLists[0]._id).toBe('mapped-5')
+    expect(repository.getImported().shoppingItems[0]._id).toBe('mapped-6')
+    expect(repository.getImported().shoppingItems[0].shoppingListId).toBe('mapped-5')
+    expect(repository.getImported().settings).toEqual({
+      pantryCategories: ['蛋类'],
+      pantryLocations: ['冷藏'],
+      customCategories: ['家常']
+    })
+    expect(storageService.getUploadedFiles()[0].cloudPath).toContain('spaces/space-1/recipes/mapped-1/images/cover/mapped-3.jpg')
+  })
+
   it('does not fail import when writing the import backup record fails after restore', async () => {
     const repository = createRepository()
     repository.createBackupRecord = async () => {

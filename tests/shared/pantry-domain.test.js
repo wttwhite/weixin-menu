@@ -9,28 +9,38 @@ describe('derivePantryStatus', () => {
   it('marks items as expiring soon when the expiration date is near', () => {
     expect(
       derivePantryStatus({
+        status: 'active',
         expirationDate: '2026-04-12',
         now: '2026-04-10'
       })
-    ).toBe('expiring-soon')
+    ).toBe('expiring')
   })
 
   it('marks items as expired when the expiration date has passed', () => {
     expect(
       derivePantryStatus({
+        status: 'active',
         expirationDate: '2026-04-09',
         now: '2026-04-10'
       })
     ).toBe('expired')
   })
 
-  it('marks items without an expiration date as fresh', () => {
+  it('keeps empty or discarded items in their handled states', () => {
     expect(
       derivePantryStatus({
+        status: 'empty',
         expirationDate: '',
         now: '2026-04-10'
       })
-    ).toBe('fresh')
+    ).toBe('empty')
+    expect(
+      derivePantryStatus({
+        status: 'discarded',
+        expirationDate: '2026-04-09',
+        now: '2026-04-10'
+      })
+    ).toBe('discarded')
   })
 })
 
@@ -53,11 +63,12 @@ describe('normalizePantryItemWrite', () => {
         category: 'dairy',
         quantity: '1',
         unit: 'box',
-        usageStatus: 'normal',
         location: 'fridge',
         notes: 'use soon',
         expirationDate: '2026-04-15',
-        status: 'fresh',
+        status: 'active',
+        handledType: null,
+        handledAt: null,
         productionDate: '',
         shelfLifeMonths: '',
         openedDate: ''
@@ -65,28 +76,28 @@ describe('normalizePantryItemWrite', () => {
     )
   })
 
-  it('keeps supported manual usageStatus values and falls back to normal on unknown values', () => {
+  it('keeps supported manual status values and falls back to active on unknown values', () => {
     expect(
       normalizePantryItemWrite({
         name: 'Yogurt',
-        usageStatus: 'opened',
+        status: 'opened',
         now: '2026-04-10'
       })
     ).toEqual(
       expect.objectContaining({
-        usageStatus: 'opened'
+        status: 'opened'
       })
     )
 
     expect(
       normalizePantryItemWrite({
         name: 'Yogurt',
-        usageStatus: 'mystery',
+        status: 'mystery',
         now: '2026-04-10'
       })
     ).toEqual(
       expect.objectContaining({
-        usageStatus: 'normal'
+        status: 'active'
       })
     )
   })
@@ -113,7 +124,9 @@ describe('normalizePantryItemWrite', () => {
         productionDate: '2026-01-15',
         shelfLifeMonths: '2',
         openedDate: '2026-01-20',
-        usageStatus: 'discarded',
+        status: 'discarded',
+        handledType: 'discarded',
+        handledAt: '2026-02-01T00:00:00.000Z',
         now: '2026-02-01'
       })
     ).toEqual(
@@ -123,8 +136,9 @@ describe('normalizePantryItemWrite', () => {
         shelfLifeMonths: '2',
         openedDate: '2026-01-20',
         expirationDate: '2026-03-15',
-        usageStatus: 'discarded',
-        status: 'fresh'
+        status: 'discarded',
+        handledType: 'discarded',
+        handledAt: '2026-02-01T00:00:00.000Z'
       })
     )
   })
@@ -134,7 +148,7 @@ describe('matchesPantryFilters', () => {
   const item = {
     category: 'produce',
     location: 'fridge',
-    status: 'expiring-soon'
+    status: 'expiring'
   }
 
   it('matches when all provided filters align', () => {
@@ -142,7 +156,7 @@ describe('matchesPantryFilters', () => {
       matchesPantryFilters(item, {
         category: 'produce',
         location: 'fridge',
-        status: 'expiring-soon'
+        status: 'expiring'
       })
     ).toBe(true)
   })

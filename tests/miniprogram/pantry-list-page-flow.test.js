@@ -89,8 +89,7 @@ describe('pantry list page flow', () => {
                 location: 'fridge',
                 quantity: '1',
                 unit: '盒',
-                status: 'fresh',
-                usageStatus: 'normal'
+                status: 'active'
               },
               {
                 _id: 'pantry-2',
@@ -99,8 +98,7 @@ describe('pantry list page flow', () => {
                 location: 'cabinet',
                 quantity: '2',
                 unit: '袋',
-                status: 'fresh',
-                usageStatus: 'used-up'
+                status: 'empty'
               },
               {
                 _id: 'pantry-3',
@@ -109,8 +107,8 @@ describe('pantry list page flow', () => {
                 location: 'fridge',
                 quantity: '3',
                 unit: '杯',
-                status: 'expiring-soon',
-                usageStatus: 'opened'
+                status: 'expiring',
+                storedStatus: 'opened'
               }
             ],
             filterOptions: {
@@ -140,12 +138,14 @@ describe('pantry list page flow', () => {
     expect(page.data.activeCategoryKey).toBe('all')
     expect(page.data.categoryViewItems.map((item) => item.label)).toEqual(['全部', 'dairy', 'dry'])
     expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Milk', 'Yogurt'])
-    expect(page.data.managementStatusText).toBe('正常 1 · 已开封 1 · 即将过期 1 · 已过期 0 · 已用完 1 · 已丢弃 0')
+    expect(page.data.managementStatusText).toBe('正常 1 · 已开封 0 · 即将过期 1 · 已过期 0 · 已用完 1 · 已丢弃 0')
     expect(page.data.managementCategoryCountText).toBe('dairy 2 · dry 1')
     expect(page.data.items[0].statusLabel).toBe('')
     expect(page.data.items[0].showStatusBadge).toBe(false)
+    expect(page.data.items[0].usageActionIcon).toBe('⋯')
     expect(page.data.items[2].statusLabel).toBe('临期')
     expect(page.data.items[2].showStatusBadge).toBe(true)
+    expect(page.data.items[2].usageActionIcon).toBe('⋯')
 
     page.handleToggleProcessed()
     expect(page.data.showProcessed).toBe(true)
@@ -206,8 +206,7 @@ describe('pantry list page flow', () => {
                 location: 'fridge',
                 quantity: '1',
                 unit: '盒',
-                status: 'fresh',
-                usageStatus: 'normal'
+                status: 'active'
               }
             ]
           }
@@ -781,7 +780,7 @@ describe('pantry list page flow', () => {
     ])
   })
 
-  it('cycles usageStatus through cloud update and refreshes the local list state', async () => {
+  it('opens pantry status actions and updates local list state with selected handled status', async () => {
     const callFunction = vi
       .fn()
       .mockResolvedValueOnce({
@@ -796,8 +795,7 @@ describe('pantry list page flow', () => {
                 location: 'fridge',
                 quantity: '1',
                 unit: '盒',
-                status: 'fresh',
-                usageStatus: 'normal'
+                status: 'active'
               }
             ]
           }
@@ -814,16 +812,23 @@ describe('pantry list page flow', () => {
               location: 'fridge',
               quantity: '1',
               unit: '盒',
-              status: 'fresh',
-              usageStatus: 'opened'
+              status: 'discarded',
+              storedStatus: 'discarded',
+              handledType: 'discarded',
+              handledAt: '2026-04-16T10:00:00.000Z'
             }
           }
         }
       })
+    const showActionSheet = vi.fn().mockResolvedValue({
+      cancel: false,
+      tapIndex: 3
+    })
     global.wx = {
       cloud: {
         callFunction
       },
+      showActionSheet,
       navigateTo: vi.fn(),
       showToast: vi.fn(),
       stopPullDownRefresh: vi.fn()
@@ -847,6 +852,9 @@ describe('pantry list page flow', () => {
     })
     await flushAsyncWork()
 
+    expect(showActionSheet).toHaveBeenCalledWith({
+      itemList: ['标记为正常', '标记为已开封', '标记为已用完', '标记为已丢弃']
+    })
     expect(callFunction).toHaveBeenNthCalledWith(2, {
       name: 'api',
       data: {
@@ -855,17 +863,18 @@ describe('pantry list page flow', () => {
         pantryItemId: 'pantry-1',
         item: expect.objectContaining({
           name: 'Milk',
-          usageStatus: 'opened'
+          status: 'discarded'
         })
       },
       config: undefined
     })
     expect(page.data.items[0]).toEqual(
       expect.objectContaining({
-        usageStatus: 'opened',
-        usageStatusLabel: '已开封'
+        storedStatus: 'discarded',
+        usageStatusLabel: '已丢弃'
       })
     )
+    expect(page.data.visibleItems).toEqual([])
   })
 
   it('uses server-provided filter options so capped list does not hide categories/locations', async () => {
@@ -1021,8 +1030,12 @@ describe('pantry list page flow', () => {
     expect(page.data.categoryViewItems.map((item) => item.label)).toEqual(['全部', 'dairy', 'dry'])
   })
 
-  it('shows cloud error toast when usageStatus update fails', async () => {
+  it('shows cloud error toast when pantry status update fails', async () => {
     const showToast = vi.fn()
+    const showActionSheet = vi.fn().mockResolvedValue({
+      cancel: false,
+      tapIndex: 2
+    })
     const callFunction = vi
       .fn()
       .mockResolvedValueOnce({
@@ -1037,8 +1050,7 @@ describe('pantry list page flow', () => {
                 location: 'fridge',
                 quantity: '1',
                 unit: '盒',
-                status: 'fresh',
-                usageStatus: 'normal'
+                status: 'active'
               }
             ]
           }
@@ -1055,6 +1067,7 @@ describe('pantry list page flow', () => {
       cloud: {
         callFunction
       },
+      showActionSheet,
       navigateTo: vi.fn(),
       showToast,
       stopPullDownRefresh: vi.fn()
@@ -1084,7 +1097,8 @@ describe('pantry list page flow', () => {
     })
     expect(page.data.items[0]).toEqual(
       expect.objectContaining({
-        usageStatus: 'normal'
+        storedStatus: 'active',
+        usageStatusLabel: '正常'
       })
     )
   })

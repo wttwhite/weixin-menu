@@ -1,29 +1,23 @@
 const { createPantryService } = require('../../services/pantry')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const {
+  buildManagerOptionLabels,
+  buildPickerUpdates,
+  createEmptyPantryForm,
+  getPickerIndex,
+  getPickerValue,
+  normalizeStepperValue,
+  normalizeText,
+  resolveExpirationDate
+} = require('../../utils/pantry-form')
 
 const STATUS_OPTIONS = [
-  { label: '正常', value: 'normal' },
+  { label: '正常', value: 'active' },
   { label: '已开封', value: 'opened' },
-  { label: '已用完', value: 'used-up' },
+  { label: '已用完', value: 'empty' },
   { label: '已丢弃', value: 'discarded' }
 ]
-
-function createEmptyForm() {
-  return {
-    name: '',
-    category: '',
-    quantity: '1',
-    unit: '',
-    location: '',
-    productionDate: '',
-    shelfLifeMonths: '',
-    openedDate: '',
-    usageStatus: 'normal',
-    expirationDate: '',
-    notes: ''
-  }
-}
 
 function getTodayDate() {
   const now = new Date()
@@ -37,90 +31,7 @@ function buildNotesCount(form = {}) {
   return String((form.notes || '').length)
 }
 
-function normalizeText(value) {
-  return typeof value === 'string' ? value.trim() : ''
-}
-
-function normalizeStepperValue(value, minimum = 0, fallback = 0) {
-  const parsed = Number(normalizeText(value))
-  if (!Number.isFinite(parsed)) {
-    return fallback
-  }
-  return Math.max(minimum, Math.floor(parsed))
-}
-
-function addMonthsToIsoDate(date, monthsText) {
-  const source = normalizeText(date)
-  const months = normalizeStepperValue(monthsText, 0, 0)
-  if (!source || !months) {
-    return ''
-  }
-
-  const [yearText, monthText, dayText] = source.split('-')
-  const year = Number(yearText)
-  const monthIndex = Number(monthText) - 1
-  const day = Number(dayText)
-  const nextMonthIndex = monthIndex + months
-  const targetYear = year + Math.floor(nextMonthIndex / 12)
-  const normalizedTargetMonthIndex = nextMonthIndex % 12
-  const daysInTargetMonth = new Date(Date.UTC(targetYear, normalizedTargetMonthIndex + 1, 0)).getUTCDate()
-  const targetDay = Math.min(day, daysInTargetMonth)
-
-  return [
-    String(targetYear).padStart(4, '0'),
-    String(normalizedTargetMonthIndex + 1).padStart(2, '0'),
-    String(targetDay).padStart(2, '0')
-  ].join('-')
-}
-
-function resolveExpirationDate(form = {}) {
-  const derived = addMonthsToIsoDate(form.productionDate, form.shelfLifeMonths)
-  if (derived) {
-    return derived
-  }
-  return normalizeText(form.expirationDate)
-}
-
-function buildManagerOptionLabels(items = [], currentValue = '') {
-  const labels = ['未设置']
-  ;(items || []).forEach((item) => {
-    const name = normalizeText(item && item.name ? item.name : item)
-    if (name && !labels.includes(name)) {
-      labels.push(name)
-    }
-  })
-
-  const normalizedCurrent = normalizeText(currentValue)
-  if (normalizedCurrent && !labels.includes(normalizedCurrent)) {
-    labels.push(normalizedCurrent)
-  }
-
-  return labels
-}
-
-function getPickerIndex(options = [], value = '') {
-  const normalizedValue = normalizeText(value)
-  if (!normalizedValue) {
-    return 0
-  }
-  const index = (options || []).indexOf(normalizedValue)
-  return index >= 0 ? index : 0
-}
-
-function getPickerValue(options = [], index = 0) {
-  if (!Array.isArray(options) || index <= 0 || index >= options.length) {
-    return ''
-  }
-  return options[index]
-}
-
-function buildPickerUpdates(options = [], value = '', indexKey = '') {
-  return {
-    [indexKey]: getPickerIndex(options, value)
-  }
-}
-
-function getStatusIndex(value = 'normal') {
+function getStatusIndex(value = 'active') {
   const index = STATUS_OPTIONS.findIndex((item) => item.value === normalizeText(value))
   return index >= 0 ? index : 0
 }
@@ -151,7 +62,7 @@ Page({
     categoryIndex: 0,
     locationIndex: 0,
     statusIndex: 0,
-    form: createEmptyForm()
+    form: createEmptyPantryForm()
   },
 
   async onLoad(options) {
@@ -186,7 +97,7 @@ Page({
         service.listPantryLocations(spaceId),
         pantryItemId
           ? service.getPantryItem(spaceId, pantryItemId)
-          : Promise.resolve({ item: createEmptyForm() })
+          : Promise.resolve({ item: createEmptyPantryForm() })
       ])
       const matched = itemResult.item || {}
       const form = {
@@ -198,7 +109,7 @@ Page({
         productionDate: matched.productionDate || '',
         shelfLifeMonths: matched.shelfLifeMonths || '',
         openedDate: matched.openedDate || '',
-        usageStatus: matched.usageStatus || 'normal',
+        status: matched.storedStatus || matched.status || 'active',
         expirationDate: matched.expirationDate || '',
         notes: matched.notes || ''
       }
@@ -213,14 +124,14 @@ Page({
         locationOptions,
         categoryIndex: getPickerIndex(categoryOptions, form.category),
         locationIndex: getPickerIndex(locationOptions, form.location),
-        statusIndex: getStatusIndex(form.usageStatus),
+        statusIndex: getStatusIndex(form.status),
         form
       })
     } catch (error) {
       this.setData({
         loading: false,
       loadErrorMessage: getErrorMessage(error),
-      form: createEmptyForm()
+      form: createEmptyPantryForm()
     })
       wx.showToast({
         title: getErrorMessage(error),
@@ -292,10 +203,10 @@ Page({
 
   handleUsageStatusSelect(event) {
     const nextIndex = Number(event.detail.value)
-    const nextStatus = STATUS_OPTIONS[nextIndex] ? STATUS_OPTIONS[nextIndex].value : 'normal'
+    const nextStatus = STATUS_OPTIONS[nextIndex] ? STATUS_OPTIONS[nextIndex].value : 'active'
     const nextForm = {
       ...this.data.form,
-      usageStatus: nextStatus
+      status: nextStatus
     }
     this.setData({
       statusIndex: nextIndex,

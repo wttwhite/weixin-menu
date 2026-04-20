@@ -1,52 +1,323 @@
 <view class="shopping-page">
   <view class="shopping-hero">
-    <view class="shopping-kicker">Shopping</view>
-    <view class="shopping-title">{{activeSpaceId || '尚未选择空间'}}</view>
-    <view class="shopping-text">{{summary}}</view>
-    <view class="shopping-actions">
-      <t-button class="shopping-btn shopping-btn--ghost" variant="outline" bindtap="openSpace">切换空间</t-button>
-      <t-button class="shopping-btn" theme="primary" bindtap="createList">新建清单</t-button>
+    <view class="shopping-hero__date">{{currentDateLabel}}</view>
+    <view class="shopping-hero__eyebrow">MARKET ACTION PANEL</view>
+    <view class="shopping-hero__title-row">
+      <view class="shopping-hero__icon">🛒</view>
+      <view class="shopping-hero__title">采购清单</view>
     </view>
-  </view>
+    <view class="shopping-hero__text">{{summary}}</view>
 
-  <view wx:if="{{activeSpaceId && shoppingListOptions.length}}" class="list-picker-card">
-    <picker range="{{shoppingListOptions}}" range-key="label" value="{{selectedShoppingListIndex}}" bindchange="handleShoppingListChange">
-      <view class="list-picker-value">{{shoppingListOptions[selectedShoppingListIndex].label}}</view>
-    </picker>
+    <view class="shopping-hero__metrics">
+      <view class="shopping-hero__metric">
+        <view class="shopping-hero__metric-label">待采购项</view>
+        <view class="shopping-hero__metric-value">{{heroPendingCountText}}</view>
+      </view>
+      <view class="shopping-hero__metric">
+        <view class="shopping-hero__metric-label">完成率</view>
+        <view class="shopping-hero__metric-value">{{heroProgressText}}</view>
+      </view>
+      <view class="shopping-hero__metric">
+        <view class="shopping-hero__metric-label">自动生成</view>
+        <view class="shopping-hero__metric-value">{{heroGeneratedCountText}}</view>
+      </view>
+    </view>
   </view>
 
   <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
   <view wx:elif="{{loading}}" class="feedback-card">正在加载采购清单...</view>
 
-  <view wx:elif="{{selectedShoppingList}}">
-    <view class="toolbar-card">
-      <t-button class="toolbar-btn" theme="primary" bindtap="goAddManualItem">手动添加</t-button>
-      <t-button class="toolbar-btn toolbar-btn--outline" theme="primary" variant="outline" loading="{{generating}}" bindtap="generateFromMealPlans">从用餐计划生成</t-button>
+  <view wx:elif="{{activeSpaceId}}" class="shopping-body">
+    <view class="shopping-status-tabs">
+      <view
+        wx:for="{{statusTabs}}"
+        wx:key="key"
+        class="{{item.itemClass}}"
+        data-key="{{item.key}}"
+        bindtap="handleStatusFilterChange"
+      >
+        <view class="shopping-status-tab__label">{{item.label}}</view>
+        <view class="shopping-status-tab__count">{{item.count}}</view>
+      </view>
     </view>
 
-    <view wx:if="{{items.length}}" class="items-list">
-      <view wx:for="{{items}}" wx:key="_id" class="item-card">
-        <checkbox-group data-shopping-item-id="{{item._id}}" bindchange="handleToggleItem">
-          <label class="item-main">
-            <checkbox value="checked" checked="{{item.checked}}" />
-            <view class="item-content">
-              <view class="item-name {{item.checked ? 'item-name--checked' : ''}}">{{item.name}}</view>
-              <view class="item-meta">
-                <text wx:if="{{item.quantityLabel}}">{{item.quantityLabel}}</text>
-                <text wx:if="{{item.sourceLabel}}" class="item-source">{{item.sourceLabel}}</text>
+    <view class="shopping-section-head">
+      <view>
+        <view class="shopping-section-head__eyebrow">采购清单</view>
+        <view class="shopping-section-head__title">{{listSectionTitle}}</view>
+      </view>
+      <view class="shopping-create-btn" bindtap="openCreateListModal">＋ 新建清单</view>
+    </view>
+
+    <view wx:if="{{visibleShoppingLists.length}}" class="shopping-list-grid">
+      <view wx:for="{{visibleShoppingLists}}" wx:key="_id" class="shopping-list-card">
+        <view class="shopping-list-card__header">
+          <view class="shopping-list-card__main">
+            <view class="shopping-list-card__icon">🛒</view>
+            <view class="shopping-list-card__copy">
+              <view class="shopping-list-card__title-row">
+                <view class="shopping-list-card__title">{{item.name}}</view>
+                <view class="{{item.statusClass}}">{{item.statusLabel}}</view>
               </view>
-              <view wx:if="{{item.notes}}" class="item-notes">{{item.notes}}</view>
+              <view class="shopping-list-card__date">{{item.listDate || '未设置日期'}}</view>
             </view>
-          </label>
-        </checkbox-group>
-        <t-button class="item-edit" theme="primary" variant="outline" size="small" data-shopping-item-id="{{item._id}}" bindtap="goEditItem">编辑</t-button>
+          </view>
+
+          <view class="shopping-list-card__actions">
+            <view
+              class="shopping-list-card__action"
+              data-shopping-list-id="{{item._id}}"
+              bindtap="openEditListModal"
+            >
+              ✎
+            </view>
+            <view
+              class="shopping-list-card__action shopping-list-card__action--danger"
+              data-shopping-list-id="{{item._id}}"
+              bindtap="deleteList"
+            >
+              🗑
+            </view>
+          </view>
+        </view>
+
+        <view class="shopping-list-card__progress">
+          <view class="shopping-list-card__progress-track">
+            <view class="shopping-list-card__progress-fill" style="{{item.progressPercentStyle}}"></view>
+          </view>
+          <view class="shopping-list-card__progress-text">{{item.progressText}}</view>
+        </view>
+
+        <view class="shopping-list-card__subhead">
+          <view class="shopping-list-card__subhead-title">采购项 ({{item.items.length}})</view>
+          <view
+            wx:if="{{item.status === 'open'}}"
+            class="shopping-list-card__generate"
+            data-shopping-list-id="{{item._id}}"
+            bindtap="generateFromMealPlans"
+          >
+            从计划生成
+          </view>
+        </view>
+
+        <view class="shopping-item-list">
+          <view wx:for="{{item.items}}" wx:key="_id" wx:for-item="shoppingItem" class="shopping-item-row">
+            <checkbox-group
+              class="shopping-item-row__main"
+              data-shopping-list-id="{{item._id}}"
+              data-shopping-item-id="{{shoppingItem._id}}"
+              bindchange="handleToggleItem"
+            >
+              <label class="shopping-item-row__checkline">
+                <checkbox value="checked" checked="{{shoppingItem.isChecked}}" />
+                <view class="shopping-item-row__content">
+                  <view class="{{shoppingItem.nameClass}}">{{shoppingItem.name}}</view>
+                  <view class="shopping-item-row__meta">
+                    <text wx:if="{{shoppingItem.quantityLabel}}">{{shoppingItem.quantityLabel}}</text>
+                    <text wx:if="{{shoppingItem.sourceLabel}}" class="shopping-item-row__source">{{shoppingItem.sourceLabel}}</text>
+                  </view>
+                </view>
+              </label>
+            </checkbox-group>
+
+            <view
+              class="shopping-item-row__record"
+              data-shopping-list-id="{{item._id}}"
+              data-shopping-item-id="{{shoppingItem._id}}"
+              catchtap="openPantryEntryModal"
+            >
+              录入库存
+            </view>
+          </view>
+        </view>
       </view>
     </view>
 
     <view wx:else class="empty-card">
-      <view class="empty-title">暂无采购项</view>
-      <view class="empty-text">{{emptyMessage}}</view>
-      <t-button class="empty-button" theme="primary" block bindtap="goAddManualItem">添加第一项</t-button>
+      <view class="empty-card__title">还没有采购清单</view>
+      <view class="empty-card__text">{{emptyMessage}}</view>
+      <view class="empty-card__button" bindtap="openCreateListModal">立即创建</view>
+    </view>
+  </view>
+
+  <view wx:if="{{showListModal}}" class="shopping-modal__overlay" catchtap="closeListModal">
+    <view class="shopping-modal" catchtap="noop">
+      <view class="shopping-modal__title">{{listModalTitle}}</view>
+
+      <input
+        class="shopping-modal__input"
+        value="{{listForm.name}}"
+        data-field="name"
+        placeholder="例如：周末买菜"
+        bindinput="handleListFormInput"
+      />
+
+      <view class="shopping-modal__field-label">日期</view>
+      <picker mode="date" value="{{listForm.listDate || todayIso}}" bindchange="handleListDateChange">
+        <view class="shopping-modal__picker">{{listForm.listDate || todayIso}}</view>
+      </picker>
+
+      <view class="shopping-modal__field-label">状态</view>
+      <picker mode="selector" range="{{statusTabs}}" range-key="label" value="{{listForm.status === 'completed' ? 2 : (listForm.status === 'archived' ? 3 : 1)}}" bindchange="handleListStatusChange">
+        <view class="shopping-modal__picker">{{listForm.status === 'completed' ? '已完成' : (listForm.status === 'archived' ? '已归档' : '进行中')}}</view>
+      </picker>
+
+      <view class="shopping-modal__field-label">备注</view>
+      <textarea
+        class="shopping-modal__textarea"
+        value="{{listForm.notes}}"
+        data-field="notes"
+        maxlength="120"
+        placeholder="备注信息..."
+        bindinput="handleListFormInput"
+      />
+
+      <view class="shopping-modal__divider"></view>
+      <view class="shopping-modal__subhead">手工采购项</view>
+
+      <view wx:for="{{listItemDrafts}}" wx:key="index" class="shopping-draft-row">
+        <view class="shopping-draft-row__top">
+          <input
+            class="shopping-draft-row__input shopping-draft-row__input--name"
+            value="{{item.name}}"
+            data-index="{{index}}"
+            data-field="name"
+            placeholder="名称"
+            bindinput="handleListItemDraftInput"
+          />
+          <input
+            class="shopping-draft-row__input shopping-draft-row__input--category"
+            value="{{item.category}}"
+            data-index="{{index}}"
+            data-field="category"
+            placeholder="分类"
+            bindinput="handleListItemDraftInput"
+          />
+          <view class="shopping-draft-row__remove" data-index="{{index}}" bindtap="removeListItemDraft">×</view>
+        </view>
+
+        <view class="shopping-draft-row__bottom">
+          <input
+            class="shopping-draft-row__input shopping-draft-row__input--quantity"
+            value="{{item.quantity}}"
+            data-index="{{index}}"
+            data-field="quantity"
+            placeholder="数量"
+            bindinput="handleListItemDraftInput"
+          />
+          <input
+            class="shopping-draft-row__input shopping-draft-row__input--unit"
+            value="{{item.unit}}"
+            data-index="{{index}}"
+            data-field="unit"
+            placeholder="单位"
+            bindinput="handleListItemDraftInput"
+          />
+        </view>
+      </view>
+
+      <view class="shopping-modal__add-row" bindtap="addListItemDraft">＋ 添加采购项</view>
+
+      <view class="shopping-modal__footer">
+        <view class="shopping-modal__close" bindtap="closeListModal">关闭</view>
+        <view class="shopping-modal__submit" bindtap="submitListModal">{{submittingList ? '保存中...' : (editingShoppingListId ? '保存清单' : '创建清单')}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showPantryEntryModal}}" class="shopping-modal__overlay" catchtap="closePantryEntryModal">
+    <view class="shopping-modal shopping-modal--pantry" catchtap="noop">
+      <view class="shopping-modal__title">录入库存</view>
+
+      <view class="shopping-modal__field-label">名称</view>
+      <input
+        class="shopping-modal__input"
+        value="{{pantryEntryForm.name}}"
+        data-field="name"
+        placeholder="例如：牛奶"
+        bindinput="handlePantryInput"
+      />
+
+      <view class="shopping-modal__field-label">分类</view>
+      <view class="shopping-modal__picker-row">
+        <picker class="shopping-modal__picker-field" mode="selector" range="{{pantryCategoryOptions}}" value="{{pantryCategoryIndex}}" bindchange="handlePantryCategorySelect">
+          <view class="shopping-modal__picker">{{pantryCategoryOptions[pantryCategoryIndex] || '未设置'}}</view>
+        </picker>
+        <view wx:if="{{pantryEntryForm.category}}" class="shopping-modal__clear" bindtap="clearPantryCategory">×</view>
+      </view>
+
+      <view class="shopping-modal__field-label">位置</view>
+      <view class="shopping-modal__picker-row">
+        <picker class="shopping-modal__picker-field" mode="selector" range="{{pantryLocationOptions}}" value="{{pantryLocationIndex}}" bindchange="handlePantryLocationSelect">
+          <view class="shopping-modal__picker">{{pantryLocationOptions[pantryLocationIndex] || '未设置'}}</view>
+        </picker>
+        <view wx:if="{{pantryEntryForm.location}}" class="shopping-modal__clear" bindtap="clearPantryLocation">×</view>
+      </view>
+
+      <view class="shopping-modal__grid">
+        <view>
+          <view class="shopping-modal__field-label">数量</view>
+          <view class="shopping-modal__stepper">
+            <view class="shopping-modal__stepper-btn" bindtap="decrementPantryQuantity">−</view>
+            <view class="shopping-modal__stepper-value">{{pantryEntryForm.quantity}}</view>
+            <view class="shopping-modal__stepper-btn" bindtap="incrementPantryQuantity">＋</view>
+          </view>
+        </view>
+
+        <view>
+          <view class="shopping-modal__field-label">单位</view>
+          <input
+            class="shopping-modal__input shopping-modal__input--compact"
+            value="{{pantryEntryForm.unit}}"
+            data-field="unit"
+            placeholder="袋 / 瓶 / 盒"
+            bindinput="handlePantryInput"
+          />
+        </view>
+      </view>
+
+      <view class="shopping-modal__field-label">生产日期</view>
+      <picker mode="date" value="{{pantryEntryForm.productionDate || todayIso}}" bindchange="handlePantryProductionDateChange">
+        <view class="shopping-modal__picker">{{pantryEntryForm.productionDate || '选择日期'}}</view>
+      </picker>
+
+      <view class="shopping-modal__field-label">保质期(月)</view>
+      <view class="shopping-modal__stepper shopping-modal__stepper--inline">
+        <view class="shopping-modal__stepper-btn" bindtap="decrementPantryShelfLifeMonths">−</view>
+        <view class="shopping-modal__stepper-value">{{pantryEntryForm.shelfLifeMonths || '0'}}</view>
+        <view class="shopping-modal__stepper-btn" bindtap="incrementPantryShelfLifeMonths">＋</view>
+      </view>
+
+      <view class="shopping-modal__field-label">过期日期</view>
+      <view class="shopping-modal__picker-row">
+        <picker class="shopping-modal__picker-field" mode="date" value="{{pantryEntryForm.expirationDate || todayIso}}" bindchange="handlePantryExpirationDateChange">
+          <view class="shopping-modal__picker">{{pantryEntryForm.expirationDate || '选择日期'}}</view>
+        </picker>
+        <view wx:if="{{pantryEntryForm.expirationDate}}" class="shopping-modal__clear" bindtap="clearPantryExpirationDate">×</view>
+      </view>
+
+      <view class="shopping-modal__field-label">开封日期</view>
+      <view class="shopping-modal__picker-row">
+        <picker class="shopping-modal__picker-field" mode="date" value="{{pantryEntryForm.openedDate || todayIso}}" bindchange="handlePantryOpenedDateChange">
+          <view class="shopping-modal__picker">{{pantryEntryForm.openedDate || '选择日期'}}</view>
+        </picker>
+        <view wx:if="{{pantryEntryForm.openedDate}}" class="shopping-modal__clear" bindtap="clearPantryOpenedDate">×</view>
+      </view>
+
+      <view class="shopping-modal__field-label">备注</view>
+      <textarea
+        class="shopping-modal__textarea"
+        value="{{pantryEntryForm.notes}}"
+        data-field="notes"
+        maxlength="80"
+        placeholder="例如：先吃这一盒"
+        bindinput="handlePantryInput"
+      />
+
+      <view class="shopping-modal__footer">
+        <view class="shopping-modal__close" bindtap="closePantryEntryModal">关闭</view>
+        <view class="shopping-modal__submit" bindtap="submitPantryEntry">{{submittingPantryEntry ? '录入中...' : '保存并勾选'}}</view>
+      </view>
     </view>
   </view>
 </view>

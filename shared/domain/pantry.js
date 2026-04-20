@@ -1,6 +1,7 @@
 const DEFAULT_EXPIRING_SOON_DAYS = 3
 const { isValidIsoDate } = require('../utils/time')
-const VALID_USAGE_STATUS = new Set(['normal', 'opened', 'used-up', 'discarded'])
+
+const VALID_PANTRY_STATUS = new Set(['active', 'opened', 'expiring', 'expired', 'empty', 'discarded'])
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -11,9 +12,9 @@ function normalizeDate(value) {
   return isValidIsoDate(text) ? text : ''
 }
 
-function normalizeUsageStatus(value, fallback = 'normal') {
+function normalizePantryStatus(value, fallback = 'active') {
   const text = normalizeText(value)
-  if (VALID_USAGE_STATUS.has(text)) {
+  if (VALID_PANTRY_STATUS.has(text)) {
     return text
   }
   return fallback
@@ -84,25 +85,30 @@ function getRelativeDayCount(expirationDate, now) {
 }
 
 function derivePantryStatus(input = {}) {
+  const storedStatus = normalizePantryStatus(input.status, 'active')
+  if (storedStatus === 'empty' || storedStatus === 'discarded') {
+    return storedStatus
+  }
+
   const expirationDate = normalizeDate(input.expirationDate)
   if (!expirationDate) {
-    return 'fresh'
+    return storedStatus
   }
 
   const relativeDays = getRelativeDayCount(expirationDate, input.now)
   if (relativeDays === null) {
-    return 'fresh'
+    return storedStatus
   }
 
   if (relativeDays < 0) {
     return 'expired'
   }
 
-  if (relativeDays <= DEFAULT_EXPIRING_SOON_DAYS) {
-    return 'expiring-soon'
+  if (relativeDays > 0 && relativeDays <= DEFAULT_EXPIRING_SOON_DAYS) {
+    return 'expiring'
   }
 
-  return 'fresh'
+  return storedStatus
 }
 
 function normalizePantryItemWrite(input = {}) {
@@ -120,7 +126,9 @@ function normalizePantryItemWrite(input = {}) {
     shelfLifeMonths,
     expirationDate: input.expirationDate
   })
-  const usageStatus = normalizeUsageStatus(input.usageStatus, 'normal')
+  const status = normalizePantryStatus(input.status, 'active')
+  const handledType = normalizeText(input.handledType) || null
+  const handledAt = normalizeText(input.handledAt) || null
 
   return {
     name,
@@ -133,11 +141,9 @@ function normalizePantryItemWrite(input = {}) {
     shelfLifeMonths,
     openedDate,
     expirationDate,
-    usageStatus,
-    status: derivePantryStatus({
-      expirationDate,
-      now: input.now
-    })
+    status,
+    handledType,
+    handledAt
   }
 }
 
@@ -165,5 +171,5 @@ module.exports = {
   derivePantryStatus,
   matchesPantryFilters,
   normalizePantryItemWrite,
-  normalizeUsageStatus
+  normalizePantryStatus
 }

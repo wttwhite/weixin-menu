@@ -207,8 +207,8 @@
     </view>
 
     <view class="bottom-actions">
-      <t-button class="footer-close-btn" theme="default" bindtap="goBack">关闭</t-button>
-      <t-button class="footer-submit-btn" theme="primary" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</t-button>
+      <t-button class="footer-close-btn footer-close-button" theme="default" bindtap="goBack">关闭</t-button>
+      <t-button class="footer-submit-btn footer-submit-button" theme="primary" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</t-button>
     </view>
   </view>
 
