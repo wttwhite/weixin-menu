@@ -7,7 +7,7 @@ describe('tab pages source wiring', () => {
     ['miniprogram/pages/pantry/index.js', "/pages/pantry/index"],
     ['miniprogram/pages/meal-plans/index.js', "/pages/meal-plans/index"],
     ['miniprogram/pages/shopping/index.js', "/pages/shopping/index"],
-    ['miniprogram/pages/statistics/index.js', "/pages/statistics/index"]
+    ['miniprogram/pages/profile/index.js', "/pages/profile/index"]
   ]
 
   it('syncs the custom tab bar selected state from each tab page onShow', () => {

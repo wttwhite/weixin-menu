@@ -1,4 +1,4 @@
-<view class="pantry-page">
+<view class="pantry-page" style="{{themeStyle}}">
   <view class="hero-banner">
     <image class="hero-banner__background" src="/images/food-hero.svg" mode="aspectFill" />
     <view class="hero-banner__overlay">
@@ -265,4 +265,17 @@
       </view>
     </view>
   </view>
+
+  <pantry-form-modal
+    visible="{{showCreateModal}}"
+    title="添加库存"
+    submit-label="添加库存"
+    submitting="{{submittingCreate}}"
+    value="{{createForm}}"
+    category-options="{{createCategoryOptions}}"
+    location-options="{{createLocationOptions}}"
+    bind:change="handleCreateFormChange"
+    bind:close="closeCreateModal"
+    bind:submit="submitCreatePantry"
+  />
 </view>

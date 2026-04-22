@@ -9,7 +9,7 @@ const {
   renameSpace,
   rotateInviteCode
 } = require('./services/space-service')
-const { listMembers, removeMember } = require('./services/member-service')
+const { listMembers, removeMember, updateMemberDisplayName } = require('./services/member-service')
 
 function normalizeError(error) {
   if (error && typeof error.code === 'number') {
@@ -36,6 +36,7 @@ function createMemberOpsHandler(options = {}) {
       'createSpace',
       'joinSpace',
       'listMembers',
+      'updateMemberDisplayName',
       'removeMember',
       'renameSpace',
       'rotateInviteCode'
@@ -77,6 +78,10 @@ function createMemberOpsHandler(options = {}) {
         }
         case 'listMembers': {
           const data = await listMembers(event, context, repository)
+          return buildOkResponse(data)
+        }
+        case 'updateMemberDisplayName': {
+          const data = await updateMemberDisplayName(event, context, repository)
           return buildOkResponse(data)
         }
         case 'removeMember': {

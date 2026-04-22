@@ -1,14 +1,16 @@
-<view class="meal-plans-page">
+<view class="meal-plans-page" style="{{themeStyle}}">
   <view class="plans-hero">
     <image class="plans-hero__background" src="/images/food-hero-table.svg" mode="aspectFill" />
     <view class="plans-hero__overlay">
-      <view class="plans-hero__date">{{currentDateLabel}}</view>
+      <view class="plans-hero__topbar">
+        <view class="plans-hero__date-pill">{{currentDateLabel}}</view>
+        <view class="plans-hero__stat-pill">
+          <view class="plans-hero__stat-value">{{monthPlanCount}}</view>
+          <view class="plans-hero__stat-label">个计划</view>
+        </view>
+      </view>
       <view class="plans-hero__title">做饭计划</view>
       <view class="plans-hero__subtitle">本周菜谱安排，合理规划每日饮食</view>
-      <view class="plans-hero__stat">
-        <view class="plans-hero__stat-value">{{monthPlanCount}}</view>
-        <view class="plans-hero__stat-label">个计划</view>
-      </view>
     </view>
   </view>
 
@@ -29,24 +31,30 @@
         <view class="calendar-nav__button" bindtap="goPrevMonth">‹</view>
         <view class="calendar-nav__month">{{viewMonthLabel}}</view>
         <view class="calendar-nav__button" bindtap="goNextMonth">›</view>
-        <t-button class="calendar-nav__today" theme="primary" size="small" shape="round" bindtap="goToday">回到今日</t-button>
+        <t-button t-class="calendar-nav__today" theme="primary" size="small" shape="round" bindtap="goToday">回到今日</t-button>
       </view>
 
       <view class="calendar-weekdays">
         <view wx:for="{{weekDayLabels}}" wx:key="index" class="calendar-weekdays__item">{{item}}</view>
       </view>
 
-      <view class="calendar-grid">
-        <view
-          wx:for="{{calendarItems}}"
-          wx:key="key"
-          class="{{item.itemClass}}"
-          data-date="{{item.date}}"
-          bindtap="handleCalendarDateSelect"
-        >
-          <view wx:if="{{!item.isBlank}}" class="calendar-cell__day">{{item.label}}</view>
-          <view wx:if="{{item.showDot}}" class="{{item.dotClass}}"></view>
+      <view class="calendar-panel__viewport" style="{{calendarViewportStyle}}">
+        <view class="calendar-grid" style="{{calendarGridStyle}}">
+          <view
+            wx:for="{{calendarItems}}"
+            wx:key="key"
+            class="{{item.itemClass}}"
+            data-date="{{item.date}}"
+            bindtap="handleCalendarDateSelect"
+          >
+            <view wx:if="{{!item.isBlank}}" class="calendar-cell__day">{{item.label}}</view>
+            <view wx:if="{{item.showDot}}" class="{{item.dotClass}}"></view>
+          </view>
         </view>
+      </view>
+
+      <view class="calendar-toggle" bindtap="toggleCalendarExpanded">
+        <view class="calendar-toggle__chevron {{isCalendarExpanded ? 'calendar-toggle__chevron--expanded' : ''}}">⌄</view>
       </view>
     </view>
 
@@ -113,12 +121,20 @@
           </view>
 
           <view class="inventory-list">
-            <view wx:for="{{inventoryItems}}" wx:key="key" class="inventory-item">
+            <view wx:for="{{inventoryItems}}" wx:key="key" class="inventory-item {{item.selectable ? 'inventory-item--missing' : 'inventory-item--ok'}}">
               <view class="{{item.iconClass}}">{{item.iconText}}</view>
               <view class="inventory-item__body">
                 <view class="inventory-item__name">{{item.name}}</view>
                 <view class="inventory-item__meta">{{item.requiredText}}</view>
                 <view class="inventory-item__meta">{{item.stockText}}</view>
+              </view>
+              <view
+                wx:if="{{item.selectable}}"
+                class="inventory-item__checkbox {{item.selected ? 'inventory-item__checkbox--selected' : ''}}"
+                data-key="{{item.key}}"
+                bindtap="toggleInventorySelection"
+              >
+                {{item.selected ? '✓' : ''}}
               </view>
               <view class="{{item.statusClass}}">{{item.statusText}}</view>
             </view>

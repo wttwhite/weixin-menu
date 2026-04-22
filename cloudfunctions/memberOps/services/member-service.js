@@ -57,7 +57,36 @@ async function removeMember(event, context, repository) {
   }
 }
 
+async function updateMemberDisplayName(event, context, repository) {
+  const spaceId = normalizeSpaceId(event.spaceId)
+  const memberOpenid =
+    typeof event.memberOpenid === 'string' ? event.memberOpenid.trim() : ''
+  const displayName =
+    typeof event.displayName === 'string' ? event.displayName.trim() : ''
+
+  if (!spaceId || !memberOpenid || !displayName) {
+    throw toAppError('spaceId, memberOpenid and displayName are required', ERROR_CODES.INVALID_INPUT)
+  }
+
+  const membership = await assertMember(spaceId, context.openid, repository)
+  if (memberOpenid !== context.openid && membership.role !== ROLES.OWNER) {
+    throw toAppError('SPACE_FORBIDDEN', ERROR_CODES.SPACE_FORBIDDEN)
+  }
+
+  const updated = await repository.updateMemberDisplayName(spaceId, memberOpenid, displayName)
+  if (!updated) {
+    throw toAppError('Member not found', ERROR_CODES.NOT_FOUND)
+  }
+
+  return {
+    spaceId,
+    memberOpenid,
+    displayName: updated.displayName || ''
+  }
+}
+
 module.exports = {
   listMembers,
-  removeMember
+  removeMember,
+  updateMemberDisplayName
 }

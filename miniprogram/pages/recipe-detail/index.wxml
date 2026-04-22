@@ -11,19 +11,21 @@
     <view class="hero-card">
       <image class="hero-cover" src="{{coverImageUrl}}" mode="aspectFill" bindtap="previewImage" data-current="{{coverImageUrl}}" />
       <view class="hero-overlay">
-        <view wx:if="{{item.category}}" class="hero-badge">{{item.category}}</view>
-        <view class="hero-title">{{item.name}}</view>
-        <view wx:if="{{heroSummaryText}}" class="hero-summary">{{heroSummaryText}}</view>
-        <view wx:if="{{heroMetricTexts.length}}" class="hero-metrics">
-          <text wx:for="{{heroMetricTexts}}" wx:key="index" class="hero-metric">{{item}}</text>
+        <view class="hero-copy-panel">
+          <view wx:if="{{item.category}}" class="hero-badge">{{item.category}}</view>
+          <view class="hero-title">{{item.name}}</view>
+          <view wx:if="{{heroSummaryText}}" class="hero-summary">{{heroSummaryText}}</view>
+          <view wx:if="{{heroMetricTexts.length}}" class="hero-metrics">
+            <view wx:for="{{heroMetricTexts}}" wx:key="index" class="hero-metric">{{item}}</view>
+          </view>
         </view>
       </view>
       <button class="hero-share" open-type="share">↗</button>
     </view>
 
     <view class="action-row">
-      <t-button wx:if="{{canManageRecipe}}" class="action-btn action-btn--edit action-button action-button--edit" theme="primary" bindtap="goEdit">🖊 编辑</t-button>
-      <t-button wx:if="{{canManageRecipe}}" class="action-btn action-btn--delete action-button action-button--delete" theme="danger" variant="outline" bindtap="removeRecipe">🗑 删除</t-button>
+      <t-button wx:if="{{canManageRecipe}}" t-class="action-btn action-btn--edit action-button action-button--edit" theme="primary" bindtap="goEdit">🖊 编辑</t-button>
+      <t-button wx:if="{{canManageRecipe}}" t-class="action-btn action-btn--delete action-button action-button--delete" theme="danger" variant="outline" bindtap="removeRecipe">🗑 删除</t-button>
     </view>
 
     <view class="card">

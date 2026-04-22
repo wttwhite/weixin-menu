@@ -1,4 +1,4 @@
-<view class="statistics-page">
+<view class="statistics-page" style="{{themeStyle}}">
   <view class="statistics-hero">
     <view class="statistics-kicker">Dashboard</view>
     <view class="statistics-title">{{activeSpaceId || '尚未选择空间'}}</view>

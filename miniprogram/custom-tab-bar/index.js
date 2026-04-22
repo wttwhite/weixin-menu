@@ -19,6 +19,7 @@ function resolveCurrentPath() {
 Component({
   data: {
     selected: '',
+    themeStyle: '',
     list: [
       {
         pagePath: '/pages/recipes/index',
@@ -45,8 +46,8 @@ Component({
         selectedIconPath: '/images/icons/business-active.png'
       },
       {
-        pagePath: '/pages/statistics/index',
-        text: '统计',
+        pagePath: '/pages/profile/index',
+        text: '我的',
         iconPath: '/images/icons/usercenter.png',
         selectedIconPath: '/images/icons/usercenter-active.png'
       }
@@ -55,12 +56,14 @@ Component({
 
   lifetimes: {
     attached() {
+      this.syncThemeFromApp()
       this.syncSelectedFromRoute()
     }
   },
 
   pageLifetimes: {
     show() {
+      this.syncThemeFromApp()
       this.syncSelectedFromRoute()
     }
   },
@@ -74,6 +77,17 @@ Component({
 
     syncSelectedFromRoute() {
       this.setSelected(resolveCurrentPath())
+    },
+
+    syncThemeFromApp() {
+      const app = typeof getApp === 'function' ? getApp() : null
+      this.setData({
+        themeStyle: app && app.globalData ? app.globalData.themeStyle || '' : ''
+      })
+    },
+
+    refreshTheme() {
+      this.syncThemeFromApp()
     },
 
     handleSwitchTab(event) {

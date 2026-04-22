@@ -1,9 +1,12 @@
 const { createMealPlanService } = require('../../services/meal-plan')
 const { createPantryService } = require('../../services/pantry')
 const { createRecipeService } = require('../../services/recipe')
+const { createShoppingService } = require('../../services/shopping')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
-const { syncCurrentTabBar } = require('../../utils/tab-bar')
+const { switchToTab, syncCurrentTabBar } = require('../../utils/tab-bar')
+const calendarHelper = require('./calendar')
+const { syncPageTheme } = require('../../utils/theme')
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 const MEAL_TYPE_LABELS = {
@@ -233,6 +236,15 @@ function buildSelectedPlanItems(items = [], todayIso = '') {
   })
 }
 
+function buildCalendarViewportStyle(presentation = {}) {
+  return `height: ${presentation.viewportHeightRpx || calendarHelper.CALENDAR_ROW_HEIGHT_RPX}rpx;`
+}
+
+function buildCalendarGridStyle(presentation = {}) {
+  const translateYRpx = presentation.translateYRpx || 0
+  return `transform: translateY(${translateYRpx ? `-${translateYRpx}` : 0}rpx);`
+}
+
 function parseNumericQuantity(value) {
   const text = normalizeText(value)
   if (!/^\d+(\.\d+)?$/.test(text)) {
@@ -318,9 +330,12 @@ function buildInventoryCheckResult(selectedPlans = [], recipeDetails = [], pantr
     return {
       key,
       name: item.name,
+      quantityText: item.quantityText,
+      unit: item.unit,
       requiredText: `需要: ${formatQuantity(item.quantityText, item.unit)} · ${Array.from(item.sources).join(' / ')}`,
       stockText: stock ? `库存: ${formatQuantity(stock.quantityText, item.unit)}` : '库存: 0',
       statusText: inStock ? '有库存' : '缺货',
+      selectable: !inStock,
       statusClass: inStock ? 'inventory-item__status inventory-item__status--ok' : 'inventory-item__status inventory-item__status--missing',
       iconClass: inStock ? 'inventory-item__icon inventory-item__icon--ok' : 'inventory-item__icon inventory-item__icon--missing',
       iconText: inStock ? '✓' : '!'
@@ -343,9 +358,51 @@ function buildInventoryCheckResult(selectedPlans = [], recipeDetails = [], pantr
   }
 }
 
+function buildInventorySelectedKeys(items = []) {
+  return (items || [])
+    .filter((item) => item && item.selectable)
+    .map((item) => item.key)
+}
+
+function decorateInventoryItems(items = [], selectedKeys = []) {
+  const selectedKeySet = new Set(selectedKeys || [])
+  return (items || []).map((item) => {
+    const selected = Boolean(item.selectable && selectedKeySet.has(item.key))
+    return {
+      ...item,
+      selected,
+      checkboxClass: selected
+        ? 'inventory-item__checkbox inventory-item__checkbox--selected'
+        : 'inventory-item__checkbox'
+    }
+  })
+}
+
+function buildInventoryGenerateButtonText(selectedKeys = []) {
+  return `生成采购清单 (${(selectedKeys || []).length})`
+}
+
+function buildShoppingListName(dateLabel = '') {
+  return `${dateLabel} 食材补货`
+}
+
+function buildShoppingItemDraftFromInventoryItem(item = {}, dateLabel = '') {
+  return {
+    name: item.name || '',
+    category: '',
+    quantity: item.quantityText || '',
+    unit: item.unit || '',
+    isChecked: false,
+    sourceType: 'manual',
+    notes: `来自 ${dateLabel} 库存检查`
+  }
+}
+
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     activeSpaceId: '',
     items: [],
     groups: [],
@@ -360,7 +417,11 @@ Page({
     viewMonthKey: createTodayIso().slice(0, 7),
     viewMonthLabel: formatMonthLabel(createTodayIso().slice(0, 7)),
     monthPlanCount: '0',
+    isCalendarExpanded: false,
     calendarItems: [],
+    calendarRowCount: 0,
+    calendarViewportStyle: `height: ${calendarHelper.CALENDAR_ROW_HEIGHT_RPX}rpx;`,
+    calendarGridStyle: 'transform: translateY(0rpx);',
     selectedDate: '',
     selectedDateTitle: '',
     selectedPlanCountText: '0 个安排',
@@ -373,12 +434,14 @@ Page({
       inStockText: '0',
       missingText: '0'
     },
+    inventorySelectedKeys: [],
     inventoryItems: [],
     inventoryGenerateButtonText: '生成采购清单 (0)'
   },
 
   onShow() {
     this.recipeDetailCache = new Map()
+    syncPageTheme(this)
     syncCurrentTabBar(this, '/pages/meal-plans/index')
     this.loadMealPlans()
   },
@@ -396,7 +459,7 @@ Page({
     const items = Array.isArray(nextState.items) ? nextState.items : []
     const planCountsByDate = buildPlanCountByDate(items)
     const plansByDate = buildPlansByDate(items)
-    const selectedDate = resolveSelectedDate(
+    const selectedDate = calendarHelper.resolveSelectedDate(
       nextState.viewMonthKey,
       nextState.selectedDate,
       nextState.todayIso,
@@ -404,12 +467,26 @@ Page({
     )
     const selectedPlans = buildSelectedPlanItems(plansByDate[selectedDate] || [], nextState.todayIso)
     const monthPlanCount = items.filter((item) => normalizeText(item.planDate).startsWith(nextState.viewMonthKey)).length
+    const calendarItems = calendarHelper.buildCalendarItems(
+      nextState.viewMonthKey,
+      selectedDate,
+      nextState.todayIso,
+      planCountsByDate
+    )
+    const calendarPresentation = calendarHelper.buildCalendarPresentation(
+      calendarItems,
+      selectedDate,
+      nextState.isCalendarExpanded
+    )
 
     this.setData({
       ...overrides,
-      viewMonthLabel: formatMonthLabel(nextState.viewMonthKey),
+      viewMonthLabel: calendarHelper.formatMonthLabel(nextState.viewMonthKey),
       monthPlanCount: String(monthPlanCount),
-      calendarItems: buildCalendarItems(nextState.viewMonthKey, selectedDate, nextState.todayIso, planCountsByDate),
+      calendarItems,
+      calendarRowCount: calendarPresentation.rowCount,
+      calendarViewportStyle: buildCalendarViewportStyle(calendarPresentation),
+      calendarGridStyle: buildCalendarGridStyle(calendarPresentation),
       selectedDate,
       selectedDateTitle: `${selectedDate} 的计划`,
       selectedPlanCountText: `${selectedPlans.length} 个安排`,
@@ -483,14 +560,14 @@ Page({
 
   goPrevMonth() {
     this.syncCalendarView({
-      viewMonthKey: shiftMonthKey(this.data.viewMonthKey, -1),
+      viewMonthKey: calendarHelper.shiftMonthKey(this.data.viewMonthKey, -1),
       selectedDate: ''
     })
   },
 
   goNextMonth() {
     this.syncCalendarView({
-      viewMonthKey: shiftMonthKey(this.data.viewMonthKey, 1),
+      viewMonthKey: calendarHelper.shiftMonthKey(this.data.viewMonthKey, 1),
       selectedDate: ''
     })
   },
@@ -510,8 +587,22 @@ Page({
     if (!date) {
       return
     }
+    const nextMonthKey = date.slice(0, 7)
+    if (nextMonthKey && nextMonthKey !== this.data.viewMonthKey) {
+      this.syncCalendarView({
+        viewMonthKey: nextMonthKey,
+        selectedDate: date
+      })
+      return
+    }
     this.syncCalendarView({
       selectedDate: date
+    })
+  },
+
+  toggleCalendarExpanded() {
+    this.syncCalendarView({
+      isCalendarExpanded: !this.data.isCalendarExpanded
     })
   },
 
@@ -563,7 +654,8 @@ Page({
     this.setData({
       showInventoryModal: true,
       inventoryModalLoading: true,
-      inventoryCheckDateLabel: this.data.selectedDate
+      inventoryCheckDateLabel: this.data.selectedDate,
+      inventorySelectedKeys: []
     })
 
     try {
@@ -598,12 +690,14 @@ Page({
         recipeIds.map((id) => this.recipeDetailCache.get(id)).filter(Boolean),
         pantryResult.items || []
       )
+      const inventorySelectedKeys = buildInventorySelectedKeys(inventoryResult.items)
 
       this.setData({
         inventoryModalLoading: false,
         inventorySummary: inventoryResult.summary,
-        inventoryItems: inventoryResult.items,
-        inventoryGenerateButtonText: inventoryResult.generateButtonText
+        inventorySelectedKeys,
+        inventoryItems: decorateInventoryItems(inventoryResult.items, inventorySelectedKeys),
+        inventoryGenerateButtonText: buildInventoryGenerateButtonText(inventorySelectedKeys)
       })
     } catch (error) {
       this.setData({
@@ -618,14 +712,98 @@ Page({
 
   closeInventoryModal() {
     this.setData({
-      showInventoryModal: false
+      showInventoryModal: false,
+      inventorySelectedKeys: []
     })
   },
 
-  generateShoppingList() {
-    wx.showToast({
-      title: '生成采购清单待实现',
-      icon: 'none'
+  toggleInventorySelection(event) {
+    const key = event && event.currentTarget && event.currentTarget.dataset
+      ? normalizeText(event.currentTarget.dataset.key)
+      : ''
+    if (!key) {
+      return
+    }
+
+    const targetItem = (this.data.inventoryItems || []).find((item) => item.key === key)
+    if (!targetItem || !targetItem.selectable) {
+      return
+    }
+
+    const currentKeys = Array.isArray(this.data.inventorySelectedKeys) ? this.data.inventorySelectedKeys : []
+    const nextKeys = currentKeys.includes(key)
+      ? currentKeys.filter((item) => item !== key)
+      : currentKeys.concat(key)
+
+    this.setData({
+      inventorySelectedKeys: nextKeys,
+      inventoryItems: decorateInventoryItems(this.data.inventoryItems || [], nextKeys),
+      inventoryGenerateButtonText: buildInventoryGenerateButtonText(nextKeys)
     })
+  },
+
+  async generateShoppingList() {
+    const selectedKeys = Array.isArray(this.data.inventorySelectedKeys) ? this.data.inventorySelectedKeys : []
+    if (!selectedKeys.length) {
+      wx.showToast({
+        title: '请先选择缺货食材',
+        icon: 'none'
+      })
+      return
+    }
+
+    const selectedItems = (this.data.inventoryItems || []).filter((item) => selectedKeys.includes(item.key))
+    if (!selectedItems.length) {
+      wx.showToast({
+        title: '请先选择缺货食材',
+        icon: 'none'
+      })
+      return
+    }
+
+    try {
+      const shoppingService = createShoppingService()
+      const shoppingListName = buildShoppingListName(this.data.inventoryCheckDateLabel)
+      const created = await shoppingService.createShoppingList(this.data.activeSpaceId, {
+        name: shoppingListName,
+        listDate: this.data.inventoryCheckDateLabel,
+        status: 'open',
+        notes: ''
+      })
+
+      let expectedUpdatedAt = created && created.item ? created.item.updatedAt || '' : ''
+      const shoppingListId = created && created.item ? created.item._id : ''
+
+      for (const item of selectedItems) {
+        const updated = await shoppingService.updateShoppingList(
+          this.data.activeSpaceId,
+          shoppingListId,
+          {
+            name: shoppingListName,
+            listDate: this.data.inventoryCheckDateLabel,
+            status: 'open',
+            notes: '',
+            itemDraft: buildShoppingItemDraftFromInventoryItem(item, this.data.inventoryCheckDateLabel)
+          },
+          expectedUpdatedAt
+        )
+        expectedUpdatedAt = updated && updated.item ? updated.item.updatedAt || expectedUpdatedAt : expectedUpdatedAt
+      }
+
+      this.setData({
+        showInventoryModal: false,
+        inventorySelectedKeys: []
+      })
+      wx.showToast({
+        title: '采购清单已生成',
+        icon: 'success'
+      })
+      await switchToTab('/pages/shopping/index')
+    } catch (error) {
+      wx.showToast({
+        title: getErrorMessage(error),
+        icon: 'none'
+      })
+    }
   }
 })

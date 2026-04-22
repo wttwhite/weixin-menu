@@ -1,4 +1,4 @@
-<view class="members-page">
+<view class="members-page" style="{{themeStyle}}">
   <view class="members-hero">
     <view class="members-kicker">Members</view>
     <view class="members-title">{{activeSpaceId || '尚未选择空间'}}</view>
@@ -20,17 +20,29 @@
         <view class="member-card__role">{{item.roleLabel}}</view>
       </view>
       <view class="member-card__id">{{item.openid || item.id}}</view>
-      <t-button
-        wx:if="{{role === 'owner' && !item.isCurrentUser}}"
-        class="member-card__remove"
-        theme="danger"
-        variant="outline"
-        size="small"
-        data-member-openid="{{item.openid}}"
-        bindtap="handleRemoveMember"
-      >
-        移除
-      </t-button>
+      <view wx:if="{{role === 'owner' && !item.isCurrentUser}}" class="member-card__actions">
+        <t-button
+          class="member-card__edit"
+          theme="primary"
+          variant="outline"
+          size="small"
+          data-member-openid="{{item.openid}}"
+          data-name="{{item.name}}"
+          bindtap="handleEditMember"
+        >
+          编辑
+        </t-button>
+        <t-button
+          class="member-card__remove"
+          theme="danger"
+          variant="outline"
+          size="small"
+          data-member-openid="{{item.openid}}"
+          bindtap="handleRemoveMember"
+        >
+          移除
+        </t-button>
+      </view>
     </view>
   </view>
 

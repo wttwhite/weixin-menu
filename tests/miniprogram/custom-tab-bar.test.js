@@ -47,13 +47,21 @@ beforeEach(() => {
 describe('custom tab bar', () => {
   it('uses a full-width docked layout instead of a floating inset shell', () => {
     const styles = readFileSync('miniprogram/custom-tab-bar/index.wxss', 'utf8')
+    const template = readFileSync('miniprogram/custom-tab-bar/index.wxml', 'utf8')
 
     expect(styles).toMatch(/\.tabbar-shell\s*\{[\s\S]*left:\s*0;/)
     expect(styles).toMatch(/\.tabbar-shell\s*\{[\s\S]*right:\s*0;/)
     expect(styles).toMatch(/\.tabbar-shell\s*\{[\s\S]*bottom:\s*0;/)
-    expect(styles.includes('padding: 0 0 env(safe-area-inset-bottom);')).toBe(false)
-    expect(styles.includes('border-radius: 32rpx;')).toBe(false)
-    expect(styles).toMatch(/\.tabbar-surface\s*\{[\s\S]*padding:\s*14rpx 18rpx calc\(env\(safe-area-inset-bottom\) \+ 10rpx\);/)
+    expect(template).toContain('tabbar-item__pill')
+    expect(template).toContain('tabbar-item__glow')
+    expect(styles).toContain('var(--surface-bg')
+    expect(styles).toContain('var(--surface-muted')
+    expect(styles).toContain('var(--brand')
+    expect(styles).toContain('var(--brand-strong')
+    expect(styles).toMatch(/\.tabbar-surface\s*\{[\s\S]*border-radius:\s*32rpx;/)
+    expect(styles).toMatch(/\.tabbar-item__pill\s*\{[\s\S]*border-radius:\s*999rpx;/)
+    expect(styles).toMatch(/\.tabbar-item--active[\s\S]*\.tabbar-item__pill/)
+    expect(template.includes('selectedIconPath')).toBe(false)
   })
 
   it('selects the current tab from the active page route on attach', async () => {
@@ -88,15 +96,15 @@ describe('custom tab bar', () => {
     instance.handleSwitchTab({
       currentTarget: {
         dataset: {
-          path: '/pages/statistics/index'
+          path: '/pages/profile/index'
         }
       }
     })
 
     expect(switchTab).toHaveBeenCalledWith({
-      url: '/pages/statistics/index'
+      url: '/pages/profile/index'
     })
-    expect(instance.data.selected).toBe('/pages/statistics/index')
+    expect(instance.data.selected).toBe('/pages/profile/index')
   })
 
   it('allows the current page to force-sync selected state explicitly', async () => {

@@ -2,7 +2,9 @@ const { createPantryService } = require('../../services/pantry')
 const { ERROR_CODES } = require('../../shared/constants/error-codes')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const { buildManagerOptionLabels, createEmptyPantryForm } = require('../../utils/pantry-form')
 const { syncCurrentTabBar } = require('../../utils/tab-bar')
+const { syncPageTheme } = require('../../utils/theme')
 
 const DEFAULT_MANAGEMENT_CATEGORY_COUNT_TEXT = '暂无分类'
 const UNCATEGORIZED_KEY = '__uncategorized__'
@@ -340,6 +342,61 @@ function buildManagerViewItems(items = [], options = {}) {
   })
 }
 
+function replaceManagerItem(items = [], previousName = '', nextItem = {}) {
+  return (items || []).map((item) => {
+    if (!item || item.name !== previousName) {
+      return item
+    }
+    return {
+      ...item,
+      ...nextItem
+    }
+  })
+}
+
+function appendManagerItem(items = [], nextItem = {}) {
+  if (!nextItem || !nextItem.name) {
+    return items || []
+  }
+
+  const exists = (items || []).some((item) => item && item.name === nextItem.name)
+  if (exists) {
+    return items || []
+  }
+
+  return (items || []).concat(nextItem)
+}
+
+function removeManagerItem(items = [], name = '') {
+  return (items || []).filter((item) => item && item.name !== name)
+}
+
+function renamePantryItemsField(items = [], fieldKey = 'category', previousName = '', nextName = '') {
+  const normalizedPreviousName = normalizeText(previousName)
+  const normalizedNextName = normalizeText(nextName)
+
+  return (items || []).map((item) => {
+    if (!item || normalizeText(item[fieldKey]) !== normalizedPreviousName) {
+      return item
+    }
+
+    if (fieldKey === 'category') {
+      return {
+        ...item,
+        category: normalizedNextName,
+        categoryKey: getCategoryKey(normalizedNextName),
+        categoryLabel: getCategoryLabel(normalizedNextName)
+      }
+    }
+
+    return {
+      ...item,
+      location: normalizedNextName,
+      locationLabel: normalizedNextName || '未设置位置'
+    }
+  })
+}
+
 function moveArrayItem(items = [], fromIndex = 0, toIndex = 0) {
   const nextItems = (items || []).slice()
   if (
@@ -387,6 +444,29 @@ function replaceItem(items = [], nextItem = {}) {
   return (items || []).map((item) => (item._id === nextItem._id ? nextItem : item))
 }
 
+function prependItem(items = [], nextItem = {}) {
+  return [nextItem].concat((items || []).filter((item) => item && item._id !== nextItem._id))
+}
+
+function buildManagerUpdates(page, type = 'category', managerItems = [], extras = {}) {
+  const keys = getManagerStateKeys(type)
+  const updates = {
+    [keys.itemsKey]: managerItems,
+    [keys.viewItemsKey]: buildManagerViewItems(managerItems, {
+      type,
+      draggingType: page.data.draggingManagerType,
+      draggingIndex: page.data.draggingManagerIndex
+    }),
+    ...extras
+  }
+
+  if (type === 'category') {
+    updates.categorySourceValues = managerItems.map((item) => item.name)
+  }
+
+  return updates
+}
+
 function toPantryWritePayload(item = {}, usageStatus) {
   return {
     name: normalizeText(item.name),
@@ -428,6 +508,8 @@ function shouldTreatManagerListAsEmpty(error) {
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     currentDateLabel: createDateLabel(),
     activeSpaceId: '',
     items: [],
@@ -465,6 +547,11 @@ Page({
     locationManagerLoading: false,
     locationManagerItems: [],
     locationManagerViewItems: [],
+    showCreateModal: false,
+    submittingCreate: false,
+    createForm: createEmptyPantryForm(),
+    createCategoryOptions: ['未设置'],
+    createLocationOptions: ['未设置'],
     railScrollHeight: 400,
     surfaceScrollHeight: 400,
     customScrollbarVisible: false,
@@ -486,6 +573,7 @@ Page({
 
   onShow() {
     this.managerDragState = null
+    syncPageTheme(this)
     syncCurrentTabBar(this, '/pages/pantry/index')
     this.loadPantry()
   },
@@ -669,10 +757,94 @@ Page({
     })
   },
 
-  goCreate() {
-    wx.navigateTo({
-      url: '/pages/pantry-edit/index'
+  async goCreate() {
+    if (!this.data.activeSpaceId) {
+      return
+    }
+
+    const service = createPantryService()
+
+    try {
+      const [categoryResult, locationResult] = await Promise.all([
+        service.listPantryCategories(this.data.activeSpaceId).catch((error) => {
+          if (shouldTreatManagerListAsEmpty(error)) {
+            return { items: [] }
+          }
+          throw error
+        }),
+        service.listPantryLocations(this.data.activeSpaceId).catch((error) => {
+          if (shouldTreatManagerListAsEmpty(error)) {
+            return { items: [] }
+          }
+          throw error
+        })
+      ])
+
+      this.setData({
+        showCreateModal: true,
+        submittingCreate: false,
+        createForm: createEmptyPantryForm(),
+        createCategoryOptions: buildManagerOptionLabels(categoryResult.items || []),
+        createLocationOptions: buildManagerOptionLabels(locationResult.items || [])
+      })
+    } catch (error) {
+      showOperationError(error)
+    }
+  },
+
+  handleCreateFormChange(event) {
+    this.setData({
+      createForm: event && event.detail && event.detail.form
+        ? event.detail.form
+        : createEmptyPantryForm()
     })
+  },
+
+  closeCreateModal() {
+    this.setData({
+      showCreateModal: false,
+      submittingCreate: false,
+      createForm: createEmptyPantryForm(),
+      createCategoryOptions: ['未设置'],
+      createLocationOptions: ['未设置']
+    })
+  },
+
+  async submitCreatePantry(event) {
+    if (this.data.submittingCreate || !this.data.activeSpaceId) {
+      return
+    }
+
+    const form = event && event.detail && event.detail.form
+      ? event.detail.form
+      : this.data.createForm
+
+    this.setData({
+      submittingCreate: true,
+      createForm: form
+    })
+
+    try {
+      const result = await createPantryService().createPantryItem(this.data.activeSpaceId, form)
+      const createdItem = buildDisplayItem(result.item || form)
+      const nextItems = prependItem(this.data.items || [], createdItem)
+      this.closeCreateModal()
+      this.syncDerivedState({
+        items: nextItems,
+        categorySourceValues: buildCategorySourceValues(nextItems),
+        summary: buildSummary(nextItems, nextItems.length, nextItems.length, false),
+        truncationMessage: ''
+      })
+      wx.showToast({
+        title: '已添加库存',
+        icon: 'success'
+      })
+    } catch (error) {
+      this.setData({
+        submittingCreate: false
+      })
+      showOperationError(error)
+    }
   },
 
   handleOpenItem(event) {
@@ -774,11 +946,6 @@ Page({
     this.handleManagerInput('location', event)
   },
 
-  async reloadPantryAndManager(type = 'category') {
-    await this.loadPantry()
-    await this.loadManagerItems(type)
-  },
-
   async submitManagerCreate(type = 'category') {
     const keys = getManagerStateKeys(type)
     const config = getManagerConfig(type)
@@ -789,11 +956,17 @@ Page({
     const service = createPantryService()
 
     try {
-      await service[config.createMethod](this.data.activeSpaceId, name)
-      this.setData({
+      const result = await service[config.createMethod](this.data.activeSpaceId, name)
+      const nextManagerItems = appendManagerItem(this.data[keys.itemsKey] || [], result.item || {
+        name,
+        pantryItemCount: 0,
+        deletable: true
+      })
+
+      this.syncDerivedState(buildManagerUpdates(this, type, nextManagerItems, {
         [keys.inputKey]: ''
       })
-      await this.reloadPantryAndManager(type)
+      )
     } catch (error) {
       showOperationError(error)
     }
@@ -1010,8 +1183,19 @@ Page({
 
     try {
       const service = createPantryService()
-      await service[config.updateMethod](this.data.activeSpaceId, previousName, name)
-      await this.reloadPantryAndManager(type)
+      const result = await service[config.updateMethod](this.data.activeSpaceId, previousName, name)
+      const nextManagerItems = replaceManagerItem(this.data[getManagerStateKeys(type).itemsKey] || [], previousName, result.item || {
+        name
+      })
+      const updates = buildManagerUpdates(this, type, nextManagerItems)
+
+      if (type === 'category') {
+        updates.items = renamePantryItemsField(this.data.items || [], 'category', previousName, name)
+      } else {
+        updates.items = renamePantryItemsField(this.data.items || [], 'location', previousName, name)
+      }
+
+      this.syncDerivedState(updates)
     } catch (error) {
       showOperationError(error)
     }
@@ -1046,7 +1230,8 @@ Page({
     try {
       const service = createPantryService()
       await service[config.deleteMethod](this.data.activeSpaceId, name)
-      await this.reloadPantryAndManager(type)
+      const nextManagerItems = removeManagerItem(this.data[getManagerStateKeys(type).itemsKey] || [], name)
+      this.syncDerivedState(buildManagerUpdates(this, type, nextManagerItems))
     } catch (error) {
       showOperationError(error)
     }

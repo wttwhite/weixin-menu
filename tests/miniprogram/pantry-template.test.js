@@ -6,6 +6,8 @@ describe('pantry page settings modal', () => {
     const template = readFileSync('miniprogram/pages/pantry/index.wxml', 'utf8')
 
     expect(template).toContain('bindtap="openSettingsModal"')
+    expect(template).toContain('pantry-form-modal')
+    expect(template).toContain('showCreateModal')
     expect(template).toContain('库存配置')
     expect(template).toContain('分类管理')
     expect(template).toContain('位置管理')

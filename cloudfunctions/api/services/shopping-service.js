@@ -307,7 +307,8 @@ async function generateShoppingItemsFromPlan(event = {}, context = {}, repositor
   })
 
   return {
-    items: createdItems
+    items: createdItems,
+    shoppingListUpdatedAt: now
   }
 }
 
@@ -342,7 +343,8 @@ async function toggleShoppingItemChecked(event = {}, context = {}, repository = 
   })
 
   return {
-    item
+    item,
+    shoppingListUpdatedAt: now
   }
 }
 

@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "编辑库存",
+  "navigationBarTitleText": "库存",
   "usingComponents": {
     "t-button": "tdesign-miniprogram/button/button"
   }

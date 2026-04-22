@@ -195,6 +195,112 @@ describe('meal-plans page flow', () => {
     expect(page.data.selectedPlans[0].mealTypeLabel).toBe('晚餐')
   })
 
+  it('defaults to a collapsed calendar week and expands back to the full month on demand', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'meal-1',
+              planDate: '2026-04-03',
+              mealType: 'dinner',
+              recipes: [{ recipeId: 'recipe-1', recipeNameSnapshot: '鸡汤', recipe: { _id: 'recipe-1', name: '鸡汤' } }]
+            },
+            {
+              _id: 'meal-2',
+              planDate: '2026-04-21',
+              mealType: 'lunch',
+              recipes: [{ recipeId: 'recipe-2', recipeNameSnapshot: '凉拌黄瓜', recipe: { _id: 'recipe-2', name: '凉拌黄瓜' } }]
+            }
+          ]
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    await page.loadMealPlans()
+    page.syncCalendarView({
+      todayIso: '2026-04-21',
+      viewMonthKey: '2026-04',
+      selectedDate: '2026-04-21'
+    })
+
+    expect(page.data.isCalendarExpanded).toBe(false)
+    expect(page.data.calendarRowCount).toBe(6)
+    expect(page.data.calendarViewportStyle).toContain('height: 88rpx')
+    expect(page.data.calendarGridStyle).toContain('translateY(-293rpx)')
+
+    page.toggleCalendarExpanded()
+
+    expect(page.data.isCalendarExpanded).toBe(true)
+    expect(page.data.calendarViewportStyle).toContain('height: 578rpx')
+    expect(page.data.calendarGridStyle).toContain('translateY(0rpx)')
+  })
+
+  it('repositions the collapsed week and flips month when an adjacent-month date is selected', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: []
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    await page.loadMealPlans()
+    page.syncCalendarView({
+      todayIso: '2026-04-21',
+      viewMonthKey: '2026-04',
+      selectedDate: '2026-04-21'
+    })
+
+    page.handleCalendarDateSelect({
+      currentTarget: {
+        dataset: {
+          date: '2026-04-03'
+        }
+      }
+    })
+
+    expect(page.data.selectedDate).toBe('2026-04-03')
+    expect(page.data.calendarGridStyle).toContain('translateY(0rpx)')
+
+    page.handleCalendarDateSelect({
+      currentTarget: {
+        dataset: {
+          date: '2026-05-01'
+        }
+      }
+    })
+
+    expect(page.data.viewMonthKey).toBe('2026-05')
+    expect(page.data.selectedDate).toBe('2026-05-01')
+  })
+
   it('opens inventory check modal for the selected day and compares recipe ingredients with pantry stock', async () => {
     const callFunction = vi
       .fn()
@@ -288,22 +394,216 @@ describe('meal-plans page flow', () => {
     expect(page.data.inventorySummary.totalText).toBe('3')
     expect(page.data.inventorySummary.inStockText).toBe('1')
     expect(page.data.inventorySummary.missingText).toBe('2')
+    expect(page.data.inventorySelectedKeys).toEqual(
+      expect.arrayContaining(['黑木耳__把', '菠菜__份'])
+    )
+    expect(page.data.inventoryGenerateButtonText).toBe('生成采购清单 (2)')
     expect(page.data.inventoryItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           name: '鸡肉',
-          statusText: '有库存'
+          statusText: '有库存',
+          selectable: false
         }),
         expect.objectContaining({
           name: '黑木耳',
-          statusText: '缺货'
+          statusText: '缺货',
+          selectable: true,
+          selected: true
         }),
         expect.objectContaining({
           name: '菠菜',
-          statusText: '缺货'
+          statusText: '缺货',
+          selectable: true,
+          selected: true
         })
       ])
     )
+  })
+
+  it('toggles missing inventory selections and generates a new shopping list from the checked missing items', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'meal-1',
+                planDate: '2026-04-06',
+                mealType: 'dinner',
+                recipes: [
+                  { recipeId: 'recipe-1', recipeNameSnapshot: '番茄蛋花汤', recipe: { _id: 'recipe-1', name: '番茄蛋花汤' } }
+                ]
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'recipe-1',
+              name: '番茄蛋花汤',
+              ingredients: [
+                { name: '番茄', quantity: '1', unit: '个' },
+                { name: '鸡蛋', quantity: '2', unit: '个' }
+              ]
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'pantry-1',
+                name: '番茄',
+                quantity: '1',
+                unit: '个',
+                status: 'fresh'
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'shopping-1',
+              name: '2026-04-06 食材补货',
+              listDate: '2026-04-06',
+              status: 'open',
+              notes: '',
+              updatedAt: 'list-updated-1'
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'shopping-1',
+              name: '2026-04-06 食材补货',
+              listDate: '2026-04-06',
+              status: 'open',
+              notes: '',
+              updatedAt: 'list-updated-2'
+            },
+            shoppingItem: {
+              _id: 'shopping-item-1',
+              name: '鸡蛋'
+            }
+          }
+        }
+      })
+    const showToast = vi.fn()
+    const switchTab = vi.fn()
+    global.wx = {
+      cloud: { callFunction },
+      showToast,
+      navigateTo: vi.fn(),
+      switchTab,
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    await page.loadMealPlans()
+    page.handleCalendarDateSelect({
+      currentTarget: {
+        dataset: {
+          date: '2026-04-06'
+        }
+      }
+    })
+    await page.openInventoryCheck()
+    await flushAsyncWork()
+
+    expect(page.data.inventoryGenerateButtonText).toBe('生成采购清单 (1)')
+
+    page.toggleInventorySelection({
+      currentTarget: {
+        dataset: {
+          key: '鸡蛋__个'
+        }
+      }
+    })
+    expect(page.data.inventorySelectedKeys).toEqual([])
+    expect(page.data.inventoryGenerateButtonText).toBe('生成采购清单 (0)')
+
+    page.toggleInventorySelection({
+      currentTarget: {
+        dataset: {
+          key: '鸡蛋__个'
+        }
+      }
+    })
+    expect(page.data.inventorySelectedKeys).toEqual(['鸡蛋__个'])
+    expect(page.data.inventoryGenerateButtonText).toBe('生成采购清单 (1)')
+
+    await page.generateShoppingList()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenNthCalledWith(4, {
+      name: 'api',
+      data: {
+        action: 'createShoppingList',
+        spaceId: 'space-1',
+        shoppingList: {
+          name: '2026-04-06 食材补货',
+          listDate: '2026-04-06',
+          status: 'open',
+          notes: ''
+        }
+      },
+      config: undefined
+    })
+    expect(callFunction).toHaveBeenNthCalledWith(5, {
+      name: 'api',
+      data: {
+        action: 'updateShoppingList',
+        spaceId: 'space-1',
+        shoppingListId: 'shopping-1',
+        shoppingList: {
+          name: '2026-04-06 食材补货',
+          listDate: '2026-04-06',
+          status: 'open',
+          notes: '',
+          itemDraft: {
+            name: '鸡蛋',
+            category: '',
+            quantity: '2',
+            unit: '个',
+            isChecked: false,
+            sourceType: 'manual',
+            notes: '来自 2026-04-06 库存检查'
+          }
+        },
+        expectedUpdatedAt: 'list-updated-1'
+      },
+      config: undefined
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: '采购清单已生成',
+      icon: 'success'
+    })
+    expect(switchTab).toHaveBeenCalledWith({
+      url: '/pages/shopping/index'
+    })
   })
 })
 

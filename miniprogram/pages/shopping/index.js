@@ -4,15 +4,13 @@ const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 const {
   buildManagerOptionLabels,
-  buildPickerUpdates,
   createEmptyPantryForm,
   getPickerIndex,
   getPickerValue,
-  normalizeStepperValue,
-  normalizeText,
-  resolveExpirationDate
+  normalizeText
 } = require('../../utils/pantry-form')
 const { syncCurrentTabBar } = require('../../utils/tab-bar')
+const { syncPageTheme } = require('../../utils/theme')
 
 const STATUS_OPTIONS = [
   { key: 'all', label: '全部' },
@@ -92,7 +90,7 @@ function decorateShoppingItem(item = {}) {
     ...item,
     isChecked,
     quantityLabel: item.quantity && item.unit ? `${item.quantity} ${item.unit}` : item.quantity || item.unit || '',
-    sourceLabel: item.sourceType === 'generated' ? '自动生成' : '手动录入',
+    sourceLabel: item.sourceType === 'generated' ? '计划生成' : '手动增加',
     nameClass: isChecked ? 'shopping-item-row__name shopping-item-row__name--checked' : 'shopping-item-row__name'
   }
 }
@@ -109,11 +107,12 @@ function sortShoppingLists(items = []) {
   })
 }
 
-function decorateShoppingList(list = {}) {
+function decorateShoppingList(list = {}, collapsedIdSet = new Set()) {
   const items = (list.items || []).map((item) => decorateShoppingItem(item))
   const progress = buildShoppingProgress(items)
   const generatedCount = items.filter((item) => item.sourceType === 'generated').length
   const status = normalizeText(list.status) || 'open'
+  const itemsCollapsed = Boolean(list && list._id && collapsedIdSet.has(list._id))
 
   return {
     ...list,
@@ -126,6 +125,7 @@ function decorateShoppingList(list = {}) {
     progressText: `${progress.checked} / ${progress.total} 项已完成`,
     progressPercentStyle: `width:${progress.percent}%;`,
     items,
+    itemsCollapsed,
     generatedCount,
     pendingCount: items.filter((item) => !item.isChecked).length,
     manualItems: items.filter((item) => item.sourceType !== 'generated')
@@ -180,9 +180,115 @@ function hasValidDraftName(draft = {}) {
   return Boolean(normalizeText(draft.name))
 }
 
+function buildDraftCategoryOptions(drafts = [], categories = []) {
+  const options = ['未设置']
+
+  ;(categories || []).forEach((item) => {
+    const name = normalizeText(item && item.name ? item.name : item)
+    if (name && !options.includes(name)) {
+      options.push(name)
+    }
+  })
+
+  ;(drafts || []).forEach((draft) => {
+    const name = normalizeText(draft && draft.category)
+    if (name && !options.includes(name)) {
+      options.push(name)
+    }
+  })
+
+  return options
+}
+
+function decorateListItemDrafts(drafts = [], categoryOptions = []) {
+  return (drafts || []).map((draft) => ({
+    ...draft,
+    categoryIndex: getPickerIndex(categoryOptions, draft.category)
+  }))
+}
+
+function replaceShoppingItem(items = [], nextItem = {}) {
+  const nextId = nextItem && nextItem._id ? nextItem._id : ''
+  let replaced = false
+  const nextItems = (items || []).map((item) => {
+    if (item && item._id === nextId) {
+      replaced = true
+      return {
+        ...item,
+        ...nextItem
+      }
+    }
+    return item
+  })
+
+  if (!replaced && nextId) {
+    nextItems.push(nextItem)
+  }
+
+  return nextItems
+}
+
+function replaceShoppingList(lists = [], nextList = {}) {
+  const nextId = nextList && nextList._id ? nextList._id : ''
+  let replaced = false
+  const nextLists = (lists || []).map((item) => {
+    if (item && item._id === nextId) {
+      replaced = true
+      return {
+        ...item,
+        ...nextList
+      }
+    }
+    return item
+  })
+
+  if (!replaced && nextId) {
+    nextLists.push(nextList)
+  }
+
+  return nextLists
+}
+
+function updateShoppingListItems(lists = [], shoppingListId = '', updater) {
+  return (lists || []).map((item) => {
+    if (!item || item._id !== shoppingListId) {
+      return item
+    }
+
+    return updater(item)
+  })
+}
+
+function mergeGeneratedItems(items = [], generatedItems = []) {
+  return (items || [])
+    .filter((item) => item && item.sourceType !== 'generated')
+    .concat(generatedItems || [])
+}
+
+function mergeManualDraftResults(items = [], savedItems = []) {
+  const nextItems = (items || []).slice()
+
+  ;(savedItems || []).forEach((savedItem) => {
+    const savedId = savedItem && savedItem._id ? savedItem._id : ''
+    const matchedIndex = nextItems.findIndex((item) => item && item._id === savedId)
+    if (matchedIndex >= 0) {
+      nextItems[matchedIndex] = {
+        ...nextItems[matchedIndex],
+        ...savedItem
+      }
+      return
+    }
+    nextItems.push(savedItem)
+  })
+
+  return nextItems
+}
+
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     activeSpaceId: '',
     currentDateLabel: createDateLabel(),
     todayIso: createTodayIso(),
@@ -193,7 +299,7 @@ Page({
     heroPendingCountText: '0',
     heroProgressText: '0%',
     heroGeneratedCountText: '0',
-    summary: '管理采购计划，从菜谱自动生成采购项',
+    summary: '管理采购清单，支持手动增加和计划生成。',
     listSectionTitle: '全部',
     errorMessage: '',
     emptyMessage: '当前还没有采购清单，先创建一个。',
@@ -204,6 +310,8 @@ Page({
     editingShoppingListUpdatedAt: '',
     listForm: createEmptyListForm(),
     listItemDrafts: [createEmptyListItemDraft()],
+    listItemCategoryOptions: ['未设置'],
+    collapsedShoppingListIds: [],
     showPantryEntryModal: false,
     submittingPantryEntry: false,
     pantryEntryForm: createEmptyPantryForm(),
@@ -218,6 +326,7 @@ Page({
   },
 
   onShow() {
+    syncPageTheme(this)
     syncCurrentTabBar(this, '/pages/shopping/index')
     this.loadShoppingLists()
   },
@@ -232,18 +341,25 @@ Page({
       ...this.data,
       ...overrides
     }
-    const decoratedLists = sortShoppingLists((nextState.shoppingLists || []).map((item) => decorateShoppingList(item)))
+    const collapsedShoppingListIds = (nextState.collapsedShoppingListIds || []).filter((id) =>
+      (nextState.shoppingLists || []).some((item) => item && item._id === id)
+    )
+    const collapsedIdSet = new Set(collapsedShoppingListIds)
+    const decoratedLists = sortShoppingLists(
+      (nextState.shoppingLists || []).map((item) => decorateShoppingList(item, collapsedIdSet))
+    )
     const activeFilterKey = nextState.activeFilterKey || 'all'
     const visibleShoppingLists = filterShoppingLists(decoratedLists, activeFilterKey)
 
     this.setData({
       ...overrides,
+      collapsedShoppingListIds,
       shoppingLists: decoratedLists,
       visibleShoppingLists,
       activeFilterKey,
       statusTabs: buildStatusTabs(decoratedLists, activeFilterKey),
       listSectionTitle: activeFilterKey === 'all' ? '全部' : getStatusLabel(activeFilterKey),
-      summary: decoratedLists.length ? '管理采购计划，从菜谱自动生成采购项' : '还没有采购清单，先创建一个。',
+      summary: decoratedLists.length ? '管理采购清单，支持手动增加和计划生成。' : '还没有采购清单，先创建一个。',
       emptyMessage: '当前还没有采购清单，先创建一个。',
       ...buildHeroMetrics(decoratedLists)
     })
@@ -298,9 +414,8 @@ Page({
   },
 
   openCreateListModal() {
-    this.setData({
-      showListModal: true,
-      listModalTitle: '新建清单',
+    return this.openListModal({
+      modalTitle: '新建清单',
       editingShoppingListId: '',
       editingShoppingListUpdatedAt: '',
       listForm: createEmptyListForm(this.data.todayIso),
@@ -314,14 +429,13 @@ Page({
       : ''
     const target = (this.data.shoppingLists || []).find((item) => item._id === shoppingListId)
     if (!target) {
-      return
+      return Promise.resolve()
     }
 
     const draftRows = (target.manualItems || []).map((item) => buildDraftFromShoppingItem(item))
 
-    this.setData({
-      showListModal: true,
-      listModalTitle: '编辑清单',
+    return this.openListModal({
+      modalTitle: '编辑清单',
       editingShoppingListId: target._id,
       editingShoppingListUpdatedAt: target.updatedAt || '',
       listForm: {
@@ -334,10 +448,35 @@ Page({
     })
   },
 
+  async openListModal(options = {}) {
+    const rawDrafts = options.listItemDrafts || [createEmptyListItemDraft()]
+    let listItemCategoryOptions = buildDraftCategoryOptions(rawDrafts, [])
+
+    if (this.data.activeSpaceId) {
+      try {
+        const result = await createPantryService().listPantryCategories(this.data.activeSpaceId)
+        listItemCategoryOptions = buildDraftCategoryOptions(rawDrafts, result.items || [])
+      } catch (error) {
+        listItemCategoryOptions = buildDraftCategoryOptions(rawDrafts, [])
+      }
+    }
+
+    this.setData({
+      showListModal: true,
+      listModalTitle: options.modalTitle || '新建清单',
+      editingShoppingListId: options.editingShoppingListId || '',
+      editingShoppingListUpdatedAt: options.editingShoppingListUpdatedAt || '',
+      listForm: options.listForm || createEmptyListForm(this.data.todayIso),
+      listItemCategoryOptions,
+      listItemDrafts: decorateListItemDrafts(rawDrafts, listItemCategoryOptions)
+    })
+  },
+
   closeListModal() {
     this.setData({
       showListModal: false,
-      submittingList: false
+      submittingList: false,
+      listItemCategoryOptions: ['未设置']
     })
   },
 
@@ -371,7 +510,9 @@ Page({
 
   addListItemDraft() {
     this.setData({
-      listItemDrafts: (this.data.listItemDrafts || []).concat(createEmptyListItemDraft())
+      listItemDrafts: (this.data.listItemDrafts || []).concat(
+        decorateListItemDrafts([createEmptyListItemDraft()], this.data.listItemCategoryOptions || ['未设置'])
+      )
     })
   },
 
@@ -384,7 +525,9 @@ Page({
     }
     const nextDrafts = (this.data.listItemDrafts || []).filter((_, itemIndex) => itemIndex !== index)
     this.setData({
-      listItemDrafts: nextDrafts.length ? nextDrafts : [createEmptyListItemDraft()]
+      listItemDrafts: nextDrafts.length
+        ? decorateListItemDrafts(nextDrafts, this.data.listItemCategoryOptions || ['未设置'])
+        : decorateListItemDrafts([createEmptyListItemDraft()], this.data.listItemCategoryOptions || ['未设置'])
     })
   },
 
@@ -400,6 +543,42 @@ Page({
     }
     this.setData({
       [`listItemDrafts[${index}].${field}`]: event.detail.value
+    })
+  },
+
+  handleListItemDraftCategoryChange(event) {
+    const index = Number(event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.index
+      : -1)
+    if (index < 0) {
+      return
+    }
+
+    const nextIndex = Number(event.detail.value)
+    this.setData({
+      [`listItemDrafts[${index}].categoryIndex`]: nextIndex,
+      [`listItemDrafts[${index}].category`]: getPickerValue(this.data.listItemCategoryOptions || [], nextIndex)
+    })
+  },
+
+  toggleShoppingListItems(event) {
+    const shoppingListId = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.shoppingListId || ''
+      : ''
+    if (!shoppingListId) {
+      return
+    }
+
+    const collapsedShoppingListIds = (this.data.collapsedShoppingListIds || []).slice()
+    const currentIndex = collapsedShoppingListIds.indexOf(shoppingListId)
+    if (currentIndex >= 0) {
+      collapsedShoppingListIds.splice(currentIndex, 1)
+    } else {
+      collapsedShoppingListIds.push(shoppingListId)
+    }
+
+    this.syncShoppingView({
+      collapsedShoppingListIds
     })
   },
 
@@ -453,6 +632,7 @@ Page({
       expectedUpdatedAt = savedList ? savedList.updatedAt || '' : expectedUpdatedAt
 
       const drafts = (this.data.listItemDrafts || []).filter((item) => hasValidDraftName(item))
+      const savedShoppingItems = []
       for (const draft of drafts) {
         const result = await createShoppingService().updateShoppingList(
           this.data.activeSpaceId,
@@ -472,10 +652,27 @@ Page({
           expectedUpdatedAt
         )
         expectedUpdatedAt = result && result.item ? result.item.updatedAt || expectedUpdatedAt : expectedUpdatedAt
+        if (result && result.shoppingItem) {
+          savedShoppingItems.push(result.shoppingItem)
+        }
+      }
+
+      const existingList = shoppingListId
+        ? (this.data.shoppingLists || []).find((item) => item._id === shoppingListId)
+        : null
+      const nextList = {
+        ...(existingList || {}),
+        ...(savedList || {}),
+        updatedAt: expectedUpdatedAt || (savedList && savedList.updatedAt) || (existingList && existingList.updatedAt) || '',
+        items: existingList
+          ? mergeManualDraftResults(existingList.items || [], savedShoppingItems)
+          : savedShoppingItems
       }
 
       this.closeListModal()
-      await this.loadShoppingLists()
+      this.syncShoppingView({
+        shoppingLists: replaceShoppingList(this.data.shoppingLists || [], nextList)
+      })
       wx.showToast({
         title: this.data.editingShoppingListId ? '已更新清单' : '已创建清单',
         icon: 'success'
@@ -516,7 +713,9 @@ Page({
         shoppingListId,
         target.updatedAt || ''
       )
-      await this.loadShoppingLists()
+      this.syncShoppingView({
+        shoppingLists: (this.data.shoppingLists || []).filter((item) => item && item._id !== shoppingListId)
+      })
       wx.showToast({
         title: '已删除',
         icon: 'success'
@@ -547,7 +746,7 @@ Page({
     }
 
     try {
-      await createShoppingService().toggleShoppingItemChecked(
+      const result = await createShoppingService().toggleShoppingItemChecked(
         this.data.activeSpaceId,
         shoppingListId,
         shoppingItemId,
@@ -555,7 +754,20 @@ Page({
         shoppingItem.updatedAt || '',
         shoppingList.updatedAt || ''
       )
-      await this.loadShoppingLists()
+      const updatedItem = result && result.item
+        ? result.item
+        : {
+            ...shoppingItem,
+            isChecked: checked
+          }
+
+      this.syncShoppingView({
+        shoppingLists: updateShoppingListItems(this.data.shoppingLists || [], shoppingListId, (item) => ({
+          ...item,
+          updatedAt: (result && result.shoppingListUpdatedAt) || updatedItem.updatedAt || item.updatedAt || '',
+          items: replaceShoppingItem(item.items || [], updatedItem)
+        }))
+      })
     } catch (error) {
       wx.showToast({
         title: getErrorMessage(error),
@@ -574,12 +786,20 @@ Page({
     }
 
     try {
-      await createShoppingService().generateShoppingItemsFromPlan(
+      const result = await createShoppingService().generateShoppingItemsFromPlan(
         this.data.activeSpaceId,
         shoppingListId,
         shoppingList.updatedAt || ''
       )
-      await this.loadShoppingLists()
+      const generatedItems = result && Array.isArray(result.items) ? result.items : []
+
+      this.syncShoppingView({
+        shoppingLists: updateShoppingListItems(this.data.shoppingLists || [], shoppingListId, (item) => ({
+          ...item,
+          updatedAt: (result && result.shoppingListUpdatedAt) || item.updatedAt || '',
+          items: mergeGeneratedItems(item.items || [], generatedItems)
+        }))
+      })
       wx.showToast({
         title: '已生成采购项',
         icon: 'success'
@@ -638,144 +858,39 @@ Page({
     })
   },
 
+  handlePantryEntryFormChange(event) {
+    const nextForm = event && event.detail && event.detail.form
+      ? event.detail.form
+      : createEmptyPantryForm()
+
+    this.setData({
+      pantryEntryForm: nextForm,
+      pantryCategoryIndex: getPickerIndex(this.data.pantryCategoryOptions || [], nextForm.category),
+      pantryLocationIndex: getPickerIndex(this.data.pantryLocationOptions || [], nextForm.location)
+    })
+  },
+
   closePantryEntryModal() {
     this.setData({
       showPantryEntryModal: false,
-      submittingPantryEntry: false
+      submittingPantryEntry: false,
+      pantryEntryForm: createEmptyPantryForm(),
+      pantryCategoryOptions: ['未设置'],
+      pantryLocationOptions: ['未设置'],
+      pantryCategoryIndex: 0,
+      pantryLocationIndex: 0
     })
   },
 
-  handlePantryInput(event) {
-    const field = event && event.currentTarget && event.currentTarget.dataset
-      ? event.currentTarget.dataset.field
-      : ''
-    const nextValue = event.detail.value
-    const nextForm = {
-      ...this.data.pantryEntryForm,
-      [field]: nextValue
-    }
-
-    if (field === 'shelfLifeMonths') {
-      nextForm.expirationDate = resolveExpirationDate(nextForm)
-    }
-
-    this.setData({
-      pantryEntryForm: nextForm
-    })
-  },
-
-  handlePantryCategorySelect(event) {
-    const nextIndex = Number(event.detail.value)
-    this.setData({
-      pantryCategoryIndex: nextIndex,
-      'pantryEntryForm.category': getPickerValue(this.data.pantryCategoryOptions, nextIndex)
-    })
-  },
-
-  clearPantryCategory() {
-    const nextForm = {
-      ...this.data.pantryEntryForm,
-      category: ''
-    }
-    this.setData({
-      pantryEntryForm: nextForm,
-      ...buildPickerUpdates(this.data.pantryCategoryOptions, '', 'pantryCategoryIndex')
-    })
-  },
-
-  handlePantryLocationSelect(event) {
-    const nextIndex = Number(event.detail.value)
-    this.setData({
-      pantryLocationIndex: nextIndex,
-      'pantryEntryForm.location': getPickerValue(this.data.pantryLocationOptions, nextIndex)
-    })
-  },
-
-  clearPantryLocation() {
-    const nextForm = {
-      ...this.data.pantryEntryForm,
-      location: ''
-    }
-    this.setData({
-      pantryEntryForm: nextForm,
-      ...buildPickerUpdates(this.data.pantryLocationOptions, '', 'pantryLocationIndex')
-    })
-  },
-
-  adjustPantryStepperField(field, delta, minimum = 0, emptyWhenZero = false) {
-    const current = normalizeStepperValue(this.data.pantryEntryForm[field], minimum, minimum)
-    const nextValue = Math.max(minimum, current + delta)
-    const normalizedValue = emptyWhenZero && nextValue === 0 ? '' : String(nextValue)
-    const nextForm = {
-      ...this.data.pantryEntryForm,
-      [field]: normalizedValue
-    }
-
-    if (field === 'shelfLifeMonths') {
-      nextForm.expirationDate = resolveExpirationDate(nextForm)
-    }
-
-    this.setData({
-      pantryEntryForm: nextForm
-    })
-  },
-
-  decrementPantryQuantity() {
-    this.adjustPantryStepperField('quantity', -1, 1, false)
-  },
-
-  incrementPantryQuantity() {
-    this.adjustPantryStepperField('quantity', 1, 1, false)
-  },
-
-  decrementPantryShelfLifeMonths() {
-    this.adjustPantryStepperField('shelfLifeMonths', -1, 0, true)
-  },
-
-  incrementPantryShelfLifeMonths() {
-    this.adjustPantryStepperField('shelfLifeMonths', 1, 0, true)
-  },
-
-  handlePantryProductionDateChange(event) {
-    const nextForm = {
-      ...this.data.pantryEntryForm,
-      productionDate: event.detail.value
-    }
-    nextForm.expirationDate = resolveExpirationDate(nextForm)
-    this.setData({
-      pantryEntryForm: nextForm
-    })
-  },
-
-  handlePantryExpirationDateChange(event) {
-    this.setData({
-      'pantryEntryForm.expirationDate': event.detail.value
-    })
-  },
-
-  clearPantryExpirationDate() {
-    this.setData({
-      'pantryEntryForm.expirationDate': ''
-    })
-  },
-
-  handlePantryOpenedDateChange(event) {
-    this.setData({
-      'pantryEntryForm.openedDate': event.detail.value
-    })
-  },
-
-  clearPantryOpenedDate() {
-    this.setData({
-      'pantryEntryForm.openedDate': ''
-    })
-  },
-
-  async submitPantryEntry() {
+  async submitPantryEntry(event) {
     if (this.data.submittingPantryEntry || !this.data.activeSpaceId) {
       return
     }
-    if (!normalizeText(this.data.pantryEntryForm.name)) {
+    const pantryEntryForm = event && event.detail && event.detail.form
+      ? event.detail.form
+      : this.data.pantryEntryForm
+
+    if (!normalizeText(pantryEntryForm.name)) {
       wx.showToast({
         title: '请输入库存名称',
         icon: 'none'
@@ -788,8 +903,8 @@ Page({
     })
 
     try {
-      await createPantryService().createPantryItem(this.data.activeSpaceId, this.data.pantryEntryForm)
-      await createShoppingService().toggleShoppingItemChecked(
+      await createPantryService().createPantryItem(this.data.activeSpaceId, pantryEntryForm)
+      const toggleResult = await createShoppingService().toggleShoppingItemChecked(
         this.data.activeSpaceId,
         this.data.pantryEntryShoppingListId,
         this.data.pantryEntryShoppingItemId,
@@ -797,8 +912,24 @@ Page({
         this.data.pantryEntryShoppingItemUpdatedAt,
         this.data.pantryEntryShoppingListUpdatedAt
       )
+      const updatedItem = toggleResult && toggleResult.item
+        ? toggleResult.item
+        : {
+            _id: this.data.pantryEntryShoppingItemId,
+            isChecked: true
+          }
       this.closePantryEntryModal()
-      await this.loadShoppingLists()
+      this.syncShoppingView({
+        shoppingLists: updateShoppingListItems(
+          this.data.shoppingLists || [],
+          this.data.pantryEntryShoppingListId,
+          (item) => ({
+            ...item,
+            updatedAt: (toggleResult && toggleResult.shoppingListUpdatedAt) || updatedItem.updatedAt || item.updatedAt || '',
+            items: replaceShoppingItem(item.items || [], updatedItem)
+          })
+        )
+      })
       wx.showToast({
         title: '已录入库存',
         icon: 'success'

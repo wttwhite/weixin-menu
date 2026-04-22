@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "采购",
   "usingComponents": {
+    "pantry-form-modal": "/components/pantry-form-modal/index",
     "t-button": "tdesign-miniprogram/button/button",
     "t-checkbox": "tdesign-miniprogram/checkbox/checkbox",
     "t-checkbox-group": "tdesign-miniprogram/checkbox-group/checkbox-group"

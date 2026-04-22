@@ -41,6 +41,27 @@ function createMembersService(dependencies = {}) {
       )
     },
 
+    async updateMemberDisplayName(spaceId, memberOpenid, displayName) {
+      return unwrapResponse(
+        await cloudCall('memberOps', {
+          action: 'updateMemberDisplayName',
+          spaceId,
+          memberOpenid,
+          displayName
+        })
+      )
+    },
+
+    async renameSpace(spaceId, name) {
+      return unwrapResponse(
+        await cloudCall('memberOps', {
+          action: 'renameSpace',
+          spaceId,
+          name
+        })
+      )
+    },
+
     async rotateInviteCode(spaceId) {
       return unwrapResponse(
         await cloudCall('memberOps', {

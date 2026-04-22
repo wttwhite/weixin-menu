@@ -1,0 +1,164 @@
+<view class="profile-page" style="{{themeStyle}}">
+  <view class="profile-hero">
+    <view class="profile-hero__body">
+      <view class="profile-hero__kicker">Profile Center</view>
+      <view class="profile-hero__title">{{currentDisplayName || '个人中心'}}</view>
+      <view class="profile-hero__subtitle">{{activeSpaceName || '尚未选择空间'}} · {{roleLabel || '成员'}}</view>
+      <view class="profile-hero__actions">
+        <t-button t-class="profile-hero__button" theme="primary" size="small" shape="round" bindtap="handleEditDisplayName">编辑昵称</t-button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
+
+  <view wx:elif="{{showEmptyState}}" class="feedback-card">
+    当前还没有可用空间，先创建空间或使用邀请码加入空间。
+  </view>
+
+  <view wx:else>
+    <view class="summary-grid">
+      <view class="summary-card">
+        <view class="summary-card__label">成员</view>
+        <view class="summary-card__value">{{memberCountText}}</view>
+      </view>
+      <view class="summary-card">
+        <view class="summary-card__label">菜谱</view>
+        <view class="summary-card__value">{{recipeCountText}}</view>
+      </view>
+      <view class="summary-card">
+        <view class="summary-card__label">备份</view>
+        <view class="summary-card__meta">{{backupStatusText}}</view>
+      </view>
+    </view>
+
+    <view class="space-card">
+      <view class="space-card__head">
+        <view>
+          <view class="space-card__title">{{activeSpaceName || '未命名空间'}}</view>
+          <view class="space-card__meta">{{roleLabel}} · {{spacesCountText}}</view>
+        </view>
+        <view class="space-card__invite">{{inviteCode || '暂无邀请码'}}</view>
+      </view>
+      <view class="space-card__actions">
+        <t-button class="space-card__button" theme="primary" size="small" shape="round" bindtap="handleCopyInviteCode">复制邀请码</t-button>
+        <t-button wx:if="{{canRenameSpace}}" class="space-card__button space-card__button--ghost" variant="outline" size="small" shape="round" bindtap="handleRenameSpace">修改空间名</t-button>
+      </view>
+      <view class="space-card__links">
+        <view class="space-chip" bindtap="openSpace">切换空间</view>
+        <view class="space-chip" bindtap="openCreateSpace">创建空间</view>
+        <view class="space-chip" bindtap="openJoinSpace">加入空间</view>
+      </view>
+    </view>
+
+    <view class="profile-section">
+      <view class="profile-section__title">空间与成员</view>
+      <view class="action-row" bindtap="openMembers">
+        <view class="action-row__icon">👥</view>
+        <view class="action-row__body">
+          <view class="action-row__title">成员管理</view>
+          <view class="action-row__desc">邀请、编辑昵称、移除成员</view>
+        </view>
+        <view class="action-row__arrow">›</view>
+      </view>
+    </view>
+
+    <view class="profile-section">
+      <view class="profile-section__title">内容配置</view>
+      <view class="action-row" bindtap="openRecipeCategoryManager">
+        <view class="action-row__icon">🥗</view>
+        <view class="action-row__body">
+          <view class="action-row__title">菜谱分类</view>
+          <view class="action-row__desc">维护菜谱分类名称与可删状态</view>
+        </view>
+        <view class="action-row__arrow">›</view>
+      </view>
+      <view class="action-row" bindtap="openPantryCategoryManager">
+        <view class="action-row__icon">🥬</view>
+        <view class="action-row__body">
+          <view class="action-row__title">食材分类</view>
+          <view class="action-row__desc">统一库存分类管理</view>
+        </view>
+        <view class="action-row__arrow">›</view>
+      </view>
+      <view class="action-row" bindtap="openPantryLocationManager">
+        <view class="action-row__icon">📍</view>
+        <view class="action-row__body">
+          <view class="action-row__title">食材位置</view>
+          <view class="action-row__desc">维护冷藏、橱柜等位置</view>
+        </view>
+        <view class="action-row__arrow">›</view>
+      </view>
+      <view class="action-row" bindtap="openThemeModal">
+        <view class="action-row__icon">🎨</view>
+        <view class="action-row__body">
+          <view class="action-row__title">换肤</view>
+          <view class="action-row__desc">切换浅绿、奶油或暖橙主题</view>
+        </view>
+        <view class="action-row__arrow">›</view>
+      </view>
+    </view>
+
+    <view class="profile-section">
+      <view class="profile-section__title">数据与分析</view>
+      <view class="action-row" bindtap="openBackup">
+        <view class="action-row__icon">💾</view>
+        <view class="action-row__body">
+          <view class="action-row__title">数据备份</view>
+          <view class="action-row__desc">导出备份或进入导入页面</view>
+        </view>
+        <view class="action-row__arrow">›</view>
+      </view>
+      <view class="action-row" bindtap="openStatistics">
+        <view class="action-row__icon">📊</view>
+        <view class="action-row__body">
+          <view class="action-row__title">统计</view>
+          <view class="action-row__desc">查看菜谱、库存和采购进展</view>
+        </view>
+        <view class="action-row__arrow">›</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showManagerModal}}" class="manager-modal" catchtap="closeManagerModal">
+    <view class="manager-modal__panel" catchtap="noop">
+      <view class="manager-modal__title">{{managerTitle}}</view>
+      <view class="manager-modal__input">
+        <t-input value="{{managerInput}}" placeholder="{{managerInputPlaceholder}}" bindchange="handleManagerInput" />
+      </view>
+      <t-button class="manager-modal__submit" theme="primary" block bindtap="submitManagerCreate">新增</t-button>
+      <view wx:if="{{managerLoading}}" class="manager-modal__empty">正在读取...</view>
+      <view wx:elif="{{!managerItems.length}}" class="manager-modal__empty">暂无配置项</view>
+      <view wx:else class="manager-list">
+        <view wx:for="{{managerItems}}" wx:key="name" class="manager-row">
+          <view class="manager-row__body">
+            <view class="manager-row__title">{{item.name}}</view>
+            <view class="manager-row__meta">{{item.countText}}</view>
+          </view>
+          <view class="manager-row__actions">
+            <view class="manager-row__action" data-name="{{item.name}}" bindtap="renameManagerItem">编辑</view>
+            <view wx:if="{{item.showDelete}}" class="manager-row__action manager-row__action--danger" data-name="{{item.name}}" data-show-delete="{{item.showDelete}}" bindtap="deleteManagerItem">删除</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showThemeModal}}" class="theme-modal" catchtap="closeThemeModal">
+    <view class="theme-modal__panel" catchtap="noop">
+      <view class="theme-modal__title">换肤</view>
+      <view class="theme-chip-list">
+        <view
+          wx:for="{{themeOptions}}"
+          wx:key="key"
+          class="theme-chip {{item.active ? 'theme-chip--active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="selectTheme"
+        >
+          <view class="theme-chip__title">{{item.label}}</view>
+          <view class="theme-chip__desc">{{item.description}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

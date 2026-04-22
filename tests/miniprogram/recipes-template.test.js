@@ -19,12 +19,15 @@ describe('recipes page template styles', () => {
     const template = readFileSync('miniprogram/pages/recipes/index.wxml', 'utf8')
 
     expect(template).toMatch(/<view class="management-card__more" bindtap="openSpaceManager">/)
-    expect(template).toMatch(/<t-button class="action-pill" theme="default" shape="round" bindtap="handleRandomPick">/)
-    expect(template).toMatch(/<t-button class="action-pill action-pill--create" theme="primary" shape="round" bindtap="goCreate">/)
+    expect(template).toMatch(/<view class="action-pill action-pill--random" bindtap="handleRandomPick">/)
+    expect(template).toMatch(/<view class="action-pill action-pill--create" bindtap="goCreate">/)
     expect(template).toMatch(/<view class="cart-primary" bindtap="handlePlanSelectedRecipes">/)
     expect(template).toMatch(/<view class="cart-secondary" bindtap="clearSelectedRecipes">/)
+    expect(template).toContain('showPlanModal')
+    expect(template).toContain('plan-modal')
+    expect(template).toContain('bindtap="submitPlanSelection"')
     expect(template).toMatch(/<view[\s\S]*class="\{\{item\.itemClass\}\}"[\s\S]*bindtap="handleSectionChange"/)
-    expect(template).toMatch(/<view[\s\S]*class="\{\{item\.selectionClass\}\}"[\s\S]*bindtap="toggleRecipeSelection"/)
+    expect(template).toMatch(/<view[\s\S]*class="\{\{item\.selectionClass\}\}"[\s\S]*bindtap="toggleRecipeSelection"[\s\S]*<text class="dish-add__symbol[\s\S]*">\{\{item\.selectionSymbol\}\}<\/text>/)
   })
 
   it('uses a static food banner image and removes the old recommendation headline copy', () => {
@@ -41,6 +44,8 @@ describe('recipes page template styles', () => {
     expect(styles.includes('.management-card__more')).toBe(true)
     expect(styles.includes('flex: none;')).toBe(true)
     expect(styles.includes('width: auto;')).toBe(true)
+    expect(styles).toMatch(/\.action-pill\s*\{[\s\S]*font-size:\s*24rpx;/)
+    expect(styles).toMatch(/\.action-pill--random\s*\{[\s\S]*background:/)
   })
 
   it('keeps left rail buttons inside the channel rail width', () => {
@@ -51,6 +56,13 @@ describe('recipes page template styles', () => {
     expect(styles.includes('box-sizing: border-box;')).toBe(true)
     expect(styles.includes('white-space: normal;')).toBe(true)
     expect(styles.includes('height: 720rpx;')).toBe(false)
+  })
+
+  it('centers the add and selected check symbol inside the recipe selection button', () => {
+    const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.dish-add\s*\{[\s\S]*display:\s*inline-flex;[\s\S]*align-items:\s*center;[\s\S]*justify-content:\s*center;/)
+    expect(styles).toMatch(/\.dish-add__symbol\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*justify-content:\s*center;[\s\S]*line-height:\s*1;/)
   })
 
   it('pulls the management card upward instead of leaving a large empty banner gap', () => {

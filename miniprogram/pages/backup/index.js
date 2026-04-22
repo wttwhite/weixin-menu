@@ -2,10 +2,13 @@ const { createBackupService } = require('../../services/backup')
 const { createMembersService } = require('../../services/members')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const { syncPageTheme } = require('../../utils/theme')
 
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     activeSpaceId: '',
     records: [],
     importing: false,
@@ -15,6 +18,7 @@ Page({
   },
 
   onShow() {
+    syncPageTheme(this)
     this.loadRecords()
   },
 

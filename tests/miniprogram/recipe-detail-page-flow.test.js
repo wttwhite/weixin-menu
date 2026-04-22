@@ -103,6 +103,42 @@ describe('recipe detail page flow', () => {
     })
   })
 
+  it('falls back to a default hero food image when the recipe has no uploaded images', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn().mockResolvedValue({
+          result: {
+            code: 0,
+            data: {
+              item: {
+                _id: 'recipe-1',
+                name: 'Mapo',
+                images: []
+              }
+            }
+          }
+        })
+      },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.coverImageUrl).toBe('/images/food-hero-table.svg')
+    expect(page.data.galleryImageUrls).toEqual([])
+    expect(page.data.hasGalleryItems).toBe(false)
+  })
+
   it('closes back to meal plans when opened from plans without relying on stack history', async () => {
     const navigateBack = vi.fn()
     const switchTab = vi.fn()
@@ -170,5 +206,81 @@ describe('recipe detail page flow', () => {
       title: '分享菜谱',
       path: '/pages/recipe-detail/index?recipeId=recipe-1'
     })
+  })
+
+  it('does not refetch recipe detail on repeated onShow when the page already has current data', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          item: {
+            _id: 'recipe-1',
+            name: 'Mapo',
+            images: []
+          }
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    page.onShow()
+    await flushAsyncWork()
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes detail after navigating to edit and returning to the page', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          item: {
+            _id: 'recipe-1',
+            name: 'Mapo',
+            images: []
+          }
+        }
+      }
+    })
+    const navigateTo = vi.fn()
+    global.wx = {
+      cloud: { callFunction },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    page.onShow()
+    await flushAsyncWork()
+
+    page.goEdit()
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(navigateTo).toHaveBeenCalledWith({
+      url: '/pages/recipe-edit/index?recipeId=recipe-1'
+    })
+    expect(callFunction).toHaveBeenCalledTimes(2)
   })
 })

@@ -6,6 +6,8 @@ const {
   getRecipeCoverImageSrc,
   getRecipeImageSrc
 } = require('../../utils/recipe-view')
+const DEFAULT_RECIPE_HERO_IMAGE = '/images/food-hero-table.svg'
+const recipeDetailCache = new Map()
 
 function buildMetricTexts(item = {}) {
   const metrics = []
@@ -48,6 +50,53 @@ function buildGalleryItems(urls = [], coverImageUrl = '') {
   }))
 }
 
+function resolveRecipeHeroCoverImage(item = {}) {
+  return getRecipeCoverImageSrc(item || {}) || DEFAULT_RECIPE_HERO_IMAGE
+}
+
+function buildRecipeDetailViewState(item = {}, activeSpaceId = '') {
+  const coverImageUrl = resolveRecipeHeroCoverImage(item || {})
+  const galleryImageUrls = ((item && item.images) || [])
+    .map((image) => getRecipeImageSrc(image))
+    .filter(Boolean)
+  const stepViewItems = buildStepViewItems((item && item.steps) || [])
+  const ingredientViewItems = buildIngredientViewItems((item && item.ingredients) || [])
+  const galleryItems = buildGalleryItems(galleryImageUrls, coverImageUrl)
+  const metricTexts = buildMetricTexts(item || {})
+  const heroMetricTexts = []
+  if (item && item.cookTimeMinutes) {
+    heroMetricTexts.push(`⏱ ${item.cookTimeMinutes}`)
+  }
+  if (item && item.recommendationScore !== null && item.recommendationScore !== undefined && item.recommendationScore !== '') {
+    heroMetricTexts.push(`★ ${item.recommendationScore}/5`)
+  }
+
+  return {
+    loading: false,
+    item,
+    canManageRecipe: Boolean(activeSpaceId),
+    heroMetaText: `${item && item.category ? item.category : '未分类'} · ${item && item.cuisine ? item.cuisine : '未设置菜系'} · ${item && item.difficulty ? item.difficulty : '难度未设置'}`,
+    heroSummaryText: item && item.summary ? item.summary : '',
+    heroMetricTexts,
+    metricTexts,
+    hasMetricTexts: metricTexts.length > 0,
+    hasTags: Boolean(item && Array.isArray(item.tags) && item.tags.length),
+    ingredientViewItems,
+    hasIngredients: ingredientViewItems.length > 0,
+    stepViewItems,
+    hasSteps: stepViewItems.length > 0,
+    coverImageUrl,
+    galleryImageUrls,
+    galleryItems,
+    hasGalleryItems: galleryItems.length > 0,
+    hasNotesBlock: Boolean(item && (item.notes || item.sourceName || item.sourceUrl))
+  }
+}
+
+function buildRecipeDetailCacheKey(spaceId = '', recipeId = '') {
+  return `${spaceId}::${recipeId}`
+}
+
 function getPageCount() {
   if (typeof getCurrentPages !== 'function') {
     return 0
@@ -88,15 +137,26 @@ Page({
       recipeId,
       sourcePage
     })
+    this.hasLoadedDetail = false
+    this.shouldRefreshOnNextShow = false
   },
 
   onShow() {
-    this.loadDetail()
+    return this.loadDetail({
+      forceRefresh: Boolean(this.shouldRefreshOnNextShow)
+    })
   },
 
-  async loadDetail() {
+  async loadDetail(options = {}) {
     const activeSpaceId = getActiveSpaceId()
     const recipeId = this.data.recipeId
+    const cacheKey = buildRecipeDetailCacheKey(activeSpaceId, recipeId)
+    const forceRefresh = Boolean(options.forceRefresh)
+
+    if (!forceRefresh && this.hasLoadedDetail && this.data.item && this.data.recipeId === recipeId) {
+      return
+    }
+
     this.setData({
       loading: true,
       activeSpaceId,
@@ -129,42 +189,24 @@ Page({
     }
 
     try {
+      if (!forceRefresh && recipeDetailCache.has(cacheKey)) {
+        this.setData({
+          ...recipeDetailCache.get(cacheKey),
+          activeSpaceId,
+          errorMessage: ''
+        })
+        this.hasLoadedDetail = true
+        this.shouldRefreshOnNextShow = false
+        return
+      }
+
       const result = await createRecipeService().getRecipeDetail(activeSpaceId, recipeId)
       const item = result.item || null
-      const coverImageUrl = getRecipeCoverImageSrc(item || {})
-      const galleryImageUrls = ((item && item.images) || [])
-        .map((image) => getRecipeImageSrc(image))
-        .filter(Boolean)
-      const stepViewItems = buildStepViewItems((item && item.steps) || [])
-      const ingredientViewItems = buildIngredientViewItems((item && item.ingredients) || [])
-      const galleryItems = buildGalleryItems(galleryImageUrls, coverImageUrl)
-      const heroMetricTexts = []
-      if (item && item.cookTimeMinutes) {
-        heroMetricTexts.push(`⏱ ${item.cookTimeMinutes}`)
-      }
-      if (item && item.recommendationScore !== null && item.recommendationScore !== undefined && item.recommendationScore !== '') {
-        heroMetricTexts.push(`★ ${item.recommendationScore}/5`)
-      }
-      this.setData({
-        loading: false,
-        item,
-        canManageRecipe: Boolean(activeSpaceId),
-        heroMetaText: `${item && item.category ? item.category : '未分类'} · ${item && item.cuisine ? item.cuisine : '未设置菜系'} · ${item && item.difficulty ? item.difficulty : '难度未设置'}`,
-        heroSummaryText: item && item.summary ? item.summary : '',
-        heroMetricTexts,
-        metricTexts: buildMetricTexts(item || {}),
-        hasMetricTexts: buildMetricTexts(item || {}).length > 0,
-        hasTags: Boolean(item && Array.isArray(item.tags) && item.tags.length),
-        ingredientViewItems,
-        hasIngredients: ingredientViewItems.length > 0,
-        stepViewItems,
-        hasSteps: stepViewItems.length > 0,
-        coverImageUrl,
-        galleryImageUrls,
-        galleryItems,
-        hasGalleryItems: galleryItems.length > 0,
-        hasNotesBlock: Boolean(item && (item.notes || item.sourceName || item.sourceUrl))
-      })
+      const nextViewState = buildRecipeDetailViewState(item, activeSpaceId)
+      recipeDetailCache.set(cacheKey, nextViewState)
+      this.setData(nextViewState)
+      this.hasLoadedDetail = true
+      this.shouldRefreshOnNextShow = false
     } catch (error) {
       this.setData({
         loading: false,
@@ -187,6 +229,7 @@ Page({
         coverImageUrl: '',
         galleryImageUrls: []
       })
+      this.shouldRefreshOnNextShow = false
     }
   },
 
@@ -204,6 +247,7 @@ Page({
   },
 
   goEdit() {
+    this.shouldRefreshOnNextShow = true
     wx.navigateTo({
       url: `/pages/recipe-edit/index?recipeId=${this.data.recipeId}`
     })

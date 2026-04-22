@@ -319,7 +319,7 @@ describe('createSessionService', () => {
 })
 
 describe('app session contract', () => {
-  it('keeps activeSpaceId as the only app-level session state', async () => {
+  it('keeps app-level state minimal while exposing active space and theme state', async () => {
     let appConfig = null
     global.App = (config) => {
       appConfig = config
@@ -332,14 +332,18 @@ describe('app session contract', () => {
 
     await import('../../miniprogram/app.js')
     const { envList } = await import('../../miniprogram/envList.js')
+    const { buildThemeStyle } = await import('../../miniprogram/utils/theme.js')
     const expectedEnv = envList[0] && envList[0].envId ? envList[0].envId : ''
 
     expect(appConfig.globalData).toEqual({
       env: expectedEnv,
-      activeSpaceId: ''
+      activeSpaceId: '',
+      themeKey: 'default',
+      themeStyle: buildThemeStyle('default')
     })
     expect(appConfig.setSession).toBeUndefined()
     expect(typeof appConfig.setActiveSpaceId).toBe('function')
+    expect(typeof appConfig.setTheme).toBe('function')
 
     delete global.App
     delete global.wx

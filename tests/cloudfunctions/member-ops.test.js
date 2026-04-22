@@ -87,6 +87,7 @@ describe('memberOps.main', () => {
       { action: 'createSpace', name: 'Family' },
       { action: 'joinSpace', inviteCode: 'ABC123' },
       { action: 'listMembers', spaceId: 'space-1' },
+      { action: 'updateMemberDisplayName', spaceId: 'space-1', memberOpenid: 'user-2', displayName: '昵称' },
       { action: 'removeMember', spaceId: 'space-1', memberOpenid: 'user-2' },
       { action: 'renameSpace', spaceId: 'space-1', name: 'New Name' },
       { action: 'rotateInviteCode', spaceId: 'space-1' }
@@ -200,6 +201,54 @@ describe('memberOps.main', () => {
     })
     expect(second.code).toBe(ERROR_CODES.NOT_FOUND)
     expect(second.message).toBe('Member not found')
+  })
+
+  it('allows owners to update member display names and forbids members from editing others', async () => {
+    const fakeDb = createFakeDb({
+      spaces: [{ _id: 'space-1', name: 'Family', inviteCode: 'ABC123', ownerOpenid: 'owner-1' }],
+      memberships: [
+        { spaceId: 'space-1', openid: 'owner-1', role: 'owner', status: 'active', displayName: '主理人' },
+        { spaceId: 'space-1', openid: 'member-1', role: 'member', status: 'active', displayName: '旧昵称' }
+      ]
+    })
+
+    const ownerHandler = createMemberOpsHandler({
+      createContext: () => ({ openid: 'owner-1' }),
+      createRepository: () => fakeDb.repository()
+    })
+
+    const updateResponse = await ownerHandler({
+      action: 'updateMemberDisplayName',
+      spaceId: 'space-1',
+      memberOpenid: 'member-1',
+      displayName: '新昵称'
+    })
+
+    expect(updateResponse.code).toBe(ERROR_CODES.OK)
+    expect(updateResponse.data.displayName).toBe('新昵称')
+    expect(fakeDb.getSnapshot().memberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          openid: 'member-1',
+          displayName: '新昵称'
+        })
+      ])
+    )
+
+    const memberHandler = createMemberOpsHandler({
+      createContext: () => ({ openid: 'member-1' }),
+      createRepository: () => fakeDb.repository()
+    })
+
+    const forbiddenResponse = await memberHandler({
+      action: 'updateMemberDisplayName',
+      spaceId: 'space-1',
+      memberOpenid: 'owner-1',
+      displayName: '乱改'
+    })
+
+    expect(forbiddenResponse.code).toBe(ERROR_CODES.SPACE_FORBIDDEN)
+    expect(forbiddenResponse.message).toBe('SPACE_FORBIDDEN')
   })
 })
 

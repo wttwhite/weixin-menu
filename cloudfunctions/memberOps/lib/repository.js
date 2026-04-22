@@ -91,15 +91,19 @@ function createRepository(options = {}) {
       .get()
 
     const nameBySpaceId = new Map()
+    const inviteCodeBySpaceId = new Map()
     for (const space of spacesResult.data || []) {
       nameBySpaceId.set(space._id, space.name)
+      inviteCodeBySpaceId.set(space._id, space.inviteCode || '')
     }
 
     return memberships.map((item) => ({
       spaceId: item.spaceId,
       role: item.role,
       status: item.status,
-      name: nameBySpaceId.get(item.spaceId) || ''
+      name: nameBySpaceId.get(item.spaceId) || '',
+      inviteCode: inviteCodeBySpaceId.get(item.spaceId) || '',
+      displayName: item.displayName || ''
     }))
   }
 
@@ -300,6 +304,32 @@ function createRepository(options = {}) {
     return true
   }
 
+  async function updateMemberDisplayName(spaceId, openid, displayName) {
+    const existingResult = await db
+      .collection(COLLECTIONS.SPACE_MEMBERS)
+      .where({
+        spaceId,
+        openid,
+        status: 'active'
+      })
+      .get()
+    const existing = firstRow(existingResult)
+    if (!existing) {
+      return null
+    }
+
+    await db.collection(COLLECTIONS.SPACE_MEMBERS).doc(existing._id).update({
+      data: {
+        displayName
+      }
+    })
+
+    return {
+      ...existing,
+      displayName
+    }
+  }
+
   async function renameSpace(spaceId, name) {
     const updateResult = await db.collection(COLLECTIONS.SPACES).doc(spaceId).update({
       data: {
@@ -382,6 +412,7 @@ function createRepository(options = {}) {
     addOrActivateMembership,
     listMembers,
     removeMember,
+    updateMemberDisplayName,
     renameSpace,
     rotateInviteCode
   }

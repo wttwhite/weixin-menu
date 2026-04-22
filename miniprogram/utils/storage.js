@@ -1,4 +1,5 @@
 const ACTIVE_SPACE_ID_KEY = 'activeSpaceId'
+const THEME_KEY = 'themeKey'
 const fallbackStorage = {}
 
 function hasWxStorage() {
@@ -47,11 +48,24 @@ function createStorage() {
     },
     clearActiveSpaceId() {
       removeStorageSync(ACTIVE_SPACE_ID_KEY)
+    },
+    getThemeKey() {
+      return getStorageSync(THEME_KEY) || ''
+    },
+    setThemeKey(themeKey) {
+      if (themeKey) {
+        setStorageSync(THEME_KEY, themeKey)
+        return themeKey
+      }
+
+      removeStorageSync(THEME_KEY)
+      return ''
     }
   }
 }
 
 module.exports = {
   ACTIVE_SPACE_ID_KEY,
+  THEME_KEY,
   createStorage
 }

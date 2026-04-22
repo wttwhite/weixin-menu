@@ -1,0 +1,141 @@
+<view wx:if="{{visible}}" class="pantry-form-modal__overlay" catchtap="close">
+  <view class="pantry-form-modal" catchtap="noop">
+    <view class="pantry-form-modal__title">{{title}}</view>
+
+    <view class="editor-shell">
+      <view class="editor-section">
+        <view class="editor-section__head">
+          <view class="editor-section__icon">⌂</view>
+          <view class="editor-section__title">基本信息</view>
+        </view>
+        <view class="editor-section__divider"></view>
+
+        <view class="detail-grid detail-grid--basic">
+          <view class="detail-grid__item">
+            <view class="field-label field-label--tight"><text class="form-row__required">*</text>名称</view>
+            <input
+              class="field-input"
+              data-field="name"
+              value="{{form.name}}"
+              placeholder="例如：牛奶"
+              bindinput="handleInput"
+            />
+          </view>
+          <view class="detail-grid__item">
+            <view class="field-label field-label--tight">分类</view>
+            <view class="field-picker-row">
+              <picker class="picker-field" mode="selector" range="{{categoryOptions}}" value="{{categoryIndex}}" bindchange="handleCategorySelect">
+                <view class="field-input field-input--picker {{form.category ? 'field-input--with-clear' : ''}}">{{categoryOptions[categoryIndex] || '未设置'}}</view>
+              </picker>
+              <view wx:if="{{form.category}}" class="field-clear" bindtap="clearCategory">×</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="detail-grid detail-grid--basic">
+          <view class="detail-grid__item">
+            <view class="field-label field-label--tight">位置</view>
+            <view class="field-picker-row">
+              <picker class="picker-field" mode="selector" range="{{locationOptions}}" value="{{locationIndex}}" bindchange="handleLocationSelect">
+                <view class="field-input field-input--picker {{form.location ? 'field-input--with-clear' : ''}}">{{locationOptions[locationIndex] || '未设置'}}</view>
+              </picker>
+              <view wx:if="{{form.location}}" class="field-clear" bindtap="clearLocation">×</view>
+            </view>
+          </view>
+          <view class="detail-grid__item">
+            <view class="field-label field-label--tight">状态</view>
+            <picker class="picker-field" mode="selector" range="{{statusOptions}}" value="{{statusIndex}}" bindchange="handleUsageStatusSelect">
+              <view class="field-input field-input--picker">{{statusOptions[statusIndex]}}</view>
+            </picker>
+          </view>
+        </view>
+      </view>
+
+      <view class="editor-section">
+        <view class="editor-section__head">
+          <view class="editor-section__icon">▣</view>
+          <view class="editor-section__title">库存信息</view>
+        </view>
+        <view class="editor-section__divider"></view>
+
+        <view class="detail-grid">
+          <view class="detail-grid__item">
+            <view class="field-label">数量</view>
+            <view class="quantity-stepper">
+              <view class="stepper-button" bindtap="decrementQuantity">−</view>
+              <view class="stepper-value">{{form.quantity}}</view>
+              <view class="stepper-button" bindtap="incrementQuantity">＋</view>
+            </view>
+          </view>
+
+          <view class="detail-grid__item">
+            <view class="field-label">单位</view>
+            <input
+              class="field-input"
+              data-field="unit"
+              value="{{form.unit}}"
+              placeholder="盒 / 瓶 / 袋"
+              bindinput="handleInput"
+            />
+          </view>
+        </view>
+
+        <view class="detail-grid detail-grid--schedule">
+          <view class="detail-grid__item">
+            <view class="field-label field-label--tight">生产日期</view>
+            <picker class="date-row__picker" mode="date" value="{{form.productionDate || today}}" bindchange="handleProductionDateChange">
+              <view class="field-input field-input--date">{{form.productionDate || '选择日期'}}</view>
+            </picker>
+          </view>
+          <view class="detail-grid__item">
+            <view class="field-label field-label--tight">保质期(月)</view>
+            <view class="quantity-stepper quantity-stepper--inline">
+              <view class="stepper-button" bindtap="decrementShelfLifeMonths">−</view>
+              <view class="stepper-value">{{form.shelfLifeMonths || '0'}}</view>
+              <view class="stepper-button" bindtap="incrementShelfLifeMonths">＋</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="detail-grid detail-grid--schedule">
+          <view class="detail-grid__item">
+            <view class="field-label field-label--tight">过期日期</view>
+            <view class="field-picker-row">
+              <picker class="date-row__picker" mode="date" value="{{form.expirationDate || today}}" bindchange="handleExpirationDateChange">
+                <view class="field-input field-input--date {{form.expirationDate ? 'field-input--with-clear' : ''}}">{{form.expirationDate || '选择日期'}}</view>
+              </picker>
+              <view wx:if="{{form.expirationDate}}" class="field-clear" bindtap="clearExpirationDate">×</view>
+            </view>
+          </view>
+          <view class="detail-grid__item">
+            <view class="field-label field-label--tight">开封日期</view>
+            <view class="field-picker-row">
+              <picker class="date-row__picker" mode="date" value="{{form.openedDate || today}}" bindchange="handleOpenedDateChange">
+                <view class="field-input field-input--date {{form.openedDate ? 'field-input--with-clear' : ''}}">{{form.openedDate || '选择日期'}}</view>
+              </picker>
+              <view wx:if="{{form.openedDate}}" class="field-clear" bindtap="clearOpenedDate">×</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="description-head">
+          <view class="description-head__label">备注</view>
+          <view class="description-head__count">{{notesCount}}/80</view>
+        </view>
+        <textarea
+          class="field-textarea field-textarea--notes"
+          data-field="notes"
+          value="{{form.notes}}"
+          maxlength="80"
+          placeholder="例如：早餐专用、先吃这一盒"
+          bindinput="handleInput"
+        />
+      </view>
+    </view>
+
+    <view class="bottom-actions">
+      <view class="pantry-form-modal__close footer-close-btn" bindtap="close">关闭</view>
+      <view class="pantry-form-modal__submit footer-submit-btn" bindtap="submit">{{submitting ? '保存中...' : submitLabel}}</view>
+    </view>
+  </view>
+</view>

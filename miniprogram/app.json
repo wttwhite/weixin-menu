@@ -14,9 +14,9 @@
     "pages/shopping/index",
     "pages/shopping-edit/index",
     "pages/backup/index",
-    "pages/statistics/index"
-    ,
-    "pages/space-members/index"
+    "pages/statistics/index",
+    "pages/space-members/index",
+    "pages/profile/index"
   ],
   "window": {
     "backgroundColor": "#F5F1E8",
@@ -57,8 +57,8 @@
         "selectedIconPath": "images/icons/business-active.png"
       },
       {
-        "pagePath": "pages/statistics/index",
-        "text": "统计",
+        "pagePath": "pages/profile/index",
+        "text": "我的",
         "iconPath": "images/icons/usercenter.png",
         "selectedIconPath": "images/icons/usercenter-active.png"
       }

@@ -145,17 +145,26 @@
 
 .action-pill {
   flex: 1;
-  --td-button-default-bg-color: linear-gradient(135deg, #ffd4a6, #ff9e49);
-  --td-button-default-color: #6f4519;
-  --td-button-default-border-color: transparent;
-  --td-button-primary-bg-color: var(--brand);
-  --td-button-primary-active-bg-color: var(--brand-strong);
-  --td-button-primary-border-color: var(--brand);
+  min-height: 64rpx;
+  padding: 0 20rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.action-pill--random {
+  background: linear-gradient(135deg, #ffe0b7, #ffb457);
+  color: #6f4519;
+  box-shadow: 0 14rpx 24rpx rgba(255, 180, 87, 0.22);
 }
 
 .action-pill--create {
-  --td-button-primary-bg-color: var(--brand);
-  --td-button-primary-active-bg-color: var(--brand-strong);
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+  box-shadow: 0 14rpx 24rpx rgba(197, 106, 61, 0.22);
 }
 
 .feedback-card,
@@ -374,7 +383,6 @@
 .dish-add {
   width: 64rpx;
   height: 64rpx;
-  line-height: 64rpx;
   margin: 0;
   padding: 0;
   border-radius: 999rpx;
@@ -390,6 +398,19 @@
 
 .dish-add--selected {
   background: linear-gradient(135deg, var(--brand-strong), #8a3e1a);
+}
+
+.dish-add__symbol {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.dish-add__symbol--selected {
+  transform: translateY(1rpx);
 }
 
 .cart-bar {
@@ -446,6 +467,7 @@
   color: #7a808d;
 }
 
+.plan-modal__overlay,
 .category-modal__overlay {
   position: fixed;
   inset: 0;
@@ -454,6 +476,147 @@
   background: rgba(15, 23, 42, 0.24);
   backdrop-filter: blur(6rpx);
   box-sizing: border-box;
+}
+
+.plan-modal {
+  border-radius: 34rpx;
+  padding: 28rpx 24rpx;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 26rpx 42rpx rgba(37, 49, 71, 0.18);
+}
+
+.plan-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.plan-modal__title {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #182234;
+}
+
+.plan-modal__close {
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 29rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f2f4f8;
+  color: #7a808d;
+}
+
+.plan-modal__section {
+  margin-top: 24rpx;
+}
+
+.plan-modal__label {
+  font-size: 24rpx;
+  color: #7a808d;
+}
+
+.plan-modal__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+
+.plan-modal__tag {
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  background: #fff3ec;
+  color: var(--brand-strong);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.plan-modal__date {
+  margin-top: 14rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 20rpx;
+  background: #fbfcfe;
+  border: 1px solid #edf1f5;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #27323f;
+}
+
+.plan-modal__date-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+
+.plan-modal__date-chip {
+  min-width: 128rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 999rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #7a808d;
+  background: #f4f6fa;
+}
+
+.plan-modal__date-chip--active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+}
+
+.plan-modal__meal-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+
+.plan-modal__meal-chip {
+  min-width: 128rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 999rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #7a808d;
+  background: #f4f6fa;
+}
+
+.plan-modal__meal-chip--active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+}
+
+.plan-modal__actions {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 28rpx;
+}
+
+.plan-modal__primary,
+.plan-modal__secondary {
+  flex: 1;
+  height: 84rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.plan-modal__primary {
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+}
+
+.plan-modal__secondary {
+  background: #f2f4f8;
+  color: #7a808d;
 }
 
 .category-modal {

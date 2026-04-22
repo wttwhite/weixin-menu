@@ -1,7 +1,9 @@
 const { createRecipeService } = require('../../services/recipe')
+const { createMealPlanService } = require('../../services/meal-plan')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 const { switchToTab, syncCurrentTabBar } = require('../../utils/tab-bar')
+const { syncPageTheme } = require('../../utils/theme')
 const {
   buildRecipeSectionOptions,
   filterRecipesBySection,
@@ -9,12 +11,46 @@ const {
   getRecipeCoverImageSrc
 } = require('../../utils/recipe-view')
 const DEFAULT_CATEGORY_SUMMARY = '共享菜谱 · 适合家庭点单'
+const PLAN_MEAL_TYPE_OPTIONS = [
+  { label: '早餐', value: 'breakfast' },
+  { label: '午餐', value: 'lunch' },
+  { label: '晚餐', value: 'dinner' },
+  { label: '加餐', value: 'snack' }
+]
 
 function createDateLabel(now = new Date()) {
   const year = now.getFullYear()
   const month = now.getMonth() + 1
   const day = now.getDate()
   return `${year}/${month}/${day}`
+}
+
+function createIsoDate(now = new Date()) {
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function createDateOptionLabel(dateText = '') {
+  const parts = String(dateText).split('-')
+  if (parts.length !== 3) {
+    return dateText
+  }
+  return `${parts[1]}月${parts[2]}日`
+}
+
+function buildUpcomingDateOptions(now = new Date(), days = 7) {
+  const results = []
+  for (let offset = 0; offset < days; offset += 1) {
+    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset)
+    const value = createIsoDate(next)
+    results.push({
+      value,
+      label: createDateOptionLabel(value)
+    })
+  }
+  return results
 }
 
 function getSectionLabel(sectionOptions = [], activeSectionKey = 'all') {
@@ -134,6 +170,36 @@ function clampSelectedRecipeIds(items = [], selectedRecipeIds = []) {
   return (selectedRecipeIds || []).filter((id) => availableIdSet.has(id))
 }
 
+function buildSelectedRecipeItems(items = [], selectedRecipeIds = []) {
+  const selectedIdSet = new Set(selectedRecipeIds || [])
+  return (items || []).filter((item) => selectedIdSet.has(item._id))
+}
+
+function buildMealPlanRecipePayloadFromRecipe(item = {}) {
+  return {
+    recipeId: item._id || item.recipeId || '',
+    recipeNameSnapshot: item.name || item.recipeNameSnapshot || '',
+    servingsOverride: item.servingsOverride || '',
+    notes: item.notes || ''
+  }
+}
+
+function mergeMealPlanRecipes(existingRecipes = [], selectedRecipes = []) {
+  const merged = Array.isArray(existingRecipes) ? existingRecipes.slice() : []
+  const existingIdSet = new Set(merged.map((item) => item && item.recipeId).filter(Boolean))
+
+  ;(selectedRecipes || []).forEach((item) => {
+    const recipe = buildMealPlanRecipePayloadFromRecipe(item)
+    if (!recipe.recipeId || existingIdSet.has(recipe.recipeId)) {
+      return
+    }
+    merged.push(recipe)
+    existingIdSet.add(recipe.recipeId)
+  })
+
+  return merged
+}
+
 function buildTagSummary(tags = []) {
   return (tags || [])
     .map((tag) => tag.name)
@@ -163,9 +229,60 @@ function buildMetricSummary(item = {}) {
   return parts.join(' · ')
 }
 
+function decorateRecipeItem(item = {}) {
+  return {
+    ...item,
+    tagSummary: buildTagSummary(item.tags || []),
+    categorySummary: buildCategorySummary(item),
+    metricSummary: buildMetricSummary(item),
+    coverImageUrl: getRecipeCoverImageSrc(item),
+    recommendationStars: formatRecommendationStars(item.recommendationScore)
+  }
+}
+
+function appendRecipeCategoryManagerItem(items = [], nextItem = {}) {
+  if (!nextItem || !nextItem.name) {
+    return items || []
+  }
+  if ((items || []).some((item) => item && item.name === nextItem.name)) {
+    return items || []
+  }
+  return (items || []).concat(nextItem)
+}
+
+function replaceRecipeCategoryManagerItem(items = [], previousName = '', nextItem = {}) {
+  return (items || []).map((item) => {
+    if (!item || item.name !== previousName) {
+      return item
+    }
+    return {
+      ...item,
+      ...nextItem
+    }
+  })
+}
+
+function removeRecipeCategoryManagerItem(items = [], name = '') {
+  return (items || []).filter((item) => item && item.name !== name)
+}
+
+function renameRecipeItemsCategory(items = [], previousName = '', nextName = '') {
+  return (items || []).map((item) => {
+    if (!item || (item.category || '') !== previousName) {
+      return item
+    }
+    return {
+      ...item,
+      category: nextName
+    }
+  })
+}
+
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     currentDateLabel: createDateLabel(),
     activeSpaceId: '',
     items: [],
@@ -186,6 +303,13 @@ Page({
     categoryManagerViewItems: [],
     selectedRecipeIds: [],
     selectedRecipesCount: 0,
+    showPlanModal: false,
+    submittingPlanSelection: false,
+    planModalDate: createIsoDate(),
+    planModalMealType: 'dinner',
+    planModalDateOptions: buildUpcomingDateOptions(),
+    planModalMealTypeOptions: PLAN_MEAL_TYPE_OPTIONS,
+    planModalSelectedRecipes: [],
     visibleItemsCountText: '0 道菜',
     sectionViewItems: [],
     showHeroThumbs: false,
@@ -200,6 +324,7 @@ Page({
   },
 
   onShow() {
+    syncPageTheme(this)
     syncCurrentTabBar(this, '/pages/recipes/index')
     this.loadRecipes()
   },
@@ -207,6 +332,56 @@ Page({
   async onPullDownRefresh() {
     await this.loadRecipes()
     wx.stopPullDownRefresh()
+  },
+
+  syncRecipeView(overrides = {}) {
+    const nextState = {
+      ...this.data,
+      ...overrides
+    }
+    const items = (nextState.items || []).map((item) => decorateRecipeItem(item))
+    const categoryManagerItems = Array.isArray(nextState.categoryManagerItems)
+      ? nextState.categoryManagerItems.filter(
+          (item) => item && typeof item.name === 'string' && typeof item.recipeCount === 'number'
+        )
+      : []
+    const sectionOptions = buildSectionOptionsFromManagedCategories(categoryManagerItems, items)
+    const availableSectionKeySet = new Set(sectionOptions.map((item) => item.key))
+    const activeSectionKey = availableSectionKeySet.has(nextState.activeSectionKey)
+      ? nextState.activeSectionKey
+      : 'all'
+    const selectedRecipeIds = clampSelectedRecipeIds(items, nextState.selectedRecipeIds || [])
+    const itemsWithSelection = applySelectionState(items, selectedRecipeIds)
+    const visibleItems = buildVisibleRecipeCards(
+      filterRecipesBySection(itemsWithSelection, activeSectionKey)
+    )
+    const heroImages = buildHeroImages(itemsWithSelection)
+
+    this.setData({
+      ...overrides,
+      items: itemsWithSelection,
+      sectionOptions,
+      activeSectionKey,
+      activeSectionLabel: getSectionLabel(sectionOptions, activeSectionKey),
+      heroImages,
+      heroPrimaryImageUrl: heroImages[0] || '',
+      heroThumbImages: heroImages.slice(1, 4),
+      showHeroThumbs: heroImages.length > 1,
+      managementImageUrl: itemsWithSelection[0] ? itemsWithSelection[0].coverImageUrl || '' : '',
+      managementRecipeCountText: `共 ${items.length} 个菜谱`,
+      managementCategorySummary: buildManagementCategorySummary(sectionOptions),
+      categoryManagerItems,
+      categoryManagerViewItems: buildCategoryManagerViewItems(categoryManagerItems),
+      selectedRecipeIds,
+      selectedRecipesCount: selectedRecipeIds.length,
+      planModalSelectedRecipes: buildSelectedRecipeItems(itemsWithSelection, selectedRecipeIds),
+      visibleItemsCountText: `${visibleItems.length} 道菜`,
+      sectionViewItems: buildSectionViewItems(sectionOptions, activeSectionKey),
+      showVisibleItems: visibleItems.length > 0,
+      visibleItems,
+      showEmptyState: !items.length,
+      ...buildEmptyStateView(items, nextState.activeSpaceId)
+    })
   },
 
   async loadRecipes() {
@@ -235,6 +410,12 @@ Page({
         managementCategorySummary: DEFAULT_CATEGORY_SUMMARY,
         selectedRecipeIds: [],
         selectedRecipesCount: 0,
+        showPlanModal: false,
+        submittingPlanSelection: false,
+        planModalDate: createIsoDate(),
+        planModalMealType: 'dinner',
+        planModalDateOptions: buildUpcomingDateOptions(),
+        planModalSelectedRecipes: [],
         visibleItemsCountText: '0 道菜',
         sectionViewItems: buildSectionViewItems([{ key: 'all', label: '全部' }], 'all'),
         showVisibleItems: false,
@@ -252,57 +433,20 @@ Page({
         service.listRecipes(activeSpaceId),
         service.listRecipeCategories(activeSpaceId)
       ])
-      const items = (result.items || []).map((item) => ({
-        ...item,
-        tagSummary: buildTagSummary(item.tags || []),
-        categorySummary: buildCategorySummary(item),
-        metricSummary: buildMetricSummary(item),
-        coverImageUrl: getRecipeCoverImageSrc(item),
-        recommendationStars: formatRecommendationStars(item.recommendationScore)
-      }))
+      const items = result.items || []
       const categoryManagerItems = Array.isArray(categoryResult.items)
         ? categoryResult.items.filter(
             (item) => item && typeof item.name === 'string' && typeof item.recipeCount === 'number'
           )
         : []
-      const sectionOptions = buildSectionOptionsFromManagedCategories(categoryManagerItems, items)
-      const availableSectionKeySet = new Set(sectionOptions.map((item) => item.key))
-      const activeSectionKey = availableSectionKeySet.has(this.data.activeSectionKey)
-        ? this.data.activeSectionKey
-        : 'all'
-      const selectedRecipeIds = clampSelectedRecipeIds(items, this.data.selectedRecipeIds || [])
-      const itemsWithSelection = applySelectionState(items, selectedRecipeIds)
-      const visibleItems = filterRecipesBySection(itemsWithSelection, activeSectionKey)
-      const visibleRecipeCards = buildVisibleRecipeCards(visibleItems)
-      const heroImages = buildHeroImages(itemsWithSelection)
       const total = typeof result.total === 'number' ? result.total : items.length
       const limit =
         typeof result.limit === 'number' && result.limit > 0 ? result.limit : items.length
       const hasMore = Boolean(result.hasMore) || (limit > 0 && total > limit)
-      this.setData({
+      this.syncRecipeView({
         loading: false,
-        items: itemsWithSelection,
-        visibleItems,
-        sectionOptions,
-        activeSectionKey,
-        activeSectionLabel: getSectionLabel(sectionOptions, activeSectionKey),
-        heroImages,
-        heroPrimaryImageUrl: heroImages[0] || '',
-        heroThumbImages: heroImages.slice(1, 4),
-        showHeroThumbs: heroImages.length > 1,
-        managementImageUrl: itemsWithSelection[0] ? itemsWithSelection[0].coverImageUrl || '' : '',
-        managementRecipeCountText: `共 ${items.length} 个菜谱`,
-        managementCategorySummary: buildManagementCategorySummary(sectionOptions),
+        items,
         categoryManagerItems,
-        categoryManagerViewItems: buildCategoryManagerViewItems(categoryManagerItems),
-        selectedRecipeIds,
-        selectedRecipesCount: selectedRecipeIds.length,
-        visibleItemsCountText: `${visibleItems.length} 道菜`,
-        sectionViewItems: buildSectionViewItems(sectionOptions, activeSectionKey),
-        showVisibleItems: visibleRecipeCards.length > 0,
-        visibleItems: visibleRecipeCards,
-        showEmptyState: !items.length,
-        ...buildEmptyStateView(items, activeSpaceId),
         truncationMessage: hasMore ? `当前仅显示前 ${limit} 道菜谱，请继续筛选以缩小范围。` : '',
         summary: items.length
           ? hasMore
@@ -329,6 +473,12 @@ Page({
         categoryManagerViewItems: [],
         selectedRecipeIds: [],
         selectedRecipesCount: 0,
+        showPlanModal: false,
+        submittingPlanSelection: false,
+        planModalDate: createIsoDate(),
+        planModalMealType: 'dinner',
+        planModalDateOptions: buildUpcomingDateOptions(),
+        planModalSelectedRecipes: [],
         visibleItemsCountText: '0 道菜',
         sectionViewItems: buildSectionViewItems([{ key: 'all', label: '全部' }], 'all'),
         showVisibleItems: false,
@@ -419,6 +569,7 @@ Page({
     this.setData({
       selectedRecipeIds: nextSelectedRecipeIds,
       selectedRecipesCount: nextSelectedRecipeIds.length,
+      planModalSelectedRecipes: buildSelectedRecipeItems(nextItems, nextSelectedRecipeIds),
       items: nextItems,
       visibleItemsCountText: `${visibleItems.length} 道菜`,
       showVisibleItems: visibleItems.length > 0,
@@ -434,6 +585,7 @@ Page({
     this.setData({
       selectedRecipeIds: [],
       selectedRecipesCount: 0,
+      planModalSelectedRecipes: [],
       items: nextItems,
       visibleItemsCountText: `${visibleItems.length} 道菜`,
       showVisibleItems: visibleItems.length > 0,
@@ -463,10 +615,115 @@ Page({
       return
     }
 
-    wx.showToast({
-      title: '加入计划待实现',
-      icon: 'none'
+    this.setData({
+      showPlanModal: true,
+      submittingPlanSelection: false,
+      planModalDate: createIsoDate(),
+      planModalMealType: 'dinner',
+      planModalDateOptions: buildUpcomingDateOptions(),
+      planModalSelectedRecipes: buildSelectedRecipeItems(this.data.items || [], this.data.selectedRecipeIds || [])
     })
+  },
+
+  closePlanModal() {
+    this.setData({
+      showPlanModal: false,
+      submittingPlanSelection: false
+    })
+  },
+
+  handlePlanDateChange(event) {
+    this.setData({
+      planModalDate: event && event.detail ? event.detail.value : this.data.planModalDate
+    })
+  },
+
+  handlePlanDateShortcutSelect(event) {
+    const date = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.date || this.data.planModalDate
+      : this.data.planModalDate
+    this.setData({
+      planModalDate: date
+    })
+  },
+
+  handlePlanMealTypeChange(event) {
+    const mealType = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.mealType || 'dinner'
+      : 'dinner'
+    this.setData({
+      planModalMealType: mealType
+    })
+  },
+
+  async submitPlanSelection() {
+    if (this.data.submittingPlanSelection || !this.data.activeSpaceId) {
+      return
+    }
+
+    const selectedRecipes = buildSelectedRecipeItems(this.data.items || [], this.data.selectedRecipeIds || [])
+    if (!selectedRecipes.length) {
+      if (typeof wx.showToast === 'function') {
+        wx.showToast({
+          title: '请先选择菜谱',
+          icon: 'none'
+        })
+      }
+      return
+    }
+
+    const service = createMealPlanService()
+    this.setData({
+      submittingPlanSelection: true
+    })
+
+    try {
+      const listResult = await service.listMealPlans(this.data.activeSpaceId)
+      const mealPlans = Array.isArray(listResult.items) ? listResult.items : []
+      const targetPlan = mealPlans.find(
+        (item) => item && item.planDate === this.data.planModalDate && item.mealType === this.data.planModalMealType
+      )
+      const selectedPayloadRecipes = selectedRecipes.map((item) => buildMealPlanRecipePayloadFromRecipe(item))
+
+      if (targetPlan && targetPlan._id) {
+        const mergedRecipes = mergeMealPlanRecipes(targetPlan.recipes || [], selectedPayloadRecipes)
+        await service.updateMealPlan(this.data.activeSpaceId, targetPlan._id, {
+          planDate: this.data.planModalDate,
+          mealType: this.data.planModalMealType,
+          notes: targetPlan.notes || '',
+          recipes: mergedRecipes
+        })
+      } else {
+        await service.createMealPlan(this.data.activeSpaceId, {
+          planDate: this.data.planModalDate,
+          mealType: this.data.planModalMealType,
+          notes: '',
+          recipes: selectedPayloadRecipes
+        })
+      }
+
+      this.clearSelectedRecipes()
+      this.setData({
+        showPlanModal: false,
+        submittingPlanSelection: false
+      })
+      if (typeof wx.showToast === 'function') {
+        wx.showToast({
+          title: `已加入 ${this.data.planModalDate}`,
+          icon: 'success'
+        })
+      }
+    } catch (error) {
+      this.setData({
+        submittingPlanSelection: false
+      })
+      if (typeof wx.showToast === 'function') {
+        wx.showToast({
+          title: getErrorMessage(error),
+          icon: 'none'
+        })
+      }
+    }
   },
 
   openSpaceManager() {
@@ -543,12 +800,16 @@ Page({
     }
 
     try {
-      await createRecipeService().createRecipeCategory(this.data.activeSpaceId, name)
-      this.setData({
-        categoryManagerInput: ''
+      const result = await createRecipeService().createRecipeCategory(this.data.activeSpaceId, name)
+      const nextCategoryManagerItems = appendRecipeCategoryManagerItem(this.data.categoryManagerItems || [], result.item || {
+        name,
+        recipeCount: 0,
+        deletable: true
       })
-      await this.loadRecipes()
-      await this.openCategoryManager(true)
+      this.syncRecipeView({
+        categoryManagerInput: '',
+        categoryManagerItems: nextCategoryManagerItems
+      })
     } catch (error) {
       if (typeof wx.showToast === 'function') {
         wx.showToast({
@@ -582,9 +843,23 @@ Page({
     }
 
     try {
-      await createRecipeService().updateRecipeCategory(this.data.activeSpaceId, previousName, nextName)
-      await this.loadRecipes()
-      await this.openCategoryManager(true)
+      const result = await createRecipeService().updateRecipeCategory(
+        this.data.activeSpaceId,
+        previousName,
+        nextName
+      )
+      const nextCategoryManagerItems = replaceRecipeCategoryManagerItem(
+        this.data.categoryManagerItems || [],
+        previousName,
+        result.item || {
+          name: nextName
+        }
+      )
+      this.syncRecipeView({
+        activeSectionKey: this.data.activeSectionKey === previousName ? nextName : this.data.activeSectionKey,
+        categoryManagerItems: nextCategoryManagerItems,
+        items: renameRecipeItemsCategory(this.data.items || [], previousName, nextName)
+      })
     } catch (error) {
       if (typeof wx.showToast === 'function') {
         wx.showToast({
@@ -615,8 +890,9 @@ Page({
 
     try {
       await createRecipeService().deleteRecipeCategory(this.data.activeSpaceId, name)
-      await this.loadRecipes()
-      await this.openCategoryManager(true)
+      this.syncRecipeView({
+        categoryManagerItems: removeRecipeCategoryManagerItem(this.data.categoryManagerItems || [], name)
+      })
     } catch (error) {
       if (typeof wx.showToast === 'function') {
         wx.showToast({

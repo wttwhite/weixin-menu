@@ -93,7 +93,28 @@
 }
 
 .member-card__remove {
+  margin-top: 0;
+  --td-button-danger-outline-color: #d14b4b;
+  --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
+}
+
+.member-card__actions {
+  display: flex;
+  gap: 12rpx;
   margin-top: 14rpx;
+}
+
+.member-card__edit,
+.member-card__remove {
+  margin-top: 14rpx;
+}
+
+.member-card__edit {
+  --td-button-outline-primary-color: var(--brand);
+  --td-button-outline-primary-border-color: rgba(197, 106, 61, 0.36);
+}
+
+.member-card__remove {
   --td-button-danger-outline-color: #d14b4b;
   --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
 }

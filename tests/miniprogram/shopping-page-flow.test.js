@@ -137,6 +137,16 @@ describe('shopping page flow', () => {
       'list-completed',
       'list-archived'
     ])
+    expect(page.data.visibleShoppingLists[0].items).toEqual([
+      expect.objectContaining({
+        _id: 'item-1',
+        sourceLabel: '计划生成'
+      }),
+      expect.objectContaining({
+        _id: 'item-2',
+        sourceLabel: '手动增加'
+      })
+    ])
 
     page.handleStatusFilterChange({
       currentTarget: {
@@ -153,14 +163,23 @@ describe('shopping page flow', () => {
   it('opens the custom create-list modal with original shopping draft fields', async () => {
     global.wx = {
       cloud: {
-        callFunction: vi.fn().mockResolvedValue({
-          result: {
-            code: 0,
-            data: {
-              items: []
+        callFunction: vi.fn()
+          .mockResolvedValueOnce({
+            result: {
+              code: 0,
+              data: {
+                items: []
+              }
             }
-          }
-        })
+          })
+          .mockResolvedValueOnce({
+            result: {
+              code: 0,
+              data: {
+                items: [{ name: '调味料' }, { name: '乳制品' }]
+              }
+            }
+          })
       },
       showToast: vi.fn(),
       navigateTo: vi.fn(),
@@ -176,7 +195,7 @@ describe('shopping page flow', () => {
     page.onShow()
     await flushAsyncWork()
 
-    page.openCreateListModal()
+    await page.openCreateListModal()
 
     expect(page.data.showListModal).toBe(true)
     expect(page.data.listForm).toEqual(
@@ -196,6 +215,291 @@ describe('shopping page flow', () => {
         notes: ''
       })
     ])
+    expect(page.data.listItemCategoryOptions).toEqual(['未设置', '调味料', '乳制品'])
+
+    page.handleListItemDraftCategoryChange({
+      currentTarget: {
+        dataset: {
+          index: 0
+        }
+      },
+      detail: {
+        value: 1
+      }
+    })
+
+    expect(page.data.listItemDrafts[0]).toEqual(
+      expect.objectContaining({
+        category: '调味料',
+        categoryIndex: 1
+      })
+    )
+  })
+
+  it('collapses and expands shopping items from the subhead row without reloading the page', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'list-open',
+              name: '周末采购',
+              listDate: '2026-04-16',
+              status: 'open',
+              updatedAt: '2026-04-16T10:00:00.000Z',
+              items: [
+                {
+                  _id: 'item-1',
+                  name: '豆瓣酱',
+                  category: '调味料',
+                  quantity: '1',
+                  unit: '瓶',
+                  isChecked: false,
+                  sourceType: 'generated',
+                  updatedAt: '2026-04-16T10:00:00.000Z'
+                }
+              ]
+            }
+          ]
+        }
+      }
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.visibleShoppingLists[0].itemsCollapsed).toBe(false)
+
+    page.toggleShoppingListItems({
+      currentTarget: {
+        dataset: {
+          shoppingListId: 'list-open'
+        }
+      }
+    })
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+    expect(page.data.visibleShoppingLists[0].itemsCollapsed).toBe(true)
+
+    page.toggleShoppingListItems({
+      currentTarget: {
+        dataset: {
+          shoppingListId: 'list-open'
+        }
+      }
+    })
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+    expect(page.data.visibleShoppingLists[0].itemsCollapsed).toBe(false)
+  })
+
+  it('toggles a shopping item with local state update instead of reloading all shopping lists', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'list-open',
+                name: '周末采购',
+                listDate: '2026-04-16',
+                status: 'open',
+                updatedAt: '2026-04-16T10:00:00.000Z',
+                items: [
+                  {
+                    _id: 'item-1',
+                    name: '豆瓣酱',
+                    category: '调味料',
+                    quantity: '1',
+                    unit: '瓶',
+                    isChecked: false,
+                    sourceType: 'generated',
+                    updatedAt: '2026-04-16T10:00:00.000Z'
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'item-1',
+              name: '豆瓣酱',
+              category: '调味料',
+              quantity: '1',
+              unit: '瓶',
+              isChecked: true,
+              sourceType: 'generated',
+              updatedAt: '2026-04-16T10:01:00.000Z'
+            },
+            shoppingListUpdatedAt: '2026-04-16T10:01:00.000Z'
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.handleToggleItem({
+      currentTarget: {
+        dataset: {
+          shoppingListId: 'list-open',
+          shoppingItemId: 'item-1'
+        }
+      },
+      detail: {
+        value: ['checked']
+      }
+    })
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.visibleShoppingLists[0].updatedAt).toBe('2026-04-16T10:01:00.000Z')
+    expect(page.data.visibleShoppingLists[0].items[0]).toEqual(
+      expect.objectContaining({
+        _id: 'item-1',
+        isChecked: true
+      })
+    )
+    expect(page.data.visibleShoppingLists[0].progressText).toBe('1 / 1 项已完成')
+    expect(page.data.heroPendingCountText).toBe('0')
+    expect(page.data.heroProgressText).toBe('100%')
+  })
+
+  it('replaces generated items locally instead of reloading the full shopping page', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'list-open',
+                name: '周末采购',
+                listDate: '2026-04-16',
+                status: 'open',
+                updatedAt: '2026-04-16T10:00:00.000Z',
+                items: [
+                  {
+                    _id: 'item-manual',
+                    name: '酱油',
+                    category: '调味料',
+                    quantity: '1',
+                    unit: '瓶',
+                    isChecked: false,
+                    sourceType: 'manual',
+                    updatedAt: '2026-04-16T10:00:00.000Z'
+                  },
+                  {
+                    _id: 'item-old-generated',
+                    name: '鸡蛋',
+                    category: '鸡蛋',
+                    quantity: '2',
+                    unit: '个',
+                    isChecked: false,
+                    sourceType: 'generated',
+                    updatedAt: '2026-04-16T10:00:00.000Z'
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'item-new-generated',
+                name: '牛奶',
+                category: '乳制品',
+                quantity: '1',
+                unit: '盒',
+                isChecked: false,
+                sourceType: 'generated',
+                updatedAt: '2026-04-16T10:05:00.000Z'
+              }
+            ],
+            shoppingListUpdatedAt: '2026-04-16T10:05:00.000Z'
+          }
+        }
+      })
+    const showToast = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast,
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.generateFromMealPlans({
+      currentTarget: {
+        dataset: {
+          shoppingListId: 'list-open'
+        }
+      }
+    })
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.visibleShoppingLists[0].updatedAt).toBe('2026-04-16T10:05:00.000Z')
+    expect(page.data.visibleShoppingLists[0].items.map((item) => item._id)).toEqual([
+      'item-manual',
+      'item-new-generated'
+    ])
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已生成采购项',
+      icon: 'success'
+    })
   })
 
   it('opens pantry-entry modal from a shopping item, creates pantry data, and auto-checks the item', async () => {
@@ -257,35 +561,17 @@ describe('shopping page flow', () => {
         result: {
           code: 0,
           data: {
-            item: { _id: 'item-1', isChecked: true }
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [
-              {
-                _id: 'list-open',
-                name: '周末采购',
-                listDate: '2026-04-16',
-                status: 'open',
-                updatedAt: '2026-04-16T10:01:00.000Z',
-                items: [
-                  {
-                    _id: 'item-1',
-                    name: '豆瓣酱',
-                    category: '调味料',
-                    quantity: '1',
-                    unit: '瓶',
-                    isChecked: true,
-                    sourceType: 'generated',
-                    updatedAt: '2026-04-16T10:01:00.000Z'
-                  }
-                ]
-              }
-            ]
+            item: {
+              _id: 'item-1',
+              name: '豆瓣酱',
+              category: '调味料',
+              quantity: '1',
+              unit: '瓶',
+              isChecked: true,
+              sourceType: 'generated',
+              updatedAt: '2026-04-16T10:01:00.000Z'
+            },
+            shoppingListUpdatedAt: '2026-04-16T10:01:00.000Z'
           }
         }
       })
@@ -362,11 +648,13 @@ describe('shopping page flow', () => {
       },
       config: undefined
     })
+    expect(callFunction).toHaveBeenCalledTimes(5)
     expect(page.data.showPantryEntryModal).toBe(false)
     expect(showToast).toHaveBeenCalledWith({
       title: '已录入库存',
       icon: 'success'
     })
     expect(page.data.visibleShoppingLists[0].items[0].isChecked).toBe(true)
+    expect(page.data.visibleShoppingLists[0].updatedAt).toBe('2026-04-16T10:01:00.000Z')
   })
 })

@@ -223,6 +223,7 @@ describe('shopping service', () => {
         isChecked: false
       })
     ])
+    expect(generated.shoppingListUpdatedAt).toBe('2026-04-12T08:10:00.000Z')
 
     const toggled = await toggleShoppingItemChecked(
       {
@@ -238,6 +239,7 @@ describe('shopping service', () => {
       }
     )
     expect(toggled.item.isChecked).toBe(true)
+    expect(toggled.shoppingListUpdatedAt).toBe('2026-04-12T08:20:00.000Z')
   })
 
   it('soft deletes shopping lists', async () => {

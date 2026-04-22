@@ -1,4 +1,4 @@
-<view class="shopping-page">
+<view class="shopping-page" style="{{themeStyle}}">
   <view class="shopping-hero">
     <view class="shopping-hero__date">{{currentDateLabel}}</view>
     <view class="shopping-hero__eyebrow">MARKET ACTION PANEL</view>
@@ -18,7 +18,7 @@
         <view class="shopping-hero__metric-value">{{heroProgressText}}</view>
       </view>
       <view class="shopping-hero__metric">
-        <view class="shopping-hero__metric-label">自动生成</view>
+        <view class="shopping-hero__metric-label">计划生成</view>
         <view class="shopping-hero__metric-value">{{heroGeneratedCountText}}</view>
       </view>
     </view>
@@ -88,19 +88,26 @@
           <view class="shopping-list-card__progress-text">{{item.progressText}}</view>
         </view>
 
-        <view class="shopping-list-card__subhead">
-          <view class="shopping-list-card__subhead-title">采购项 ({{item.items.length}})</view>
+        <view
+          class="shopping-list-card__subhead"
+          data-shopping-list-id="{{item._id}}"
+          bindtap="toggleShoppingListItems"
+        >
+          <view class="shopping-list-card__subhead-toggle">
+            <view class="shopping-list-card__subhead-title">采购项 ({{item.items.length}})</view>
+            <view class="shopping-list-card__subhead-indicator">{{item.itemsCollapsed ? '展开' : '收起'}}</view>
+          </view>
           <view
             wx:if="{{item.status === 'open'}}"
             class="shopping-list-card__generate"
             data-shopping-list-id="{{item._id}}"
-            bindtap="generateFromMealPlans"
+            catchtap="generateFromMealPlans"
           >
-            从计划生成
+            生成计划项
           </view>
         </view>
 
-        <view class="shopping-item-list">
+        <view wx:if="{{!item.itemsCollapsed}}" class="shopping-item-list">
           <view wx:for="{{item.items}}" wx:key="_id" wx:for-item="shoppingItem" class="shopping-item-row">
             <checkbox-group
               class="shopping-item-row__main"
@@ -185,14 +192,18 @@
             placeholder="名称"
             bindinput="handleListItemDraftInput"
           />
-          <input
-            class="shopping-draft-row__input shopping-draft-row__input--category"
-            value="{{item.category}}"
+          <picker
+            class="shopping-draft-row__picker"
+            mode="selector"
+            range="{{listItemCategoryOptions}}"
+            value="{{item.categoryIndex || 0}}"
             data-index="{{index}}"
-            data-field="category"
-            placeholder="分类"
-            bindinput="handleListItemDraftInput"
-          />
+            bindchange="handleListItemDraftCategoryChange"
+          >
+            <view class="shopping-draft-row__input shopping-draft-row__input--category shopping-draft-row__input--picker">
+              {{listItemCategoryOptions[item.categoryIndex] || item.category || '未设置'}}
+            </view>
+          </picker>
           <view class="shopping-draft-row__remove" data-index="{{index}}" bindtap="removeListItemDraft">×</view>
         </view>
 
@@ -225,99 +236,16 @@
     </view>
   </view>
 
-  <view wx:if="{{showPantryEntryModal}}" class="shopping-modal__overlay" catchtap="closePantryEntryModal">
-    <view class="shopping-modal shopping-modal--pantry" catchtap="noop">
-      <view class="shopping-modal__title">录入库存</view>
-
-      <view class="shopping-modal__field-label">名称</view>
-      <input
-        class="shopping-modal__input"
-        value="{{pantryEntryForm.name}}"
-        data-field="name"
-        placeholder="例如：牛奶"
-        bindinput="handlePantryInput"
-      />
-
-      <view class="shopping-modal__field-label">分类</view>
-      <view class="shopping-modal__picker-row">
-        <picker class="shopping-modal__picker-field" mode="selector" range="{{pantryCategoryOptions}}" value="{{pantryCategoryIndex}}" bindchange="handlePantryCategorySelect">
-          <view class="shopping-modal__picker">{{pantryCategoryOptions[pantryCategoryIndex] || '未设置'}}</view>
-        </picker>
-        <view wx:if="{{pantryEntryForm.category}}" class="shopping-modal__clear" bindtap="clearPantryCategory">×</view>
-      </view>
-
-      <view class="shopping-modal__field-label">位置</view>
-      <view class="shopping-modal__picker-row">
-        <picker class="shopping-modal__picker-field" mode="selector" range="{{pantryLocationOptions}}" value="{{pantryLocationIndex}}" bindchange="handlePantryLocationSelect">
-          <view class="shopping-modal__picker">{{pantryLocationOptions[pantryLocationIndex] || '未设置'}}</view>
-        </picker>
-        <view wx:if="{{pantryEntryForm.location}}" class="shopping-modal__clear" bindtap="clearPantryLocation">×</view>
-      </view>
-
-      <view class="shopping-modal__grid">
-        <view>
-          <view class="shopping-modal__field-label">数量</view>
-          <view class="shopping-modal__stepper">
-            <view class="shopping-modal__stepper-btn" bindtap="decrementPantryQuantity">−</view>
-            <view class="shopping-modal__stepper-value">{{pantryEntryForm.quantity}}</view>
-            <view class="shopping-modal__stepper-btn" bindtap="incrementPantryQuantity">＋</view>
-          </view>
-        </view>
-
-        <view>
-          <view class="shopping-modal__field-label">单位</view>
-          <input
-            class="shopping-modal__input shopping-modal__input--compact"
-            value="{{pantryEntryForm.unit}}"
-            data-field="unit"
-            placeholder="袋 / 瓶 / 盒"
-            bindinput="handlePantryInput"
-          />
-        </view>
-      </view>
-
-      <view class="shopping-modal__field-label">生产日期</view>
-      <picker mode="date" value="{{pantryEntryForm.productionDate || todayIso}}" bindchange="handlePantryProductionDateChange">
-        <view class="shopping-modal__picker">{{pantryEntryForm.productionDate || '选择日期'}}</view>
-      </picker>
-
-      <view class="shopping-modal__field-label">保质期(月)</view>
-      <view class="shopping-modal__stepper shopping-modal__stepper--inline">
-        <view class="shopping-modal__stepper-btn" bindtap="decrementPantryShelfLifeMonths">−</view>
-        <view class="shopping-modal__stepper-value">{{pantryEntryForm.shelfLifeMonths || '0'}}</view>
-        <view class="shopping-modal__stepper-btn" bindtap="incrementPantryShelfLifeMonths">＋</view>
-      </view>
-
-      <view class="shopping-modal__field-label">过期日期</view>
-      <view class="shopping-modal__picker-row">
-        <picker class="shopping-modal__picker-field" mode="date" value="{{pantryEntryForm.expirationDate || todayIso}}" bindchange="handlePantryExpirationDateChange">
-          <view class="shopping-modal__picker">{{pantryEntryForm.expirationDate || '选择日期'}}</view>
-        </picker>
-        <view wx:if="{{pantryEntryForm.expirationDate}}" class="shopping-modal__clear" bindtap="clearPantryExpirationDate">×</view>
-      </view>
-
-      <view class="shopping-modal__field-label">开封日期</view>
-      <view class="shopping-modal__picker-row">
-        <picker class="shopping-modal__picker-field" mode="date" value="{{pantryEntryForm.openedDate || todayIso}}" bindchange="handlePantryOpenedDateChange">
-          <view class="shopping-modal__picker">{{pantryEntryForm.openedDate || '选择日期'}}</view>
-        </picker>
-        <view wx:if="{{pantryEntryForm.openedDate}}" class="shopping-modal__clear" bindtap="clearPantryOpenedDate">×</view>
-      </view>
-
-      <view class="shopping-modal__field-label">备注</view>
-      <textarea
-        class="shopping-modal__textarea"
-        value="{{pantryEntryForm.notes}}"
-        data-field="notes"
-        maxlength="80"
-        placeholder="例如：先吃这一盒"
-        bindinput="handlePantryInput"
-      />
-
-      <view class="shopping-modal__footer">
-        <view class="shopping-modal__close" bindtap="closePantryEntryModal">关闭</view>
-        <view class="shopping-modal__submit" bindtap="submitPantryEntry">{{submittingPantryEntry ? '录入中...' : '保存并勾选'}}</view>
-      </view>
-    </view>
-  </view>
+  <pantry-form-modal
+    visible="{{showPantryEntryModal}}"
+    title="录入库存"
+    submit-label="保存"
+    submitting="{{submittingPantryEntry}}"
+    value="{{pantryEntryForm}}"
+    category-options="{{pantryCategoryOptions}}"
+    location-options="{{pantryLocationOptions}}"
+    bind:change="handlePantryEntryFormChange"
+    bind:close="closePantryEntryModal"
+    bind:submit="submitPantryEntry"
+  />
 </view>

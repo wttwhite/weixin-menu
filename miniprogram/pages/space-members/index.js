@@ -1,20 +1,14 @@
 const { createMembersService } = require('../../services/members')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
-
-function decorateMembers(members = [], openid = '') {
-  return (members || []).map((member) => ({
-    ...member,
-    id: member.openid || member._id || '',
-    name: member.nickName || member.name || member.openid || '匿名成员',
-    roleLabel: member.role === 'owner' ? '创建者' : '成员',
-    isCurrentUser: member.openid === openid
-  }))
-}
+const { decorateSpaceMembers } = require('../../utils/member-view')
+const { syncPageTheme } = require('../../utils/theme')
 
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     activeSpaceId: '',
     members: [],
     role: '',
@@ -24,6 +18,7 @@ Page({
   },
 
   onShow() {
+    syncPageTheme(this)
     this.loadMembers()
   },
 
@@ -56,7 +51,7 @@ Page({
       const resolvedSpaceId = session.activeSpaceId || requestedSpaceId
       const currentOpenid = session.openid || ''
       const result = await createMembersService().listMembers(resolvedSpaceId)
-      const members = decorateMembers(result.members || [], currentOpenid)
+      const members = decorateSpaceMembers(result.members || [], currentOpenid)
       const activeSpace = (session.spaces || []).find((item) => item.spaceId === resolvedSpaceId || item.id === resolvedSpaceId)
       const app = typeof getApp === 'function' ? getApp() : null
       if (app && typeof app.setActiveSpaceId === 'function') {
@@ -98,9 +93,61 @@ Page({
 
     try {
       await createMembersService().removeMember(this.data.activeSpaceId, memberOpenid)
-      await this.loadMembers()
+      this.setData({
+        members: (this.data.members || []).filter((item) => item && item.openid !== memberOpenid)
+      })
       wx.showToast({
         title: '成员已移除',
+        icon: 'success'
+      })
+    } catch (error) {
+      wx.showToast({
+        title: getErrorMessage(error),
+        icon: 'none'
+      })
+    }
+  },
+
+  async handleEditMember(event) {
+    const dataset = event && event.currentTarget ? event.currentTarget.dataset || {} : {}
+    const memberOpenid = dataset.memberOpenid || ''
+    const currentName = dataset.name || ''
+    if (!memberOpenid || this.data.role !== 'owner' || typeof wx.showModal !== 'function') {
+      return
+    }
+
+    const modal = await wx.showModal({
+      title: '编辑成员昵称',
+      editable: true,
+      placeholderText: '输入新的成员昵称',
+      content: currentName,
+      confirmText: '保存'
+    })
+    if (!modal.confirm) {
+      return
+    }
+
+    const displayName = typeof modal.content === 'string' ? modal.content.trim() : ''
+    if (!displayName) {
+      return
+    }
+
+    try {
+      await createMembersService().updateMemberDisplayName(this.data.activeSpaceId, memberOpenid, displayName)
+      this.setData({
+        members: (this.data.members || []).map((item) => {
+          if (!item || item.openid !== memberOpenid) {
+            return item
+          }
+          return {
+            ...item,
+            name: displayName,
+            displayName
+          }
+        })
+      })
+      wx.showToast({
+        title: '成员昵称已更新',
         icon: 'success'
       })
     } catch (error) {

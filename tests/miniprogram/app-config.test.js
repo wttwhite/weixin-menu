@@ -22,7 +22,14 @@ describe('miniprogram app config', () => {
       'pages/pantry/index',
       'pages/meal-plans/index',
       'pages/shopping/index',
-      'pages/statistics/index'
+      'pages/profile/index'
     ])
+  })
+
+  it('registers profile page for the personal center tab', () => {
+    const raw = readFileSync('miniprogram/app.json', 'utf8')
+    const appConfig = JSON.parse(raw)
+
+    expect(appConfig.pages).toContain('pages/profile/index')
   })
 })

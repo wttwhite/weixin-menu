@@ -2,10 +2,13 @@ const { createStatisticsService } = require('../../services/statistics')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 const { syncCurrentTabBar } = require('../../utils/tab-bar')
+const { syncPageTheme } = require('../../utils/theme')
 
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     activeSpaceId: '',
     errorMessage: '',
     dashboard: {
@@ -26,6 +29,7 @@ Page({
   },
 
   onShow() {
+    syncPageTheme(this)
     syncCurrentTabBar(this, '/pages/statistics/index')
     this.loadDashboard()
   },

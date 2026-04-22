@@ -1,4 +1,4 @@
-<view class="recipes-page">
+<view class="recipes-page" style="{{themeStyle}}">
   <view class="hero-banner">
     <image class="hero-banner__background" src="/images/food-hero-table.svg" mode="aspectFill" />
     <view class="hero-banner__overlay">
@@ -35,8 +35,8 @@
     </view>
 
     <view class="management-card__actions">
-      <t-button class="action-pill" theme="default" shape="round" bindtap="handleRandomPick">🎲 随机点菜</t-button>
-      <t-button class="action-pill action-pill--create" theme="primary" shape="round" bindtap="goCreate">＋ 新增菜谱</t-button>
+      <view class="action-pill action-pill--random" bindtap="handleRandomPick">🎲 随机点菜</view>
+      <view class="action-pill action-pill--create" bindtap="goCreate">＋ 新增菜谱</view>
     </view>
   </view>
 
@@ -100,7 +100,7 @@
               data-recipe-id="{{item._id}}"
               bindtap="toggleRecipeSelection"
             >
-              {{item.selectionSymbol}}
+              <text class="dish-add__symbol {{item.selected ? 'dish-add__symbol--selected' : ''}}">{{item.selectionSymbol}}</text>
             </view>
           </view>
         </view>
@@ -121,6 +121,60 @@
     </view>
     <view class="cart-primary" bindtap="handlePlanSelectedRecipes">📅 加入计划</view>
     <view class="cart-secondary" bindtap="clearSelectedRecipes">清空</view>
+  </view>
+
+  <view wx:if="{{showPlanModal}}" class="plan-modal__overlay" catchtap="closePlanModal">
+    <view class="plan-modal" catchtap="noop">
+      <view class="plan-modal__header">
+        <view class="plan-modal__title">加入计划</view>
+        <view class="plan-modal__close" bindtap="closePlanModal">×</view>
+      </view>
+
+      <view class="plan-modal__section">
+        <view class="plan-modal__label">已选 {{selectedRecipesCount}} 道菜</view>
+        <view class="plan-modal__tags">
+          <view wx:for="{{planModalSelectedRecipes}}" wx:key="_id" class="plan-modal__tag">{{item.name}}</view>
+        </view>
+      </view>
+
+      <view class="plan-modal__section">
+        <view class="plan-modal__label">选择日期</view>
+        <view class="plan-modal__date-options">
+          <view
+            wx:for="{{planModalDateOptions}}"
+            wx:key="value"
+            class="plan-modal__date-chip {{item.value === planModalDate ? 'plan-modal__date-chip--active' : ''}}"
+            data-date="{{item.value}}"
+            bindtap="handlePlanDateShortcutSelect"
+          >
+            {{item.label}}
+          </view>
+        </view>
+        <picker mode="date" value="{{planModalDate}}" bindchange="handlePlanDateChange">
+          <view class="plan-modal__date">{{planModalDate}}</view>
+        </picker>
+      </view>
+
+      <view class="plan-modal__section">
+        <view class="plan-modal__label">餐次</view>
+        <view class="plan-modal__meal-types">
+          <view
+            wx:for="{{planModalMealTypeOptions}}"
+            wx:key="value"
+            class="plan-modal__meal-chip {{item.value === planModalMealType ? 'plan-modal__meal-chip--active' : ''}}"
+            data-meal-type="{{item.value}}"
+            bindtap="handlePlanMealTypeChange"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+
+      <view class="plan-modal__actions">
+        <view class="plan-modal__secondary" bindtap="closePlanModal">取消</view>
+        <view class="plan-modal__primary" bindtap="submitPlanSelection">添加到 {{planModalDate}}</view>
+      </view>
+    </view>
   </view>
 
   <view wx:if="{{showCategoryManager}}" class="category-modal__overlay" catchtap="closeCategoryManager">

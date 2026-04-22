@@ -424,6 +424,137 @@ describe('pantry list page flow', () => {
     })
   })
 
+  it('opens the create pantry modal from the list page and saves with local state update', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [],
+            filterOptions: {
+              categories: [],
+              locations: []
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'dairy' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'fridge' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'pantry-1',
+              name: 'Milk',
+              category: 'dairy',
+              location: 'fridge',
+              quantity: '2',
+              unit: '盒',
+              status: 'active'
+            }
+          }
+        }
+      })
+    const showToast = vi.fn()
+    const navigateTo = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo,
+      showToast,
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.goCreate()
+
+    expect(page.data.showCreateModal).toBe(true)
+    expect(page.data.createForm).toEqual(
+      expect.objectContaining({
+        name: '',
+        quantity: '1',
+        status: 'active'
+      })
+    )
+    expect(page.data.createCategoryOptions).toEqual(['未设置', 'dairy'])
+    expect(page.data.createLocationOptions).toEqual(['未设置', 'fridge'])
+    expect(navigateTo).not.toHaveBeenCalled()
+
+    page.handleCreateFormChange({
+      detail: {
+        form: {
+          ...page.data.createForm,
+          name: 'Milk',
+          category: 'dairy',
+          quantity: '2',
+          unit: '盒',
+          location: 'fridge'
+        }
+      }
+    })
+
+    await page.submitCreatePantry({
+      detail: {
+        form: page.data.createForm
+      }
+    })
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(4)
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'api',
+      data: {
+        action: 'createPantryItem',
+        spaceId: 'space-1',
+        item: expect.objectContaining({
+          name: 'Milk',
+          category: 'dairy',
+          quantity: '2',
+          unit: '盒',
+          location: 'fridge',
+          status: 'active'
+        })
+      },
+      config: undefined
+    })
+    expect(page.data.showCreateModal).toBe(false)
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已添加库存',
+      icon: 'success'
+    })
+    expect(page.data.items).toEqual([
+      expect.objectContaining({
+        _id: 'pantry-1',
+        name: 'Milk'
+      })
+    ])
+  })
+
   it('reorders category manager items by dragging the handle and persists the new order', async () => {
     const callFunction = vi
       .fn()
@@ -589,67 +720,7 @@ describe('pantry list page flow', () => {
         result: {
           code: 0,
           data: {
-            items: [
-              {
-                _id: 'pantry-1',
-                name: 'Milk',
-                category: 'dairy',
-                location: 'fridge',
-                quantity: '1',
-                unit: '盒',
-                status: 'fresh',
-                usageStatus: 'normal'
-              }
-            ]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [
-              { name: 'dairy', pantryItemCount: 1, deletable: false },
-              { name: 'dry', pantryItemCount: 0, deletable: true }
-            ]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
             item: { name: '冷藏乳品', pantryItemCount: 1, deletable: false }
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [
-              {
-                _id: 'pantry-1',
-                name: 'Milk',
-                category: '冷藏乳品',
-                location: 'fridge',
-                quantity: '1',
-                unit: '盒',
-                status: 'fresh',
-                usageStatus: 'normal'
-              }
-            ]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [
-              { name: '冷藏乳品', pantryItemCount: 1, deletable: false },
-              { name: 'dry', pantryItemCount: 0, deletable: true }
-            ]
           }
         }
       })
@@ -659,33 +730,6 @@ describe('pantry list page flow', () => {
           data: {
             deleted: true,
             name: 'dry'
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [
-              {
-                _id: 'pantry-1',
-                name: 'Milk',
-                category: '冷藏乳品',
-                location: 'fridge',
-                quantity: '1',
-                unit: '盒',
-                status: 'fresh',
-                usageStatus: 'normal'
-              }
-            ]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [{ name: '冷藏乳品', pantryItemCount: 1, deletable: false }]
           }
         }
       })
@@ -734,7 +778,9 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
+    expect(callFunction).toHaveBeenCalledTimes(4)
     expect(page.data.categoryManagerInput).toBe('')
+    expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['dairy', 'dry'])
 
     await page.renameCategoryManagerItem({
       currentTarget: {
@@ -743,7 +789,7 @@ describe('pantry list page flow', () => {
         }
       }
     })
-    expect(callFunction).toHaveBeenNthCalledWith(7, {
+    expect(callFunction).toHaveBeenNthCalledWith(5, {
       name: 'api',
       data: {
         action: 'updatePantryCategory',
@@ -753,6 +799,15 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
+    expect(callFunction).toHaveBeenCalledTimes(5)
+    expect(page.data.items[0]).toEqual(
+      expect.objectContaining({
+        _id: 'pantry-1',
+        category: '冷藏乳品',
+        categoryLabel: '冷藏乳品'
+      })
+    )
+    expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['冷藏乳品', 'dry'])
 
     await page.deleteCategoryManagerItem({
       currentTarget: {
@@ -762,7 +817,7 @@ describe('pantry list page flow', () => {
         }
       }
     })
-    expect(callFunction).toHaveBeenNthCalledWith(10, {
+    expect(callFunction).toHaveBeenNthCalledWith(6, {
       name: 'api',
       data: {
         action: 'deletePantryCategory',
@@ -771,9 +826,115 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
+    expect(callFunction).toHaveBeenCalledTimes(6)
     expect(page.data.categoryManagerItems).toEqual([
       expect.objectContaining({
         name: '冷藏乳品',
+        pantryItemCount: 1,
+        deletable: false
+      })
+    ])
+  })
+
+  it('renames pantry locations locally without reloading the full pantry list', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'pantry-1',
+                name: 'Milk',
+                category: 'dairy',
+                location: 'fridge',
+                quantity: '1',
+                unit: '盒',
+                status: 'fresh',
+                usageStatus: 'normal'
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'dairy', pantryItemCount: 1, deletable: false }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'fridge', pantryItemCount: 1, deletable: false }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: { name: '冷藏室', pantryItemCount: 1, deletable: false }
+          }
+        }
+      })
+    const showModal = vi.fn().mockResolvedValue({
+      confirm: true,
+      content: '冷藏室'
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      showModal,
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+    await page.openSettingsModal()
+
+    await page.renameLocationManagerItem({
+      currentTarget: {
+        dataset: {
+          name: 'fridge'
+        }
+      }
+    })
+
+    expect(callFunction).toHaveBeenCalledTimes(4)
+    expect(callFunction).toHaveBeenNthCalledWith(4, {
+      name: 'api',
+      data: {
+        action: 'updatePantryLocation',
+        spaceId: 'space-1',
+        previousName: 'fridge',
+        name: '冷藏室'
+      },
+      config: undefined
+    })
+    expect(page.data.items[0]).toEqual(
+      expect.objectContaining({
+        _id: 'pantry-1',
+        location: '冷藏室',
+        locationLabel: '冷藏室'
+      })
+    )
+    expect(page.data.locationManagerItems).toEqual([
+      expect.objectContaining({
+        name: '冷藏室',
         pantryItemCount: 1,
         deletable: false
       })

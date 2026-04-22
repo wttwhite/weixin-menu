@@ -26,7 +26,9 @@ export function createFakeDb(seed = {}) {
           spaceId: item.spaceId,
           role: item.role,
           status: item.status,
-          name: space ? space.name : ''
+          name: space ? space.name : '',
+          inviteCode: space ? space.inviteCode || '' : '',
+          displayName: item.displayName || ''
         }
       })
   }
@@ -96,6 +98,17 @@ export function createFakeDb(seed = {}) {
     return true
   }
 
+  function updateMemberDisplayName(spaceId, openid, displayName) {
+    const existing = memberships.find(
+      (item) => item.spaceId === spaceId && item.openid === openid && item.status === 'active'
+    )
+    if (!existing) {
+      return null
+    }
+    existing.displayName = displayName
+    return clone(existing)
+  }
+
   function renameSpace(spaceId, name) {
     const space = spaces.get(spaceId)
     if (!space) {
@@ -130,6 +143,7 @@ export function createFakeDb(seed = {}) {
       addOrActivateMembership,
       listMembers,
       removeMember,
+      updateMemberDisplayName,
       renameSpace,
       rotateInviteCode
     }

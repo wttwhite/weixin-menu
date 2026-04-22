@@ -1,4 +1,4 @@
-<view class="backup-page">
+<view class="backup-page" style="{{themeStyle}}">
   <view class="backup-hero">
     <view class="backup-title">{{activeSpaceId || '尚未选择空间'}}</view>
     <view class="backup-text">导出或导入当前空间的结构化数据与图片文件。</view>

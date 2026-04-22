@@ -1,6 +1,8 @@
 .detail-page {
   min-height: 100vh;
   padding: 20rpx 20rpx 160rpx;
+  box-sizing: border-box;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top, rgba(255, 230, 186, 0.24), transparent 30%),
     linear-gradient(180deg, #f8f9fc 0%, #eef2f8 100%);
@@ -26,11 +28,20 @@
   min-height: 360rpx;
 }
 
+.hero-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 18, 32, 0.08) 0%, rgba(11, 18, 32, 0.48) 100%);
+  pointer-events: none;
+}
+
 .hero-cover {
   width: 100%;
   height: 360rpx;
   display: block;
   background: #f2f4f8;
+  filter: saturate(0.94) brightness(0.88);
 }
 
 .hero-overlay {
@@ -38,31 +49,67 @@
   left: 22rpx;
   right: 22rpx;
   bottom: 22rpx;
+  z-index: 1;
   color: #fff;
+}
+
+.hero-copy-panel {
+  max-width: 88%;
+  display: grid;
+  gap: 10rpx;
+  justify-items: start;
 }
 
 .hero-badge {
   display: inline-flex;
+  justify-self: start;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.22);
+  align-self: start;
+  background: rgba(14, 22, 38, 0.44);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(14rpx);
+  -webkit-backdrop-filter: blur(14rpx);
   font-size: 24rpx;
   font-weight: 700;
 }
 
 .hero-title {
-  margin-top: 16rpx;
+  display: inline-flex;
+  align-self: start;
+  justify-self: start;
+  width: auto;
+  max-width: 100%;
+  margin-top: 0;
+  padding: 10rpx 16rpx 12rpx;
+  border-radius: 20rpx;
+  background: rgba(10, 16, 28, 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(14rpx);
+  -webkit-backdrop-filter: blur(14rpx);
   font-size: 54rpx;
   line-height: 1.08;
   font-weight: 800;
-  text-shadow: 0 12rpx 22rpx rgba(0, 0, 0, 0.2);
+  text-shadow: 0 10rpx 24rpx rgba(0, 0, 0, 0.36);
 }
 
 .hero-summary {
-  margin-top: 10rpx;
+  display: inline-flex;
+  align-self: start;
+  justify-self: start;
+  width: auto;
+  max-width: 100%;
+  margin-top: 0;
+  padding: 10rpx 16rpx;
+  border-radius: 18rpx;
+  background: rgba(10, 16, 28, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12rpx);
+  -webkit-backdrop-filter: blur(12rpx);
   font-size: 30rpx;
   line-height: 1.4;
   font-weight: 700;
+  text-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.28);
 }
 
 .hero-metrics {
@@ -73,24 +120,40 @@
 }
 
 .hero-metric {
+  display: inline-flex;
+  align-items: center;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(12, 20, 34, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12rpx);
+  -webkit-backdrop-filter: blur(12rpx);
   font-size: 28rpx;
   font-weight: 700;
+  text-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.24);
 }
 
-.hero-share {
+button.hero-share {
   position: absolute;
   top: 20rpx;
   right: 20rpx;
-  width: 68rpx;
+  z-index: 1;
+  width: auto;
+  min-width: 0;
   height: 68rpx;
-  line-height: 68rpx;
-  margin: 0;
-  padding: 0;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0 22rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   border-radius: 34rpx;
-  background: rgba(255, 255, 255, 0.18);
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
   color: #fff;
-  font-size: 30rpx;
-  box-shadow: 0 12rpx 22rpx rgba(0, 0, 0, 0.16);
+  font-size: 28rpx;
+  font-weight: 700;
+  box-shadow: 0 12rpx 22rpx rgba(197, 106, 61, 0.28);
 }
 
 .action-row {
@@ -98,32 +161,38 @@
   gap: 14rpx;
 }
 
-.action-btn {
+.t-button.action-btn {
   flex: 1;
+  width: auto;
+  min-width: 0;
+  margin-left: 0;
+  margin-right: 0;
   margin: 0;
   --td-button-height: 96rpx;
   --td-button-font-size: 34rpx;
 }
 
-.action-btn--edit {
+.t-button.action-btn--edit {
   --td-button-primary-bg-color: var(--brand);
   --td-button-primary-active-bg-color: var(--brand-strong);
   --td-button-primary-border-color: var(--brand);
 }
 
-.action-btn--delete {
+.t-button.action-btn--delete {
   --td-button-danger-outline-color: #d14b4b;
   --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
 }
 
 .card-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 16rpx;
 }
 
 .card-head__left {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12rpx;
@@ -140,12 +209,15 @@
 }
 
 .card-head__meta {
+  flex: none;
+  text-align: right;
   font-size: 28rpx;
   font-weight: 700;
   color: #8d96a3;
 }
 
 .card-title {
+  min-width: 0;
   font-size: 38rpx;
   font-weight: 800;
   color: #182234;
