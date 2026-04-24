@@ -28,9 +28,13 @@
   <view wx:else>
     <view class="calendar-panel">
       <view class="calendar-panel__nav">
-        <view class="calendar-nav__button" bindtap="goPrevMonth">‹</view>
+        <view class="calendar-nav__button" bindtap="goPrevMonth">
+          <view class="calendar-nav__button-icon calendar-nav__button-icon--left"></view>
+        </view>
         <view class="calendar-nav__month">{{viewMonthLabel}}</view>
-        <view class="calendar-nav__button" bindtap="goNextMonth">›</view>
+        <view class="calendar-nav__button" bindtap="goNextMonth">
+          <view class="calendar-nav__button-icon calendar-nav__button-icon--right"></view>
+        </view>
         <t-button t-class="calendar-nav__today" theme="primary" size="small" shape="round" bindtap="goToday">回到今日</t-button>
       </view>
 

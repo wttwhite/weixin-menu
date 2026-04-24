@@ -10,6 +10,7 @@ Page({
     themeKey: 'default',
     themeStyle: '',
     activeSpaceId: '',
+    activeSpaceName: '',
     members: [],
     role: '',
     inviteCode: '',
@@ -33,6 +34,7 @@ Page({
       loading: true,
       errorMessage: '',
       activeSpaceId: requestedSpaceId,
+      activeSpaceName: '',
       currentOpenid: ''
     })
 
@@ -41,7 +43,8 @@ Page({
         loading: false,
         members: [],
         role: '',
-        inviteCode: ''
+        inviteCode: '',
+        activeSpaceName: ''
       })
       return
     }
@@ -60,6 +63,7 @@ Page({
       this.setData({
         loading: false,
         activeSpaceId: resolvedSpaceId,
+        activeSpaceName: (activeSpace && activeSpace.name) || '未命名空间',
         members,
         role: session.role || '',
         inviteCode: (activeSpace && activeSpace.inviteCode) || '',
@@ -71,7 +75,8 @@ Page({
         errorMessage: getErrorMessage(error),
         members: [],
         role: '',
-        inviteCode: ''
+        inviteCode: '',
+        activeSpaceName: ''
       })
     }
   },

@@ -148,91 +148,114 @@
   </view>
 
   <view wx:if="{{showListModal}}" class="shopping-modal__overlay" catchtap="closeListModal" catchtouchmove="noop">
-    <view class="shopping-modal" catchtap="noop" catchtouchmove="noop">
+    <view class="shopping-modal" catchtap="noop">
       <view class="shopping-modal__title">{{listModalTitle}}</view>
 
-      <input
-        class="shopping-modal__input"
-        value="{{listForm.name}}"
-        data-field="name"
-        placeholder="例如：周末买菜"
-        bindinput="handleListFormInput"
-      />
-
-      <view class="shopping-modal__field-label">日期</view>
-      <picker mode="date" value="{{listForm.listDate || todayIso}}" bindchange="handleListDateChange">
-        <view class="shopping-modal__picker">{{listForm.listDate || todayIso}}</view>
-      </picker>
-
-      <view class="shopping-modal__field-label">状态</view>
-      <picker mode="selector" range="{{statusTabs}}" range-key="label" value="{{listForm.status === 'completed' ? 2 : (listForm.status === 'archived' ? 3 : 1)}}" bindchange="handleListStatusChange">
-        <view class="shopping-modal__picker">{{listForm.status === 'completed' ? '已完成' : (listForm.status === 'archived' ? '已归档' : '进行中')}}</view>
-      </picker>
-
-      <view class="shopping-modal__field-label">备注</view>
-      <textarea
-        class="shopping-modal__textarea"
-        value="{{listForm.notes}}"
-        data-field="notes"
-        maxlength="120"
-        placeholder="备注信息..."
-        bindinput="handleListFormInput"
-      />
-
-      <view class="shopping-modal__divider"></view>
-      <view class="shopping-modal__subhead">手工采购项</view>
-
-      <view wx:for="{{listItemDrafts}}" wx:key="index" class="shopping-draft-row">
-        <view class="shopping-draft-row__top">
+      <scroll-view class="shopping-modal__body" scroll-y="true" show-scrollbar="{{false}}">
+        <view class="shopping-modal__body-content">
           <input
-            class="shopping-draft-row__input shopping-draft-row__input--name"
-            value="{{item.name}}"
-            data-index="{{index}}"
+            class="shopping-modal__input"
+            value="{{listForm.name}}"
             data-field="name"
-            placeholder="名称"
-            bindinput="handleListItemDraftInput"
+            placeholder="例如：周末买菜"
+            bindinput="handleListFormInput"
           />
-          <picker
-            class="shopping-draft-row__picker"
-            mode="selector"
-            range="{{listItemCategoryOptions}}"
-            value="{{item.categoryIndex || 0}}"
-            data-index="{{index}}"
-            bindchange="handleListItemDraftCategoryChange"
-          >
-            <view class="shopping-draft-row__input shopping-draft-row__input--category shopping-draft-row__input--picker">
-              {{listItemCategoryOptions[item.categoryIndex] || item.category || '未设置'}}
-            </view>
+
+          <view class="shopping-modal__field-label">日期</view>
+          <picker mode="date" value="{{listForm.listDate || todayIso}}" bindchange="handleListDateChange">
+            <view class="shopping-modal__picker">{{listForm.listDate || todayIso}}</view>
           </picker>
-          <view class="shopping-draft-row__remove" data-index="{{index}}" bindtap="removeListItemDraft">×</view>
-        </view>
 
-        <view class="shopping-draft-row__bottom">
-          <input
-            class="shopping-draft-row__input shopping-draft-row__input--quantity"
-            value="{{item.quantity}}"
-            data-index="{{index}}"
-            data-field="quantity"
-            placeholder="数量"
-            bindinput="handleListItemDraftInput"
-          />
-          <input
-            class="shopping-draft-row__input shopping-draft-row__input--unit"
-            value="{{item.unit}}"
-            data-index="{{index}}"
-            data-field="unit"
-            placeholder="单位"
-            bindinput="handleListItemDraftInput"
-          />
-        </view>
-      </view>
+          <view class="shopping-modal__field-label">状态</view>
+          <picker mode="selector" range="{{statusTabs}}" range-key="label" value="{{listForm.status === 'completed' ? 2 : (listForm.status === 'archived' ? 3 : 1)}}" bindchange="handleListStatusChange">
+            <view class="shopping-modal__picker">{{listForm.status === 'completed' ? '已完成' : (listForm.status === 'archived' ? '已归档' : '进行中')}}</view>
+          </picker>
 
-      <view class="shopping-modal__add-row" bindtap="addListItemDraft">＋ 添加采购项</view>
+          <view class="shopping-modal__field-label">备注</view>
+          <textarea
+            class="shopping-modal__textarea"
+            value="{{listForm.notes}}"
+            data-field="notes"
+            maxlength="120"
+            placeholder="备注信息..."
+            bindinput="handleListFormInput"
+          />
+
+          <view class="shopping-modal__divider"></view>
+          <view class="shopping-modal__subhead">手工采购项</view>
+
+          <view wx:for="{{listItemDrafts}}" wx:key="index" class="shopping-draft-row">
+            <view class="shopping-draft-row__top">
+              <input
+                class="shopping-draft-row__input shopping-draft-row__input--name"
+                value="{{item.name}}"
+                data-index="{{index}}"
+                data-field="name"
+                placeholder="名称"
+                bindinput="handleListItemDraftInput"
+              />
+              <view
+                class="shopping-draft-row__input shopping-draft-row__input--category shopping-draft-row__input--picker {{!item.category ? 'shopping-draft-row__input--placeholder' : ''}}"
+                data-index="{{index}}"
+                bindtap="openDraftCategorySelector"
+              >
+                <text>{{listItemCategoryOptions[item.categoryIndex] || item.category || '未设置'}}</text>
+              </view>
+              <view class="shopping-draft-row__remove" data-index="{{index}}" bindtap="removeListItemDraft">×</view>
+            </view>
+
+            <view class="shopping-draft-row__bottom">
+              <input
+                class="shopping-draft-row__input shopping-draft-row__input--quantity"
+                value="{{item.quantity}}"
+                data-index="{{index}}"
+                data-field="quantity"
+                placeholder="数量"
+                bindinput="handleListItemDraftInput"
+              />
+              <input
+                class="shopping-draft-row__input shopping-draft-row__input--unit"
+                value="{{item.unit}}"
+                data-index="{{index}}"
+                data-field="unit"
+                placeholder="单位"
+                bindinput="handleListItemDraftInput"
+              />
+            </view>
+          </view>
+
+          <view class="shopping-modal__add-row" bindtap="addListItemDraft">＋ 添加采购项</view>
+        </view>
+      </scroll-view>
 
       <view class="shopping-modal__footer">
         <view class="shopping-modal__close" bindtap="closeListModal">关闭</view>
         <view class="shopping-modal__submit" bindtap="submitListModal">{{submittingList ? '保存中...' : (editingShoppingListId ? '保存清单' : '创建清单')}}</view>
       </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showDraftCategorySelector}}" class="category-selector__overlay" catchtap="closeDraftCategorySelector" catchtouchmove="noop">
+    <view class="category-selector" catchtap="noop" catchtouchmove="noop">
+      <view class="category-selector__header">
+        <view class="category-selector__title">选择食材分类</view>
+      </view>
+
+      <scroll-view wx:if="{{draftCategorySelectorItems.length}}" scroll-y="true" class="category-selector__list" show-scrollbar="{{false}}">
+        <view class="category-selector__list-inner">
+          <view
+            wx:for="{{draftCategorySelectorItems}}"
+            wx:key="label"
+            class="{{item.itemClass}}"
+            data-name="{{item.label}}"
+            bindtap="selectDraftCategoryOption"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </scroll-view>
+
+      <view wx:else class="category-selector__empty">暂无分类</view>
     </view>
   </view>
 

@@ -9,6 +9,7 @@ const {
   getPickerValue,
   normalizeText
 } = require('../../utils/pantry-form')
+const { splitShoppingItemText } = require('../../shared/domain/shopping')
 const { syncCurrentTabBar } = require('../../utils/tab-bar')
 const { syncPageTheme } = require('../../utils/theme')
 
@@ -49,6 +50,21 @@ function createEmptyListItemDraft() {
     unit: '',
     notes: ''
   }
+}
+
+function buildDraftCategorySelectorItems(options = [], selectedValue = '') {
+  return (options || []).map((item) => {
+    const label = normalizeText(item)
+    const normalizedLabel = label || '未设置'
+    const active = (selectedValue ? label : '未设置') === normalizedLabel
+    return {
+      label: normalizedLabel,
+      active,
+      itemClass: active
+        ? 'category-selector__item category-selector__item--active'
+        : 'category-selector__item'
+    }
+  })
 }
 
 function buildShoppingProgress(items = []) {
@@ -165,13 +181,17 @@ function buildHeroMetrics(items = []) {
 }
 
 function buildDraftFromShoppingItem(item = {}) {
+  const parsed = splitShoppingItemText(item.name || '')
+  const quantity = item.quantity || parsed.quantity || '1'
+  const unit = item.unit || parsed.unit || ''
+
   return {
     shoppingItemId: item._id || '',
     expectedUpdatedAt: item.updatedAt || '',
-    name: item.name || '',
+    name: item.quantity || item.unit ? (item.name || '') : (parsed.name || item.name || ''),
     category: item.category || '',
-    quantity: item.quantity || '1',
-    unit: item.unit || '',
+    quantity,
+    unit,
     notes: item.notes || ''
   }
 }
@@ -311,6 +331,9 @@ Page({
     listForm: createEmptyListForm(),
     listItemDrafts: [createEmptyListItemDraft()],
     listItemCategoryOptions: ['未设置'],
+    showDraftCategorySelector: false,
+    draftCategorySelectorItems: [],
+    draftCategorySelectorRowIndex: -1,
     collapsedShoppingListIds: [],
     showPantryEntryModal: false,
     submittingPantryEntry: false,
@@ -497,7 +520,10 @@ Page({
     this.setData({
       showListModal: false,
       submittingList: false,
-      listItemCategoryOptions: ['未设置']
+      listItemCategoryOptions: ['未设置'],
+      showDraftCategorySelector: false,
+      draftCategorySelectorItems: [],
+      draftCategorySelectorRowIndex: -1
     })
   },
 
@@ -567,7 +593,7 @@ Page({
     })
   },
 
-  handleListItemDraftCategoryChange(event) {
+  openDraftCategorySelector(event) {
     const index = Number(event && event.currentTarget && event.currentTarget.dataset
       ? event.currentTarget.dataset.index
       : -1)
@@ -575,11 +601,43 @@ Page({
       return
     }
 
-    const nextIndex = Number(event.detail.value)
+    const draft = (this.data.listItemDrafts || [])[index] || {}
+    const selectedValue = normalizeText(draft.category)
+
     this.setData({
-      [`listItemDrafts[${index}].categoryIndex`]: nextIndex,
-      [`listItemDrafts[${index}].category`]: getPickerValue(this.data.listItemCategoryOptions || [], nextIndex)
+      showDraftCategorySelector: true,
+      draftCategorySelectorRowIndex: index,
+      draftCategorySelectorItems: buildDraftCategorySelectorItems(
+        this.data.listItemCategoryOptions || ['未设置'],
+        selectedValue
+      )
     })
+  },
+
+  closeDraftCategorySelector() {
+    this.setData({
+      showDraftCategorySelector: false,
+      draftCategorySelectorItems: [],
+      draftCategorySelectorRowIndex: -1
+    })
+  },
+
+  selectDraftCategoryOption(event) {
+    const index = this.data.draftCategorySelectorRowIndex
+    if (index < 0) {
+      return
+    }
+
+    const name = event && event.currentTarget && event.currentTarget.dataset
+      ? normalizeText(event.currentTarget.dataset.name)
+      : ''
+    const category = name === '未设置' ? '' : name
+
+    this.setData({
+      [`listItemDrafts[${index}].categoryIndex`]: getPickerIndex(this.data.listItemCategoryOptions || [], category),
+      [`listItemDrafts[${index}].category`]: category
+    })
+    this.closeDraftCategorySelector()
   },
 
   toggleShoppingListItems(event) {
@@ -855,12 +913,13 @@ Page({
       pantryService.listPantryLocations(this.data.activeSpaceId)
     ])
 
+    const parsed = splitShoppingItemText(shoppingItem.name || '')
     const pantryEntryForm = {
       ...createEmptyPantryForm(),
-      name: shoppingItem.name || '',
+      name: shoppingItem.quantity || shoppingItem.unit ? (shoppingItem.name || '') : (parsed.name || shoppingItem.name || ''),
       category: shoppingItem.category || '',
-      quantity: shoppingItem.quantity || '1',
-      unit: shoppingItem.unit || ''
+      quantity: shoppingItem.quantity || parsed.quantity || '1',
+      unit: shoppingItem.unit || parsed.unit || ''
     }
     const pantryCategoryOptions = buildManagerOptionLabels(categoryResult.items || [], pantryEntryForm.category)
     const pantryLocationOptions = buildManagerOptionLabels(locationResult.items || [], pantryEntryForm.location)

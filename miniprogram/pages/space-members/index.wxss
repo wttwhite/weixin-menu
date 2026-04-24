@@ -85,13 +85,6 @@
   color: var(--brand-strong);
 }
 
-.member-card__id {
-  margin-top: 10rpx;
-  font-size: 22rpx;
-  color: var(--text-secondary);
-  word-break: break-all;
-}
-
 .member-card__remove {
   margin-top: 0;
   --td-button-danger-outline-color: #d14b4b;

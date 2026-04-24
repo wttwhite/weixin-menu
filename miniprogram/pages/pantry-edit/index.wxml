@@ -193,7 +193,6 @@
             <view class="category-picker" bindtap="openUnitSelector">
               <view class="category-picker__value {{!form.unit ? 'category-picker__value--placeholder' : ''}} {{form.unit ? 'field-input--with-clear' : ''}}">
                 <text>{{form.unit || '选择或输入单位'}}</text>
-                <view class="category-picker__arrow"></view>
               </view>
             </view>
             <view wx:if="{{form.unit}}" class="field-clear" bindtap="clearUnit">×</view>

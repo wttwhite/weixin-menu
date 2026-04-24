@@ -41,6 +41,36 @@ beforeEach(() => {
 })
 
 describe('shopping edit page flow', () => {
+  it('splits combined item text into name, quantity, and unit on load', async () => {
+    global.wx = {
+      cloud: { callFunction: vi.fn() },
+      showToast: vi.fn(),
+      navigateBack: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping-edit/index.js')
+    page.onLoad({
+      shoppingListId: 'list-1',
+      shoppingItemId: 'item-1',
+      name: encodeURIComponent('土豆 2个'),
+      quantity: '',
+      unit: '',
+      notes: ''
+    })
+
+    expect(page.data.form).toEqual({
+      name: '土豆',
+      quantity: '2',
+      unit: '个',
+      notes: ''
+    })
+  })
+
   it('marks the shopping page for refresh after a successful submit', async () => {
     const callFunction = vi.fn().mockResolvedValue({
       result: {

@@ -100,6 +100,7 @@ describe('space-members page flow', () => {
     const page = await loadPage('../../miniprogram/pages/space-members/index.js')
     await page.loadMembers()
 
+    expect(page.data.activeSpaceName).toBe('家庭厨房')
     expect(page.data.members[1].name).toBe('帮厨原名')
     await page.handleEditMember({
       currentTarget: {
@@ -188,6 +189,7 @@ describe('space-members page flow', () => {
     const page = await loadPage('../../miniprogram/pages/space-members/index.js')
     await page.loadMembers()
 
+    expect(page.data.activeSpaceName).toBe('家庭厨房')
     await page.handleRemoveMember({
       currentTarget: {
         dataset: {

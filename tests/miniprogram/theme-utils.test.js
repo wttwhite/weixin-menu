@@ -16,10 +16,12 @@ describe('theme utilities', () => {
 
   it('serializes theme css variables for runtime page styling', () => {
     const style = buildThemeStyle('fresh-green')
+    const techBlueStyle = buildThemeStyle('tech-blue')
 
     expect(style).toContain('--page-bg')
     expect(style).toContain('--brand')
     expect(style).toContain('#56a36c')
+    expect(techBlueStyle).toContain('--hero-soft-start: #dcecff;')
   })
 
   it('exposes all selectable theme options and persists the chosen key in storage', () => {
@@ -37,6 +39,7 @@ describe('theme utilities', () => {
       'sakura-pink',
       'muted-gray-purple'
     ])
+    expect(options[0].swatches).toHaveLength(3)
     expect(storage.getThemeKey()).toBe('tech-blue')
   })
 })

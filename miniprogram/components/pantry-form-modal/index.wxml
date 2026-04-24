@@ -76,17 +76,16 @@
               </view>
 
               <view class="detail-grid__item">
-                <view class="field-label">单位</view>
-                <view class="field-picker-row">
-                  <view class="category-picker" bindtap="openUnitSelector">
-                    <view class="category-picker__value {{!form.unit ? 'category-picker__value--placeholder' : ''}} {{form.unit ? 'field-input--with-clear' : ''}}">
-                      <text>{{form.unit || '选择或输入单位'}}</text>
-                      <view class="category-picker__arrow"></view>
-                    </view>
+              <view class="field-label">单位</view>
+              <view class="field-picker-row">
+                <view class="category-picker" bindtap="openUnitSelector">
+                  <view class="category-picker__value {{!form.unit ? 'category-picker__value--placeholder' : ''}} {{form.unit ? 'field-input--with-clear' : ''}}">
+                    <text>{{form.unit || '选择或输入单位'}}</text>
                   </view>
-                  <view wx:if="{{form.unit}}" class="field-clear" bindtap="clearUnit">×</view>
                 </view>
+                <view wx:if="{{form.unit}}" class="field-clear" bindtap="clearUnit">×</view>
               </view>
+            </view>
             </view>
 
             <view class="detail-grid detail-grid--schedule">
@@ -144,7 +143,7 @@
       </view>
     </scroll-view>
 
-    <view class="bottom-actions">
+    <view class="pantry-form-modal__footer">
       <view class="pantry-form-modal__close footer-close-btn" bindtap="close">关闭</view>
       <view class="pantry-form-modal__submit footer-submit-btn" bindtap="submit">{{submitting ? '保存中...' : submitLabel}}</view>
     </view>

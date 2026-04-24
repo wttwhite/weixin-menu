@@ -39,6 +39,7 @@ describe('pantry edit template', () => {
     expect(template).toContain('bindtap="openUnitSelector"')
     expect(template).toContain('showUnitSelector')
     expect(template).toContain('选择单位')
+    expect((template.match(/category-picker__arrow/g) || []).length).toBe(0)
   })
 
   it('renders a read-only detail view with shared pantry edit modal for existing items', () => {
@@ -72,9 +73,10 @@ describe('pantry edit template', () => {
     expect(styles).toMatch(/@media\s*\(max-width:\s*720rpx\)\s*\{[\s\S]*\.detail-grid\s*\{[\s\S]*grid-template-columns:\s*1fr;/)
     expect(styles).toMatch(/\.detail-grid__item\s*\{[\s\S]*display:\s*grid;[\s\S]*align-content:\s*start;/)
     expect(styles).toMatch(/\.field-input--inline\s*\{[\s\S]*flex:\s*1;/)
+    expect(styles).toMatch(/\.field-input--date\s*\{[\s\S]*height:\s*88rpx;/)
+    expect(styles).toMatch(/\.quantity-stepper--inline\s*\{[\s\S]*margin-top:\s*10rpx;/)
     expect(styles).toMatch(/\.stepper-button\s*\{[\s\S]*flex:\s*none;[\s\S]*width:\s*88rpx;[\s\S]*height:\s*88rpx;/)
     expect(styles).toMatch(/\.stepper-button\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*justify-content:\s*center;/)
-    expect(styles).toMatch(/\.stepper-button\s*\{[\s\S]*border:\s*1px solid #edf0f4;/)
     expect(styles).toMatch(/\.stepper-value\s*\{[\s\S]*height:\s*88rpx;/)
     expect(styles).toMatch(/\.stepper-value\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*justify-content:\s*center;/)
     expect(styles).toMatch(/\.field-picker-row\s*\{[\s\S]*display:\s*flex;/)

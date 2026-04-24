@@ -256,14 +256,22 @@ describe('shopping page flow', () => {
     ])
     expect(page.data.listItemCategoryOptions).toEqual(['未设置', '调味料', '乳制品'])
 
-    page.handleListItemDraftCategoryChange({
+    page.openDraftCategorySelector({
       currentTarget: {
         dataset: {
           index: 0
         }
-      },
-      detail: {
-        value: 1
+      }
+    })
+
+    expect(page.data.showDraftCategorySelector).toBe(true)
+    expect(page.data.draftCategorySelectorRowIndex).toBe(0)
+
+    page.selectDraftCategoryOption({
+      currentTarget: {
+        dataset: {
+          name: '调味料'
+        }
       }
     })
 
@@ -271,6 +279,79 @@ describe('shopping page flow', () => {
       expect.objectContaining({
         category: '调味料',
         categoryIndex: 1
+      })
+    )
+  })
+
+  it('splits combined shopping item text into name, quantity, and unit when opening edit list drafts', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'list-open',
+                name: '周末采购',
+                listDate: '2026-04-16',
+                status: 'open',
+                updatedAt: '2026-04-16T10:00:00.000Z',
+                items: [
+                  {
+                    _id: 'item-1',
+                    name: '土豆 2个',
+                    category: '蔬菜',
+                    quantity: '',
+                    unit: '',
+                    isChecked: false,
+                    sourceType: 'manual',
+                    updatedAt: '2026-04-16T10:00:00.000Z'
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '蔬菜' }]
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.openEditListModal({
+      currentTarget: {
+        dataset: {
+          shoppingListId: 'list-open'
+        }
+      }
+    })
+
+    expect(page.data.listItemDrafts[0]).toEqual(
+      expect.objectContaining({
+        name: '土豆',
+        quantity: '2',
+        unit: '个',
+        category: '蔬菜'
       })
     )
   })
@@ -695,5 +776,87 @@ describe('shopping page flow', () => {
     })
     expect(page.data.visibleShoppingLists[0].items[0].isChecked).toBe(true)
     expect(page.data.visibleShoppingLists[0].updatedAt).toBe('2026-04-16T10:01:00.000Z')
+  })
+
+  it('splits combined shopping item text when prefilling the pantry-entry modal', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'list-open',
+                name: '周末采购',
+                listDate: '2026-04-16',
+                status: 'open',
+                updatedAt: '2026-04-16T10:00:00.000Z',
+                items: [
+                  {
+                    _id: 'item-1',
+                    name: '土豆 2个',
+                    category: '蔬菜',
+                    quantity: '',
+                    unit: '',
+                    isChecked: false,
+                    sourceType: 'manual',
+                    updatedAt: '2026-04-16T10:00:00.000Z'
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '蔬菜' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '冷藏' }]
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.openPantryEntryModal({
+      currentTarget: {
+        dataset: {
+          shoppingListId: 'list-open',
+          shoppingItemId: 'item-1'
+        }
+      }
+    })
+
+    expect(page.data.pantryEntryForm).toEqual(
+      expect.objectContaining({
+        name: '土豆',
+        quantity: '2',
+        unit: '个',
+        category: '蔬菜'
+      })
+    )
   })
 })

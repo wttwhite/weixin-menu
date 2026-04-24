@@ -7,10 +7,12 @@ describe('profile page template', () => {
 
     expect(template).toContain('profile-page')
     expect(template).toContain('profile-hero')
-    expect(template).toContain('profile-hero__actions')
-    expect(template).toContain('t-class="profile-hero__button"')
+    expect(template).toContain('profile-hero__title-row')
+    expect(template).toContain('profile-hero__edit-trigger')
+    expect(template).toContain('profile-hero__edit-icon')
     expect(template).toContain('space-card')
     expect(template).toContain('bindtap="handleEditDisplayName"')
+    expect(template).toContain('bindtap="handleRenameSpace"')
     expect(template).toContain('bindtap="openMembers"')
     expect(template).toContain('bindtap="openRecipeCategoryManager"')
     expect(template).toContain('bindtap="openPantryCategoryManager"')
@@ -28,6 +30,7 @@ describe('profile page template', () => {
     expect(template.includes('class="manager-modal"')).toBe(false)
     expect(template.includes('showManagerModal')).toBe(false)
     expect(template).toContain('theme-modal')
+    expect(template).toContain('theme-chip__swatches')
   })
 
   it('uses grouped management cards and theme chips instead of a dense icon wall', () => {
@@ -35,8 +38,10 @@ describe('profile page template', () => {
 
     expect(styles).toMatch(/\.profile-page\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;/)
     expect(styles).toMatch(/\.profile-page\s*\{[\s\S]*padding:\s*28rpx 24rpx calc\(env\(safe-area-inset-bottom\) \+ 160rpx\);/)
-    expect(styles).toMatch(/\.profile-hero__actions\s*\{[\s\S]*margin-top:\s*20rpx;/)
-    expect(styles).toMatch(/\.t-button\.profile-hero__button\s*\{[\s\S]*width:\s*auto;/)
+    expect(styles).toMatch(/\.profile-hero__title-row\s*\{[\s\S]*display:\s*flex;/)
+    expect(styles).toMatch(/\.profile-hero__title-text\s*\{[\s\S]*word-break:\s*break-all;/)
+    expect(styles).toMatch(/\.theme-chip__swatches\s*\{[\s\S]*display:\s*flex;/)
+    expect(styles).toMatch(/\.theme-chip__swatch\s*\{[\s\S]*width:\s*22rpx;/)
     expect(styles).toMatch(/\.profile-section\s*\{/)
     expect(styles).toMatch(/\.action-row\s*\{[\s\S]*display:\s*flex;/)
     expect(styles).toMatch(/\.theme-modal\s*\{[\s\S]*align-items:\s*center;/)

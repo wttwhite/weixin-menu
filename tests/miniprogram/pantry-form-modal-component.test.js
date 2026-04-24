@@ -83,16 +83,21 @@ describe('pantry form modal', () => {
   it('uses a recipe-style category selector and fixed header structure', () => {
     const template = readFileSync('miniprogram/components/pantry-form-modal/index.wxml', 'utf8')
     const styles = readFileSync('miniprogram/components/pantry-form-modal/index.wxss', 'utf8')
+    const arrowMatches = template.match(/category-picker__arrow/g) || []
 
     expect(template).toContain('pantry-form-modal__header')
     expect(template).toContain('pantry-form-modal__body')
+    expect(template).toContain('pantry-form-modal__footer')
     expect(template).toContain('bindtap="openCategorySelector"')
     expect(template).toContain('showCategorySelector')
     expect(template).toContain('选择食材分类')
+    expect(arrowMatches).toHaveLength(1)
+    expect(styles).toMatch(/\.pantry-form-modal__overlay\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*justify-content:\s*center;/)
     expect(styles).toMatch(/\.pantry-form-modal\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;/)
     expect(styles).toMatch(/\.pantry-form-modal\s*\{[\s\S]*overflow:\s*hidden;/)
     expect(styles).toMatch(/\.pantry-form-modal__title\s*\{[\s\S]*font-size:\s*64rpx;/)
     expect(styles).toMatch(/\.pantry-form-modal__body\s*\{[\s\S]*flex:\s*1;[\s\S]*min-height:\s*0;/)
+    expect(styles).toMatch(/\.pantry-form-modal__footer\s*\{[\s\S]*position:\s*relative;[\s\S]*left:\s*auto;[\s\S]*right:\s*auto;[\s\S]*bottom:\s*auto;/)
     expect(styles).toMatch(/\.category-selector__title\s*\{[\s\S]*font-size:\s*38rpx;/)
   })
 

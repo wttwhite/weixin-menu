@@ -13,7 +13,7 @@
 .profile-hero {
   position: relative;
   overflow: hidden;
-  padding: 34rpx 30rpx;
+  padding: 28rpx 26rpx;
   border-radius: 34rpx;
   background:
     radial-gradient(circle at 86% 18%, var(--hero-soft-glow, rgba(255, 255, 255, 0.46)), transparent 18%),
@@ -60,31 +60,46 @@
   color: var(--hero-soft-subtle, #6e8790);
 }
 
-.profile-hero__title {
-  margin-top: 14rpx;
-  font-size: 46rpx;
+.profile-hero__title-row {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+}
+
+.profile-hero__title-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 44rpx;
+  line-height: 1.08;
+  font-weight: 800;
+  color: var(--hero-soft-text, #24414a);
+  word-break: break-all;
+}
+
+.profile-hero__edit-trigger {
+  flex: none;
+  width: 58rpx;
+  min-width: 58rpx;
+  height: 58rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hero-soft-chip-bg, rgba(255, 255, 255, 0.62));
+  box-shadow: inset 0 0 0 1px var(--hero-soft-chip-border, rgba(255, 255, 255, 0.34));
+}
+
+.profile-hero__edit-icon {
+  font-size: 28rpx;
   font-weight: 800;
   color: var(--hero-soft-text, #24414a);
 }
 
 .profile-hero__subtitle {
-  margin-top: 12rpx;
+  margin-top: 10rpx;
   font-size: 26rpx;
   color: var(--text-secondary, #70594a);
-}
-
-.profile-hero__actions {
-  margin-top: 20rpx;
-}
-
-.t-button.profile-hero__button {
-  width: auto;
-  margin-left: 0;
-  margin-right: 0;
-  --td-button-primary-bg-color: var(--hero-soft-chip-bg, rgba(255, 255, 255, 0.62));
-  --td-button-primary-color: var(--hero-soft-text, #24414a);
-  --td-button-primary-border-color: var(--hero-soft-chip-border, rgba(255, 255, 255, 0.34));
-  --td-button-primary-active-bg-color: rgba(255, 255, 255, 0.82);
 }
 
 .feedback-card,
@@ -194,6 +209,12 @@
   background: rgba(255, 255, 255, 0.7);
   color: var(--text-primary);
   font-size: 24rpx;
+}
+
+.space-chip--accent {
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--brand-strong);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.46);
 }
 
 .profile-section {
@@ -308,4 +329,31 @@
   margin-top: 8rpx;
   font-size: 22rpx;
   color: var(--text-secondary);
+}
+
+.theme-chip__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.theme-chip__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.theme-chip__swatches {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.theme-chip__swatch {
+  width: 22rpx;
+  min-width: 22rpx;
+  height: 22rpx;
+  border-radius: 999rpx;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.42), 0 2rpx 6rpx rgba(31, 49, 37, 0.08);
 }

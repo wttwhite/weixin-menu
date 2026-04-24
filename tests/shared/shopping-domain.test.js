@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildShoppingItemsFromMealPlans,
+  splitShoppingItemText,
   normalizeShoppingItemWrite,
   normalizeShoppingListWrite
 } from '../../shared/domain/shopping'
@@ -117,6 +118,19 @@ describe('shopping domain', () => {
       recipeId: 'recipe-1',
       mealPlanId: 'meal-1',
       sortOrder: 4
+    })
+  })
+
+  it('splits combined item text with trailing quantity and unit for edit prefills', () => {
+    expect(splitShoppingItemText('土豆 2个')).toEqual({
+      name: '土豆',
+      quantity: '2',
+      unit: '个'
+    })
+    expect(splitShoppingItemText('新疆番茄')).toEqual({
+      name: '新疆番茄',
+      quantity: '',
+      unit: ''
     })
   })
 })

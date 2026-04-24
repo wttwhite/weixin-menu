@@ -2,11 +2,13 @@
   <view class="profile-hero">
     <view class="profile-hero__body">
       <view class="profile-hero__kicker">Profile Center</view>
-      <view class="profile-hero__title">{{currentDisplayName || '个人中心'}}</view>
-      <view class="profile-hero__subtitle">{{activeSpaceName || '尚未选择空间'}} · {{roleLabel || '成员'}}</view>
-      <view class="profile-hero__actions">
-        <t-button t-class="profile-hero__button" theme="primary" size="small" shape="round" bindtap="handleEditDisplayName">编辑昵称</t-button>
+      <view class="profile-hero__title-row">
+        <view class="profile-hero__title-text">{{currentDisplayName || '个人中心'}}</view>
+        <view class="profile-hero__edit-trigger" bindtap="handleEditDisplayName">
+          <view class="profile-hero__edit-icon">✎</view>
+        </view>
       </view>
+      <view class="profile-hero__subtitle">{{activeSpaceName || '尚未选择空间'}} · {{roleLabel || '成员'}}</view>
     </view>
   </view>
 
@@ -42,9 +44,9 @@
       </view>
       <view class="space-card__actions">
         <t-button class="space-card__button" theme="primary" size="small" shape="round" bindtap="handleCopyInviteCode">复制邀请码</t-button>
-        <t-button wx:if="{{canRenameSpace}}" class="space-card__button space-card__button--ghost" variant="outline" size="small" shape="round" bindtap="handleRenameSpace">修改空间名</t-button>
       </view>
       <view class="space-card__links">
+        <view wx:if="{{canRenameSpace}}" class="space-chip space-chip--accent" bindtap="handleRenameSpace">修改空间名</view>
         <view class="space-chip" bindtap="openSpace">切换空间</view>
         <view class="space-chip" bindtap="openCreateSpace">创建空间</view>
         <view class="space-chip" bindtap="openJoinSpace">加入空间</view>
@@ -168,8 +170,21 @@
           data-key="{{item.key}}"
           bindtap="selectTheme"
         >
-          <view class="theme-chip__title">{{item.label}}</view>
-          <view class="theme-chip__desc">{{item.description}}</view>
+          <view class="theme-chip__main">
+            <view class="theme-chip__copy">
+              <view class="theme-chip__title">{{item.label}}</view>
+              <view class="theme-chip__desc">{{item.description}}</view>
+            </view>
+            <view class="theme-chip__swatches">
+              <view
+                wx:for="{{item.swatches}}"
+                wx:key="*this"
+                wx:for-item="swatch"
+                class="theme-chip__swatch"
+                style="background: {{swatch}};"
+              ></view>
+            </view>
+          </view>
         </view>
       </view>
     </view>

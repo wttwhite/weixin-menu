@@ -2,6 +2,24 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function splitShoppingItemText(value) {
+  const text = normalizeText(value)
+  const match = text.match(/^(.*?)(?:\s+)(\d+(?:\.\d+)?)([^\d\s]+)$/)
+  if (!match) {
+    return {
+      name: text,
+      quantity: '',
+      unit: ''
+    }
+  }
+
+  return {
+    name: normalizeText(match[1]),
+    quantity: match[2],
+    unit: normalizeText(match[3])
+  }
+}
+
 function parseQuantity(value) {
   const parsed = Number(normalizeText(value))
   return Number.isFinite(parsed) ? parsed : null
@@ -100,5 +118,6 @@ module.exports = {
   buildShoppingItemsFromMealPlans,
   buildShoppingProgress,
   normalizeShoppingItemWrite,
-  normalizeShoppingListWrite
+  normalizeShoppingListWrite,
+  splitShoppingItemText
 }

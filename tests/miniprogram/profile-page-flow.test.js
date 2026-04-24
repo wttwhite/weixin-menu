@@ -255,6 +255,7 @@ describe('profile page flow', () => {
     expect(page.data.memberCountText).toBe('2')
     expect(page.data.recipeCountText).toBe('12')
     expect(page.data.canRenameSpace).toBe(true)
+    expect(page.data.themeOptions[0].swatches).toHaveLength(3)
   })
 
   it('reuses loaded profile data on repeated onShow when active space is unchanged', async () => {

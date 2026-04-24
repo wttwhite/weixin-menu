@@ -1,6 +1,7 @@
 const { createShoppingService } = require('../../services/shopping')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const { splitShoppingItemText } = require('../../shared/domain/shopping')
 
 function findPreviousPageByRoute(route = '') {
   if (typeof getCurrentPages !== 'function') {
@@ -35,6 +36,21 @@ function markShoppingPageForRefresh() {
   return true
 }
 
+function buildShoppingEditForm(options = {}) {
+  const name = decodeURIComponent((options && options.name) || '')
+  const quantity = decodeURIComponent((options && options.quantity) || '')
+  const unit = decodeURIComponent((options && options.unit) || '')
+  const notes = decodeURIComponent((options && options.notes) || '')
+  const parsed = splitShoppingItemText(name)
+
+  return {
+    name: quantity || unit ? name : (parsed.name || name),
+    quantity: quantity || parsed.quantity,
+    unit: unit || parsed.unit,
+    notes
+  }
+}
+
 Page({
   data: {
     loading: false,
@@ -63,12 +79,7 @@ Page({
       shoppingItemId,
       shoppingItemUpdatedAt: decodeURIComponent((options && options.updatedAt) || ''),
       isEdit: Boolean(shoppingItemId),
-      form: {
-        name: decodeURIComponent((options && options.name) || ''),
-        quantity: decodeURIComponent((options && options.quantity) || ''),
-        unit: decodeURIComponent((options && options.unit) || ''),
-        notes: decodeURIComponent((options && options.notes) || '')
-      }
+      form: buildShoppingEditForm(options)
     })
   },
 

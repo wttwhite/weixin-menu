@@ -408,6 +408,7 @@
 }
 
 .field-input--date {
+  height: 88rpx;
   display: flex;
   align-items: center;
 }
@@ -465,7 +466,7 @@
 }
 
 .quantity-stepper--inline {
-  margin-top: 12rpx;
+  margin-top: 10rpx;
 }
 
 .stepper-button {
