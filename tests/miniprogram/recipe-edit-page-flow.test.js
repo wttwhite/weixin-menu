@@ -51,9 +51,69 @@ beforeEach(() => {
   delete global.Page
   delete global.wx
   delete global.getApp
+  delete global.getCurrentPages
 })
 
 describe('recipe edit page flow', () => {
+  it('sets navigation title by mode on load', async () => {
+    const setNavigationBarTitle = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      setNavigationBarTitle,
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const createPage = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    createPage.onLoad({})
+    expect(setNavigationBarTitle).toHaveBeenNthCalledWith(1, {
+      title: '新增菜谱'
+    })
+
+    vi.resetModules()
+    delete global.Page
+    const editPage = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    editPage.onLoad({ recipeId: 'recipe-1' })
+    expect(setNavigationBarTitle).toHaveBeenNthCalledWith(2, {
+      title: '编辑菜谱'
+    })
+  })
+
+  it('syncs theme state on show so the editor can use runtime theme variables', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1',
+        themeKey: 'fresh-green',
+        themeStyle: '--page-bg: #eef7ef; --brand: #56a36c;'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({})
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.themeKey).toBe('fresh-green')
+    expect(page.data.themeStyle).toContain('--page-bg')
+    expect(page.data.themeStyle).toContain('#56a36c')
+  })
+
   it('keeps recommendationScore in editor state by default', async () => {
     global.wx = {
       cloud: {
@@ -146,6 +206,52 @@ describe('recipe edit page flow', () => {
       }
     })
     expect(page.data.form.recommendationScore).toBe(4)
+  })
+
+  it('prefills create form category from recipes page query param', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: []
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              { name: '健康时蔬', recipeCount: 2 },
+              { name: '美味汤羹', recipeCount: 1 }
+            ]
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({ category: '美味汤羹' })
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(page.data.form.category).toBe('美味汤羹')
+    expect(page.data.selectedCategoryLabel).toBe('美味汤羹')
+    expect(page.data.selectedCategoryIndex).toBe(2)
   })
 
   it('does not re-bootstrap and wipe dirty form edits on hide/show cycle', async () => {
@@ -586,6 +692,85 @@ describe('recipe edit page flow', () => {
       icon: 'none'
     })
     expect(callFunction).not.toHaveBeenCalled()
+  })
+
+  it('queues created recipe onto the previous recipes page before navigating back', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          item: {
+            _id: 'recipe-new',
+            name: '番茄菌菇汤',
+            category: '美味汤羹',
+            servings: '2',
+            prepTimeMinutes: '10',
+            cookTimeMinutes: '20',
+            ingredients: [{ name: '番茄' }],
+            steps: [{ content: '炖煮' }]
+          }
+        }
+      }
+    })
+    const showToast = vi.fn()
+    const navigateBack = vi.fn()
+    const queueCreatedRecipe = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast,
+      navigateBack,
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+    global.getCurrentPages = () => [
+      {
+        route: 'pages/recipes/index',
+        queueCreatedRecipe
+      },
+      {
+        route: 'pages/recipe-edit/index'
+      }
+    ]
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      loading: false,
+      loadErrorMessage: '',
+      isEdit: false,
+      form: {
+        ...page.data.form,
+        name: '番茄菌菇汤',
+        category: '美味汤羹',
+        servings: '2',
+        prepTimeMinutes: '10',
+        cookTimeMinutes: '20',
+        ingredients: [{ name: '番茄' }],
+        steps: [{ content: '炖煮' }],
+        images: []
+      }
+    })
+
+    await page.submit()
+
+    expect(queueCreatedRecipe).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: 'recipe-new',
+        name: '番茄菌菇汤',
+        category: '美味汤羹'
+      })
+    )
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已创建菜谱',
+      icon: 'success'
+    })
+    expect(navigateBack).toHaveBeenCalled()
   })
 
   it('create-mode back discards confirmed draft images before navigating away', async () => {

@@ -7,15 +7,12 @@
       data-path="{{item.pagePath}}"
       bindtap="handleSwitchTab"
     >
-      <view class="tabbar-item__glow"></view>
-      <view class="tabbar-item__pill">
-        <image
-          class="tabbar-icon"
-          src="{{item.iconPath}}"
-          mode="aspectFit"
-        />
-        <text class="tabbar-label">{{item.text}}</text>
-      </view>
+      <image
+        class="tabbar-icon"
+        src="{{item.iconPath}}"
+        mode="aspectFit"
+      />
+      <text class="tabbar-label">{{item.text}}</text>
     </view>
   </view>
 </view>

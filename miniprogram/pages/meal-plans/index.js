@@ -15,6 +15,11 @@ const MEAL_TYPE_LABELS = {
   dinner: '晚餐',
   snack: '加餐'
 }
+const MEAL_PLAN_STATUS = {
+  PLANNED: 'planned',
+  DONE: 'done',
+  CANCELLED: 'cancelled'
+}
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -195,41 +200,118 @@ function buildMealTypeLabel(mealType = '') {
   return MEAL_TYPE_LABELS[normalizeText(mealType)] || '餐次'
 }
 
-function buildPlanStatusMeta(planDate = '', todayIso = '') {
+function normalizeMealPlanStatus(value = '') {
+  const status = normalizeText(value).toLowerCase()
+  if (status === MEAL_PLAN_STATUS.DONE) {
+    return MEAL_PLAN_STATUS.DONE
+  }
+  if (status === MEAL_PLAN_STATUS.CANCELLED) {
+    return MEAL_PLAN_STATUS.CANCELLED
+  }
+  if (status === MEAL_PLAN_STATUS.PLANNED) {
+    return MEAL_PLAN_STATUS.PLANNED
+  }
+  return ''
+}
+
+function resolveLegacyPlanStatus(planDate = '', todayIso = '') {
   const compareResult = compareIsoDate(planDate, todayIso)
   if (compareResult < 0) {
-    return {
-      text: '已完成',
-      className: 'plan-card__status plan-card__status--done'
-    }
+    return MEAL_PLAN_STATUS.DONE
   }
   if (compareResult === 0) {
+    return MEAL_PLAN_STATUS.PLANNED
+  }
+  return MEAL_PLAN_STATUS.PLANNED
+}
+
+function buildPlanStatusMeta(plan = {}, todayIso = '') {
+  const normalizedStatus = normalizeMealPlanStatus(plan.status) || resolveLegacyPlanStatus(plan.planDate, todayIso)
+  if (normalizedStatus === MEAL_PLAN_STATUS.DONE) {
     return {
+      value: normalizedStatus,
+      text: '已完成',
+      className: 'plan-card__status plan-card__status--done',
+      iconText: '✓',
+      toolClass: 'plan-card__tool plan-card__tool--status plan-card__tool--done',
+      toolLabel: '标记为已取消'
+    }
+  }
+  if (normalizedStatus === MEAL_PLAN_STATUS.CANCELLED) {
+    return {
+      value: normalizedStatus,
+      text: '已取消',
+      className: 'plan-card__status plan-card__status--cancelled',
+      iconText: '−',
+      toolClass: 'plan-card__tool plan-card__tool--status plan-card__tool--cancelled',
+      toolLabel: '恢复为待执行'
+    }
+  }
+  if (compareIsoDate(plan.planDate, todayIso) === 0) {
+    return {
+      value: normalizedStatus,
       text: '进行中',
-      className: 'plan-card__status plan-card__status--today'
+      className: 'plan-card__status plan-card__status--today',
+      iconText: '◔',
+      toolClass: 'plan-card__tool plan-card__tool--status plan-card__tool--today',
+      toolLabel: '标记为已完成'
     }
   }
   return {
+    value: normalizedStatus,
     text: '待执行',
-    className: 'plan-card__status plan-card__status--upcoming'
+    className: 'plan-card__status plan-card__status--upcoming',
+    iconText: '◔',
+    toolClass: 'plan-card__tool plan-card__tool--status plan-card__tool--upcoming',
+    toolLabel: '标记为已完成'
   }
+}
+
+function getNextMealPlanStatus(status = '') {
+  const normalizedStatus = normalizeMealPlanStatus(status) || MEAL_PLAN_STATUS.PLANNED
+  if (normalizedStatus === MEAL_PLAN_STATUS.PLANNED) {
+    return MEAL_PLAN_STATUS.DONE
+  }
+  if (normalizedStatus === MEAL_PLAN_STATUS.DONE) {
+    return MEAL_PLAN_STATUS.CANCELLED
+  }
+  return MEAL_PLAN_STATUS.PLANNED
+}
+
+function buildPlanRecipeTagItems(recipes = []) {
+  return (Array.isArray(recipes) ? recipes : [])
+    .map((recipe) => {
+      const recipeId = normalizeText(recipe && ((recipe.recipe && recipe.recipe._id) || recipe.recipeId))
+      const label = normalizeText((recipe && recipe.recipe && recipe.recipe.name) || (recipe && recipe.recipeNameSnapshot) || '')
+      if (!label) {
+        return null
+      }
+      return {
+        recipeId,
+        label
+      }
+    })
+    .filter(Boolean)
 }
 
 function buildSelectedPlanItems(items = [], todayIso = '') {
   return (items || []).map((item) => {
-    const recipeTags = (Array.isArray(item.recipes) ? item.recipes : [])
-      .map((recipe) => (recipe.recipe && recipe.recipe.name) || recipe.recipeNameSnapshot || '')
-      .filter(Boolean)
-    const statusMeta = buildPlanStatusMeta(item.planDate, todayIso)
+    const recipeTagItems = buildPlanRecipeTagItems(item.recipes || [])
+    const recipeTags = recipeTagItems.map((recipe) => recipe.label)
+    const statusMeta = buildPlanStatusMeta(item, todayIso)
 
     return {
       ...item,
+      status: statusMeta.value,
       mealTypeLabel: buildMealTypeLabel(item.mealType),
       primaryRecipeName: recipeTags[0] || '未关联菜谱',
       recipeTags,
-      recipeTagItems: recipeTags.slice(0, 4),
+      recipeTagItems: recipeTagItems.slice(0, 4),
       statusText: statusMeta.text,
       statusClass: statusMeta.className,
+      statusIconText: statusMeta.iconText,
+      statusToolClass: statusMeta.toolClass,
+      statusToolLabel: statusMeta.toolLabel,
       planCountText: `${recipeTags.length || 0} 道菜`,
       utensilText: '🍽'
     }
@@ -237,6 +319,9 @@ function buildSelectedPlanItems(items = [], todayIso = '') {
 }
 
 function buildCalendarViewportStyle(presentation = {}) {
+  if ((presentation.visibleRowCount || 1) === 1) {
+    return 'height: 45px;'
+  }
   return `height: ${presentation.viewportHeightRpx || calendarHelper.CALENDAR_ROW_HEIGHT_RPX}rpx;`
 }
 
@@ -398,6 +483,75 @@ function buildShoppingItemDraftFromInventoryItem(item = {}, dateLabel = '') {
   }
 }
 
+function buildMealPlanUpdatePayload(item = {}, nextStatus = '') {
+  return {
+    planDate: item.planDate || '',
+    mealType: item.mealType || '',
+    status: nextStatus || normalizeMealPlanStatus(item.status) || MEAL_PLAN_STATUS.PLANNED,
+    notes: item.notes || '',
+    recipes: (Array.isArray(item.recipes) ? item.recipes : [])
+      .map((recipe) => ({
+        recipeId: recipe.recipeId || '',
+        servingsOverride: recipe.servingsOverride || '',
+        notes: recipe.notes || ''
+      }))
+      .filter((recipe) => recipe.recipeId)
+  }
+}
+
+function buildMealPlanStatusChipItems(status = '') {
+  const normalizedStatus = normalizeMealPlanStatus(status) || MEAL_PLAN_STATUS.PLANNED
+  return [
+    {
+      value: MEAL_PLAN_STATUS.PLANNED,
+      label: '计划中',
+      active: normalizedStatus === MEAL_PLAN_STATUS.PLANNED,
+      itemClass:
+        normalizedStatus === MEAL_PLAN_STATUS.PLANNED
+          ? 'meal-plan-status-chip meal-plan-status-chip--active'
+          : 'meal-plan-status-chip'
+    },
+    {
+      value: MEAL_PLAN_STATUS.DONE,
+      label: '已完成',
+      active: normalizedStatus === MEAL_PLAN_STATUS.DONE,
+      itemClass:
+        normalizedStatus === MEAL_PLAN_STATUS.DONE
+          ? 'meal-plan-status-chip meal-plan-status-chip--active'
+          : 'meal-plan-status-chip'
+    },
+    {
+      value: MEAL_PLAN_STATUS.CANCELLED,
+      label: '已取消',
+      active: normalizedStatus === MEAL_PLAN_STATUS.CANCELLED,
+      itemClass:
+        normalizedStatus === MEAL_PLAN_STATUS.CANCELLED
+          ? 'meal-plan-status-chip meal-plan-status-chip--active'
+          : 'meal-plan-status-chip'
+    }
+  ]
+}
+
+function buildMealPlanStatusModalView(item = {}, todayIso = '') {
+  const selectedPlan = buildSelectedPlanItems([item], todayIso)[0] || item
+  const recipeItems = (selectedPlan.recipeTagItems || []).map((recipe) => ({
+    ...recipe,
+    itemClass: recipe.recipeId
+      ? 'meal-plan-status-modal__recipe-item'
+      : 'meal-plan-status-modal__recipe-item meal-plan-status-modal__recipe-item--disabled'
+  }))
+  return {
+    mealPlanStatusModalId: selectedPlan._id || '',
+    mealPlanStatusModalTitle: `${selectedPlan.mealTypeLabel || '餐次'}${selectedPlan.primaryRecipeName ? `：${selectedPlan.primaryRecipeName}` : ''}`,
+    mealPlanStatusModalDate: selectedPlan.planDate || '',
+    mealPlanStatusModalMealTypeLabel: selectedPlan.mealTypeLabel || buildMealTypeLabel(selectedPlan.mealType),
+    mealPlanStatusModalStatus: normalizeMealPlanStatus(selectedPlan.status) || MEAL_PLAN_STATUS.PLANNED,
+    mealPlanStatusChipItems: buildMealPlanStatusChipItems(selectedPlan.status),
+    mealPlanStatusModalRecipeItems: recipeItems,
+    mealPlanStatusModalRecipeCountText: `菜谱 (${recipeItems.length})`
+  }
+}
+
 Page({
   data: {
     loading: true,
@@ -420,12 +574,21 @@ Page({
     isCalendarExpanded: false,
     calendarItems: [],
     calendarRowCount: 0,
-    calendarViewportStyle: `height: ${calendarHelper.CALENDAR_ROW_HEIGHT_RPX}rpx;`,
+    calendarViewportStyle: 'height: 45px;',
     calendarGridStyle: 'transform: translateY(0rpx);',
     selectedDate: '',
     selectedDateTitle: '',
     selectedPlanCountText: '0 个安排',
     selectedPlans: [],
+    showMealPlanStatusModal: false,
+    mealPlanStatusModalId: '',
+    mealPlanStatusModalTitle: '',
+    mealPlanStatusModalDate: '',
+    mealPlanStatusModalMealTypeLabel: '',
+    mealPlanStatusModalStatus: 'planned',
+    mealPlanStatusChipItems: [],
+    mealPlanStatusModalRecipeCountText: '菜谱 (0)',
+    mealPlanStatusModalRecipeItems: [],
     showInventoryModal: false,
     inventoryModalLoading: false,
     inventoryCheckDateLabel: '',
@@ -629,6 +792,143 @@ Page({
     wx.navigateTo({
       url: `/pages/meal-plan-edit/index?mealPlanId=${mealPlanId}`
     })
+  },
+
+  handlePlanRecipeTap(event) {
+    const recipeId = event && event.currentTarget && event.currentTarget.dataset
+      ? normalizeText(event.currentTarget.dataset.recipeId)
+      : ''
+    if (!recipeId) {
+      return
+    }
+
+    wx.navigateTo({
+      url: `/pages/recipe-detail/index?recipeId=${recipeId}&from=plans`
+    })
+  },
+
+  handleToggleMealPlanStatus(event) {
+    const mealPlanId = event && event.currentTarget && event.currentTarget.dataset
+      ? normalizeText(event.currentTarget.dataset.mealPlanId)
+      : ''
+    if (!mealPlanId) {
+      return
+    }
+
+    const currentItem = (this.data.items || []).find((item) => item && item._id === mealPlanId)
+    if (!currentItem) {
+      return
+    }
+
+    this.setData({
+      showMealPlanStatusModal: true,
+      ...buildMealPlanStatusModalView(currentItem, this.data.todayIso)
+    })
+  },
+
+  closeMealPlanStatusModal() {
+    this.setData({
+      showMealPlanStatusModal: false,
+      mealPlanStatusModalId: '',
+      mealPlanStatusModalTitle: '',
+      mealPlanStatusModalDate: '',
+      mealPlanStatusModalMealTypeLabel: '',
+      mealPlanStatusModalStatus: MEAL_PLAN_STATUS.PLANNED,
+      mealPlanStatusChipItems: [],
+      mealPlanStatusModalRecipeCountText: '菜谱 (0)',
+      mealPlanStatusModalRecipeItems: []
+    })
+  },
+
+  async selectMealPlanStatus(event) {
+    const nextStatus = event && event.currentTarget && event.currentTarget.dataset
+      ? normalizeText(event.currentTarget.dataset.status)
+      : ''
+    const mealPlanId = this.data.mealPlanStatusModalId
+    if (!mealPlanId || !this.data.activeSpaceId || !nextStatus) {
+      return
+    }
+
+    const currentItem = (this.data.items || []).find((item) => item && item._id === mealPlanId)
+    if (!currentItem) {
+      return
+    }
+
+    const optimisticItem = {
+      ...currentItem,
+      status: nextStatus
+    }
+    const optimisticItems = (this.data.items || []).map((item) => (item && item._id === mealPlanId ? optimisticItem : item))
+
+    this.setData({
+      items: optimisticItems,
+      ...buildMealPlanStatusModalView(optimisticItem, this.data.todayIso)
+    })
+    this.syncCalendarView({
+      items: optimisticItems
+    })
+
+    try {
+      const result = await createMealPlanService().updateMealPlan(
+        this.data.activeSpaceId,
+        mealPlanId,
+        buildMealPlanUpdatePayload(currentItem, nextStatus)
+      )
+      const nextItem = result && result.item ? result.item : { ...currentItem, status: nextStatus }
+      const nextItems = (this.data.items || []).map((item) => (item && item._id === mealPlanId ? nextItem : item))
+      this.setData({
+        items: nextItems,
+        ...buildMealPlanStatusModalView(nextItem, this.data.todayIso)
+      })
+      this.syncCalendarView({
+        items: nextItems
+      })
+      wx.showToast({
+        title: '状态已更新',
+        icon: 'success'
+      })
+    } catch (error) {
+      const rollbackItems = (this.data.items || []).map((item) => (item && item._id === mealPlanId ? currentItem : item))
+      this.setData({
+        items: rollbackItems,
+        ...buildMealPlanStatusModalView(currentItem, this.data.todayIso)
+      })
+      this.syncCalendarView({
+        items: rollbackItems
+      })
+      wx.showToast({
+        title: getErrorMessage(error),
+        icon: 'none'
+      })
+    }
+  },
+
+  async removeSelectedMealPlan() {
+    const mealPlanId = this.data.mealPlanStatusModalId
+    if (!mealPlanId || !this.data.activeSpaceId) {
+      return
+    }
+
+    try {
+      await createMealPlanService().deleteMealPlan(this.data.activeSpaceId, mealPlanId)
+      const nextItems = (this.data.items || []).filter((item) => item && item._id !== mealPlanId)
+      this.setData({
+        items: nextItems
+      })
+      this.closeMealPlanStatusModal()
+      this.syncCalendarView({
+        items: nextItems
+      })
+      wx.showToast({
+        title: '已删除计划',
+        icon: 'success'
+      })
+    } catch (error) {
+      wx.showToast({
+        title: getErrorMessage(error),
+        icon: 'none'
+      })
+    }
   },
 
   openSpace() {

@@ -1,9 +1,14 @@
+page {
+  height: 100%;
+}
+
 .recipes-page {
-  min-height: 100vh;
+  height: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding: 14rpx 18rpx calc(env(safe-area-inset-bottom) + 132rpx);
+  padding: 14rpx 18rpx calc(env(safe-area-inset-bottom) + 128rpx);
+  overflow: hidden;
   background:
     radial-gradient(circle at top, rgba(197, 106, 61, 0.1), transparent 30%),
     linear-gradient(180deg, var(--page-bg, #f5f1e8) 0%, #ede8dc 100%);
@@ -215,16 +220,31 @@
   min-height: 0;
   gap: 16rpx;
   margin-top: 18rpx;
-  align-items: flex-start;
+  align-items: stretch;
+  overflow: hidden;
 }
 
 .channel-rail {
+  display: flex;
+  flex-direction: column;
   width: 134rpx;
   min-width: 134rpx;
   align-self: stretch;
+  overflow: hidden;
   border-radius: 34rpx;
   background: rgba(230, 236, 244, 0.92);
   box-shadow: inset 0 4rpx 10rpx rgba(255, 255, 255, 0.5);
+}
+
+.channel-rail__scroll {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.channel-rail__scroll ::-webkit-scrollbar {
+  display: none;
+  width: 0;
 }
 
 .channel-rail__inner {
@@ -260,14 +280,38 @@
   box-shadow: 0 14rpx 24rpx rgba(102, 114, 138, 0.14);
 }
 
+.channel-column {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .channel-surface {
   flex: 1;
   min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border-radius: 34rpx;
-  padding: 18rpx;
   background: rgba(246, 248, 252, 0.92);
   box-shadow: inset 0 4rpx 10rpx rgba(255, 255, 255, 0.6);
+}
+
+.channel-surface__scroll {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 18rpx;
+}
+
+.channel-surface__scroll ::-webkit-scrollbar {
+  display: none;
+  width: 0;
 }
 
 .surface-head {
@@ -275,6 +319,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 18rpx;
+  padding: 0 4rpx;
   margin-bottom: 10rpx;
 }
 
@@ -417,7 +462,7 @@
   display: flex;
   align-items: center;
   gap: 14rpx;
-  margin-top: auto;
+  margin-top: 18rpx;
   border-radius: 30rpx;
   padding: 18rpx;
   background: rgba(255, 255, 255, 0.98);

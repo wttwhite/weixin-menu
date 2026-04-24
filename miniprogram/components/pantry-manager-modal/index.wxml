@@ -1,0 +1,59 @@
+<view wx:if="{{visible}}" class="pantry-manager-modal__overlay" catchtap="handleClose" catchtouchmove="noop">
+  <view class="pantry-manager-modal" catchtap="noop" catchtouchmove="noop">
+    <view class="pantry-manager-modal__header">
+      <view class="pantry-manager-modal__title">{{title}}</view>
+      <view class="pantry-manager-modal__close" bindtap="handleClose">×</view>
+    </view>
+
+    <view wx:if="{{metaText}}" class="pantry-manager-modal__meta">{{metaText}}</view>
+
+    <view class="pantry-manager-modal__input-row">
+      <input
+        class="pantry-manager-modal__input"
+        value="{{inputValue}}"
+        placeholder="{{inputPlaceholder}}"
+        bindinput="handleInput"
+      />
+      <view class="pantry-manager-modal__confirm" bindtap="handleSubmit">确定</view>
+    </view>
+
+    <view wx:if="{{loading}}" class="pantry-manager-modal__hint">{{loadingText}}</view>
+
+    <view wx:elif="{{!items.length}}" class="pantry-manager-modal__empty">
+      <view class="pantry-manager-modal__empty-illustration {{emptyIllustrationClass}}">{{emptyIllustration}}</view>
+      <view class="pantry-manager-modal__empty-title">{{emptyTitle}}</view>
+      <view class="pantry-manager-modal__empty-text">{{emptyText}}</view>
+    </view>
+
+    <scroll-view wx:else scroll-y="true" class="pantry-manager-modal__list">
+      <view class="pantry-manager-modal__list-inner">
+        <view wx:for="{{items}}" wx:key="name" class="{{index === draggingIndex ? 'pantry-manager-modal__item pantry-manager-modal__item--dragging' : 'pantry-manager-modal__item'}}">
+          <view
+            class="{{index === draggingIndex ? 'pantry-manager-modal__drag pantry-manager-modal__drag--active' : 'pantry-manager-modal__drag'}}"
+            data-index="{{index}}"
+            catchtouchstart="handleDragStart"
+            catchtouchmove="handleDragMove"
+            catchtouchend="handleDragEnd"
+            catchtouchcancel="handleDragCancel"
+          >
+            ⋮⋮
+          </view>
+          <view class="pantry-manager-modal__name">{{item.name}}</view>
+          <view class="pantry-manager-modal__actions">
+            <view class="pantry-manager-modal__edit" data-name="{{item.name}}" bindtap="handleRename">✎</view>
+            <view wx:if="{{item.showCountBadge}}" class="pantry-manager-modal__count">{{item.countText}}</view>
+            <view
+              wx:elif="{{item.showDelete}}"
+              class="pantry-manager-modal__delete"
+              data-name="{{item.name}}"
+              data-deletable="{{item.showDelete}}"
+              bindtap="handleDelete"
+            >
+              ×
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

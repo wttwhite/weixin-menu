@@ -247,6 +247,14 @@ function createRepository(options = {}) {
     return result.data || []
   }
 
+  async function listAllMealPlans(spaceId, query = {}) {
+    const where = {
+      spaceId,
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    return listAllRecords(COLLECTIONS.MEAL_PLANS, where)
+  }
+
   async function getMealPlanListMetadata(spaceId, query = {}) {
     const where = {
       spaceId,
@@ -885,6 +893,7 @@ function createRepository(options = {}) {
     getRecipeListMetadata,
     getRecipeTag,
     listAllPantryItems,
+    listAllMealPlans,
     listPantryItems,
     listAllRecipes,
     listMealPlans,
@@ -948,7 +957,9 @@ function createDefaultHandlers() {
     createRecipeCategory: recipeHandlers.createRecipeCategory,
     updateRecipeCategory: recipeHandlers.updateRecipeCategory,
     deleteRecipeCategory: recipeHandlers.deleteRecipeCategory,
+    reorderRecipeCategories: recipeHandlers.reorderRecipeCategories,
     deleteRecipeTag: recipeHandlers.deleteRecipeTag,
+    generateSampleRecipes: recipeHandlers.generateSampleRecipes,
     listShoppingLists: shoppingHandlers.listShoppingLists,
     createShoppingList: shoppingHandlers.createShoppingList,
     updateShoppingList: shoppingHandlers.updateShoppingList,

@@ -31,7 +31,7 @@ describe('meal-plans calendar helpers', () => {
         rowIndex: 3,
         visibleRowCount: 1,
         viewportHeightRpx: 88,
-        translateYRpx: 293
+        translateYRpx: 292
       })
     )
 

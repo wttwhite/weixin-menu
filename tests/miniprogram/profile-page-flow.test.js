@@ -180,6 +180,44 @@ function createCallFunctionMock() {
       })
     }
 
+    if (name === 'api' && data.action === 'updatePantryLocation') {
+      return Promise.resolve({
+        result: {
+          code: 0,
+          data: {
+            item: { name: data.name, pantryItemCount: 6, deletable: false }
+          }
+        }
+      })
+    }
+
+    if (name === 'api' && data.action === 'reorderPantryLocations') {
+      return Promise.resolve({
+        result: {
+          code: 0,
+          data: {
+            items: (data.names || []).map((name) => ({
+              name,
+              pantryItemCount: name === '冷藏' ? 6 : 0,
+              deletable: name !== '冷藏'
+            }))
+          }
+        }
+      })
+    }
+
+    if (name === 'api' && data.action === 'generateSampleRecipes') {
+      return Promise.resolve({
+        result: {
+          code: 0,
+          data: {
+            count: data.count || 30,
+            items: [{ _id: 'recipe-seed-1', name: '蒜香黄油虾' }]
+          }
+        }
+      })
+    }
+
     return Promise.resolve({
       result: {
         code: 0,
@@ -334,7 +372,7 @@ describe('profile page flow', () => {
     })
   })
 
-  it('opens manager modals, theme modal, and navigates to nested pages', async () => {
+  it('opens recipe and pantry manager modals, theme modal, and navigates to nested pages', async () => {
     const callFunction = createCallFunctionMock()
     const navigateTo = vi.fn()
     global.wx = {
@@ -359,13 +397,16 @@ describe('profile page flow', () => {
     page.setData({ activeSpaceId: 'space-1' })
 
     await page.openRecipeCategoryManager()
-    expect(page.data.showManagerModal).toBe(true)
-    expect(page.data.managerMode).toBe('recipe-category')
-    expect(page.data.managerItems).toHaveLength(2)
+    expect(page.data.showRecipeCategoryManager).toBe(true)
+    expect(page.data.recipeCategoryManagerItems).toHaveLength(2)
+    expect(page.data.showPantryManagerModal).toBe(false)
 
     await page.openPantryLocationManager()
-    expect(page.data.managerMode).toBe('pantry-location')
-    expect(page.data.managerItems[0].name).toBe('冷藏')
+    expect(page.data.showRecipeCategoryManager).toBe(false)
+    expect(page.data.showPantryManagerModal).toBe(true)
+    expect(page.data.pantryManagerType).toBe('location')
+    expect(page.data.pantryManagerTitle).toBe('食材位置')
+    expect(page.data.pantryManagerItems[0].name).toBe('冷藏')
 
     page.openThemeModal()
     expect(page.data.showThemeModal).toBe(true)
@@ -382,6 +423,138 @@ describe('profile page flow', () => {
     })
     expect(navigateTo).toHaveBeenNthCalledWith(3, {
       url: '/pages/statistics/index'
+    })
+  })
+
+  it('renames and reorders pantry locations through the shared pantry manager modal', async () => {
+    const callFunction = createCallFunctionMock()
+    const showModal = vi.fn().mockResolvedValue({
+      confirm: true,
+      content: '冷藏室'
+    })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      setClipboardData: vi.fn(),
+      showToast: vi.fn(),
+      showModal,
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1',
+        themeKey: 'default',
+        themeStyle: '--page-bg: #f5f1e8;'
+      },
+      setActiveSpaceId: vi.fn(),
+      setTheme: vi.fn()
+    })
+
+    const page = await loadPage('../../miniprogram/pages/profile/index.js')
+    page.setData({ activeSpaceId: 'space-1' })
+
+    await page.openPantryLocationManager()
+    await page.renamePantryManagerItem({
+      detail: {
+        name: '冷藏'
+      }
+    })
+
+    expect(callFunction).toHaveBeenNthCalledWith(2, {
+      name: 'api',
+      data: {
+        action: 'updatePantryLocation',
+        spaceId: 'space-1',
+        previousName: '冷藏',
+        name: '冷藏室'
+      },
+      config: undefined
+    })
+    expect(page.data.pantryManagerItems[0]).toEqual(
+      expect.objectContaining({
+        name: '冷藏室',
+        pantryItemCount: 6,
+        deletable: false
+      })
+    )
+
+    page.handlePantryManagerDragStart({
+      detail: {
+        index: 0,
+        touches: [{ pageY: 0 }]
+      }
+    })
+    page.handlePantryManagerDragMove({
+      detail: {
+        touches: [{ pageY: 80 }]
+      }
+    })
+    await page.handlePantryManagerDragEnd()
+
+    expect(callFunction).toHaveBeenNthCalledWith(3, {
+      name: 'api',
+      data: {
+        action: 'reorderPantryLocations',
+        spaceId: 'space-1',
+        names: ['橱柜', '冷藏室']
+      },
+      config: undefined
+    })
+    expect(page.data.pantryManagerItems.map((item) => item.name)).toEqual(['橱柜', '冷藏室'])
+  })
+
+  it('generates 30 sample recipes from the owner action and reloads profile metrics', async () => {
+    const callFunction = createCallFunctionMock()
+    const showToast = vi.fn()
+    const showModal = vi.fn().mockResolvedValue({
+      confirm: true
+    })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      setClipboardData: vi.fn(),
+      showToast,
+      showModal,
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1',
+        themeKey: 'default',
+        themeStyle: '--page-bg: #f5f1e8;'
+      },
+      setActiveSpaceId: vi.fn(),
+      setTheme: vi.fn()
+    })
+
+    const page = await loadPage('../../miniprogram/pages/profile/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      canRenameSpace: true
+    })
+    page.loadProfile = vi.fn().mockResolvedValue(undefined)
+
+    await page.handleGenerateRecipeSamples()
+
+    expect(showModal).toHaveBeenCalledWith({
+      title: '生成示例菜谱',
+      content: '将为当前空间随机生成 30 个菜谱数据，确认继续？',
+      confirmText: '开始生成',
+      confirmColor: '#4d7f5b'
+    })
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'api',
+      data: {
+        action: 'generateSampleRecipes',
+        spaceId: 'space-1',
+        count: 30
+      },
+      config: undefined
+    })
+    expect(page.loadProfile).toHaveBeenCalledTimes(1)
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已生成30个菜谱',
+      icon: 'success'
     })
   })
 })

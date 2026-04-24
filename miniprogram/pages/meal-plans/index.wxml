@@ -1,6 +1,6 @@
 <view class="meal-plans-page" style="{{themeStyle}}">
   <view class="plans-hero">
-    <image class="plans-hero__background" src="/images/food-hero-table.svg" mode="aspectFill" />
+    <image class="plans-hero__background" src="/images/meal-plans-hero.jpg" mode="aspectFill" />
     <view class="plans-hero__overlay">
       <view class="plans-hero__topbar">
         <view class="plans-hero__date-pill">{{currentDateLabel}}</view>
@@ -64,8 +64,8 @@
           <view class="plans-day-card__title">{{selectedDateTitle}}</view>
           <view class="plans-day-card__meta">{{selectedPlanCountText}}</view>
         </view>
-        <t-button wx:if="{{selectedPlans.length}}" class="plans-day-card__action" theme="primary" size="small" shape="round" bindtap="openInventoryCheck">检查食材库存</t-button>
-        <t-button wx:else class="plans-day-card__action" theme="primary" size="small" shape="round" bindtap="goCreate">添加安排</t-button>
+        <t-button wx:if="{{selectedPlans.length}}" t-class="plans-day-card__action plans-day-card__action--inventory" theme="primary" size="small" shape="round" bindtap="openInventoryCheck">检查库存</t-button>
+        <view wx:else class="plans-day-card__action plans-day-card__action--create" bindtap="goCreate">添加安排</view>
       </view>
 
       <view wx:if="{{selectedPlans.length}}" class="plan-card-list">
@@ -73,12 +73,38 @@
           <view class="plan-card__icon">{{item.utensilText}}</view>
           <view class="plan-card__body">
             <view class="plan-card__head">
-              <view class="plan-card__title">{{item.mealTypeLabel}}：{{item.primaryRecipeName}}</view>
-              <view class="{{item.statusClass}}">{{item.statusText}}</view>
+              <view class="plan-card__title-wrap">
+                <view class="plan-card__title">{{item.mealTypeLabel}}</view>
+                <view class="{{item.statusClass}}">{{item.statusText}}</view>
+              </view>
+              <view class="plan-card__tools">
+                <view
+                  class="{{item.statusToolClass}}"
+                  data-meal-plan-id="{{item._id}}"
+                  catchtap="handleToggleMealPlanStatus"
+                >
+                  {{item.statusIconText}}
+                </view>
+                <view
+                  class="plan-card__tool plan-card__tool--edit"
+                  data-meal-plan-id="{{item._id}}"
+                  catchtap="handleSelectMealPlan"
+                >
+                  ✎
+                </view>
+              </view>
             </view>
             <view class="plan-card__meta">{{item.planCountText}}</view>
             <view class="plan-card__tags">
-              <view wx:for="{{item.recipeTagItems}}" wx:key="index" class="plan-card__tag">{{item}}</view>
+              <view
+                wx:for="{{item.recipeTagItems}}"
+                wx:key="recipeId"
+                class="plan-card__recipe-tag"
+                data-recipe-id="{{item.recipeId}}"
+                catchtap="handlePlanRecipeTap"
+              >
+                {{item.label}}
+              </view>
             </view>
           </view>
         </view>
@@ -87,6 +113,58 @@
       <view wx:else class="empty-card empty-card--inline">
         <view class="empty-card__title">当天还没有安排</view>
         <view class="empty-card__text">{{emptyMessage}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showMealPlanStatusModal}}" class="meal-plan-status-modal__overlay" catchtap="closeMealPlanStatusModal">
+    <view class="meal-plan-status-modal" catchtap="noop">
+      <view class="meal-plan-status-modal__header">
+        <view>
+          <view class="meal-plan-status-modal__title">{{mealPlanStatusModalTitle}}</view>
+          <view class="meal-plan-status-modal__date">{{mealPlanStatusModalDate}}</view>
+        </view>
+        <view class="meal-plan-status-modal__close" bindtap="closeMealPlanStatusModal">×</view>
+      </view>
+
+      <view class="meal-plan-status-modal__section">
+        <view class="meal-plan-status-modal__label">状态</view>
+        <view class="meal-plan-status-modal__chips">
+          <view
+            wx:for="{{mealPlanStatusChipItems}}"
+            wx:key="value"
+            class="{{item.itemClass}}"
+            data-status="{{item.value}}"
+            catchtap="selectMealPlanStatus"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+
+      <view class="meal-plan-status-modal__row">
+        <view class="meal-plan-status-modal__label">餐次</view>
+        <view class="meal-plan-status-modal__value">{{mealPlanStatusModalMealTypeLabel}}</view>
+      </view>
+
+      <view class="meal-plan-status-modal__section">
+        <view class="meal-plan-status-modal__label">{{mealPlanStatusModalRecipeCountText}}</view>
+        <view class="meal-plan-status-modal__recipe-list">
+          <view
+            wx:for="{{mealPlanStatusModalRecipeItems}}"
+            wx:key="recipeId"
+            class="{{item.itemClass}}"
+            data-recipe-id="{{item.recipeId}}"
+            bindtap="handlePlanRecipeTap"
+          >
+            <view class="meal-plan-status-modal__recipe-icon">⌕</view>
+            <view class="meal-plan-status-modal__recipe-name">{{item.label}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="meal-plan-status-modal__footer">
+        <view class="meal-plan-status-modal__delete" bindtap="removeSelectedMealPlan">🗑 删除计划</view>
       </view>
     </view>
   </view>

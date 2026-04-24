@@ -11,8 +11,10 @@ describe('recipes page template styles', () => {
     expect(styles.includes('.channel-layout')).toBe(true)
     expect(styles.includes('flex: 1;')).toBe(true)
     expect(styles).not.toMatch(/\.cart-bar\s*\{[^}]*position:\s*fixed;/)
-    expect(styles.includes('margin-top: auto;')).toBe(true)
+    expect(styles.includes('margin-top: auto;')).toBe(false)
     expect(styles.includes('padding: 14rpx 18rpx calc(env(safe-area-inset-bottom) + 16rpx);')).toBe(false)
+    expect(styles).toMatch(/\.recipes-page\s*\{[\s\S]*padding:\s*14rpx 18rpx calc\(env\(safe-area-inset-bottom\) \+ 128rpx\);/)
+    expect(styles).toMatch(/\.cart-bar\s*\{[\s\S]*margin-top:\s*18rpx;/)
   })
 
   it('uses non-button containers for compact utility actions and rail items', () => {
@@ -56,6 +58,26 @@ describe('recipes page template styles', () => {
     expect(styles.includes('box-sizing: border-box;')).toBe(true)
     expect(styles.includes('white-space: normal;')).toBe(true)
     expect(styles.includes('height: 720rpx;')).toBe(false)
+  })
+
+  it('constrains left and right recipe columns to scroll independently', () => {
+    const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+    const template = readFileSync('miniprogram/pages/recipes/index.wxml', 'utf8')
+
+    expect(styles).toMatch(/page\s*\{[\s\S]*height:\s*100%;/)
+    expect(styles).toMatch(/\.recipes-page\s*\{[\s\S]*height:\s*100%;/)
+    expect(styles).toMatch(/\.recipes-page\s*\{[\s\S]*overflow:\s*hidden;/)
+    expect(styles).toMatch(/\.channel-layout\s*\{[\s\S]*flex:\s*1;/)
+    expect(styles).toMatch(/\.channel-layout\s*\{[\s\S]*min-height:\s*0;/)
+    expect(styles).toMatch(/\.channel-layout\s*\{[\s\S]*overflow:\s*hidden;/)
+    expect(styles).toMatch(/\.channel-rail\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;/)
+    expect(styles).toMatch(/\.channel-rail__scroll\s*\{[\s\S]*flex:\s*1;/)
+    expect(styles).toMatch(/\.channel-rail__scroll\s*\{[\s\S]*min-height:\s*0;/)
+    expect(styles).toMatch(/\.channel-surface\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;/)
+    expect(styles).toMatch(/\.channel-surface__scroll\s*\{[\s\S]*flex:\s*1;/)
+    expect(styles).toMatch(/\.channel-surface__scroll\s*\{[\s\S]*min-height:\s*0;/)
+    expect(template).toMatch(/channel-rail__scroll[\s\S]*scroll-y/)
+    expect(template).toMatch(/channel-surface__scroll[\s\S]*scroll-y/)
   })
 
   it('centers the add and selected check symbol inside the recipe selection button', () => {

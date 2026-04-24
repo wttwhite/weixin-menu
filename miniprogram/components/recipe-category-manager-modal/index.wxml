@@ -1,0 +1,53 @@
+<view wx:if="{{visible}}" class="category-modal__overlay" catchtap="handleClose" catchtouchmove="noop">
+  <view class="category-modal" catchtap="noop" catchtouchmove="noop">
+    <view class="category-modal__header">
+      <view class="category-modal__title">{{title}}</view>
+      <view class="category-modal__close" bindtap="handleClose">×</view>
+    </view>
+
+    <view class="category-modal__input-row">
+      <input
+        class="category-modal__input"
+        value="{{inputValue}}"
+        placeholder="{{inputPlaceholder}}"
+        bindinput="handleInput"
+      />
+      <view class="category-modal__confirm" bindtap="handleSubmit">确定</view>
+    </view>
+
+    <view wx:if="{{loading}}" class="category-modal__hint">正在读取分类...</view>
+
+    <view wx:elif="{{!items.length}}" class="category-modal__hint">暂无分类</view>
+
+    <scroll-view wx:else scroll-y="true" class="category-modal__list">
+      <view class="category-modal__list-inner">
+        <view wx:for="{{items}}" wx:key="name" class="{{index === draggingIndex ? 'category-modal__item category-modal__item--dragging' : 'category-modal__item'}}">
+          <view
+            class="{{index === draggingIndex ? 'category-modal__drag category-modal__drag--active' : 'category-modal__drag'}}"
+            data-index="{{index}}"
+            catchtouchstart="handleDragStart"
+            catchtouchmove="handleDragMove"
+            catchtouchend="handleDragEnd"
+            catchtouchcancel="handleDragCancel"
+          >
+            ⋮⋮
+          </view>
+          <view class="category-modal__name">{{item.name}}</view>
+          <view class="category-modal__actions">
+            <view class="category-modal__edit" data-name="{{item.name}}" bindtap="handleRename">✎</view>
+            <view wx:if="{{item.showCountBadge}}" class="category-modal__count">{{item.countText}}</view>
+            <view
+              wx:elif="{{item.showDelete}}"
+              class="category-modal__delete"
+              data-name="{{item.name}}"
+              data-deletable="{{item.showDelete}}"
+              bindtap="handleDelete"
+            >
+              ×
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

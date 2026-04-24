@@ -43,6 +43,28 @@ function buildPageCopy(isEdit = false) {
   }
 }
 
+function buildDetailViewData(form = {}, statusOptions = [], statusIndex = 0) {
+  const quantity = normalizeText(form.quantity) || '1'
+  const unit = normalizeText(form.unit)
+  const expirationDateText = normalizeText(form.expirationDate) || '未设置'
+  const notesText = normalizeText(form.notes)
+  return {
+    detailNameText: normalizeText(form.name) || '未命名库存',
+    detailCategoryText: normalizeText(form.category) || '未设置',
+    detailLocationText: normalizeText(form.location) || '未设置',
+    detailStatusText: statusOptions[statusIndex] || STATUS_OPTIONS[0].label,
+    detailQuantityText: unit ? `${quantity} ${unit}` : quantity,
+    detailProductionDateText: normalizeText(form.productionDate) || '未设置',
+    detailShelfLifeText: normalizeText(form.shelfLifeMonths) ? `${normalizeText(form.shelfLifeMonths)} 个月` : '未设置',
+    detailExpirationDateText: expirationDateText,
+    detailHeroExpirationText: expirationDateText === '未设置' ? '未设到期' : `到期 ${expirationDateText}`,
+    detailOpenedDateText: normalizeText(form.openedDate) || '未设置',
+    detailHasNotes: Boolean(notesText),
+    detailNotesText: notesText,
+    detailNotesDisplayText: notesText || '暂无备注'
+  }
+}
+
 Page({
   data: {
     loading: true,
@@ -62,6 +84,21 @@ Page({
     categoryIndex: 0,
     locationIndex: 0,
     statusIndex: 0,
+    showEditModal: false,
+    editForm: createEmptyPantryForm(),
+    detailCategoryText: '未设置',
+    detailLocationText: '未设置',
+    detailStatusText: STATUS_OPTIONS[0].label,
+    detailNameText: '未命名库存',
+    detailQuantityText: '1',
+    detailProductionDateText: '未设置',
+    detailShelfLifeText: '未设置',
+    detailExpirationDateText: '未设置',
+    detailHeroExpirationText: '未设到期',
+    detailOpenedDateText: '未设置',
+    detailHasNotes: false,
+    detailNotesText: '',
+    detailNotesDisplayText: '暂无备注',
     form: createEmptyPantryForm()
   },
 
@@ -125,6 +162,9 @@ Page({
         categoryIndex: getPickerIndex(categoryOptions, form.category),
         locationIndex: getPickerIndex(locationOptions, form.location),
         statusIndex: getStatusIndex(form.status),
+        showEditModal: false,
+        editForm: createEmptyPantryForm(),
+        ...buildDetailViewData(form, this.data.statusOptions, getStatusIndex(form.status)),
         form
       })
     } catch (error) {
@@ -300,6 +340,91 @@ Page({
     this.setData({
       form: nextForm
     })
+  },
+
+  openEditModal() {
+    if (!this.data.isEdit || this.data.loading || this.data.loadErrorMessage) {
+      return
+    }
+
+    this.setData({
+      showEditModal: true,
+      editForm: {
+        ...createEmptyPantryForm(),
+        ...this.data.form
+      }
+    })
+  },
+
+  closeEditModal() {
+    this.setData({
+      showEditModal: false
+    })
+  },
+
+  handleEditFormChange(event) {
+    this.setData({
+      editForm: event && event.detail && event.detail.form
+        ? event.detail.form
+        : createEmptyPantryForm()
+    })
+  },
+
+  async submitEditModal(event) {
+    if (
+      !this.data.isEdit ||
+      this.data.submitting ||
+      !this.data.activeSpaceId ||
+      this.data.loading ||
+      this.data.loadErrorMessage
+    ) {
+      return
+    }
+
+    const nextForm = event && event.detail && event.detail.form
+      ? event.detail.form
+      : this.data.editForm
+
+    this.setData({ submitting: true })
+
+    try {
+      const result = await createPantryService().updatePantryItem(
+        this.data.activeSpaceId,
+        this.data.pantryItemId,
+        nextForm
+      )
+      const form = {
+        ...createEmptyPantryForm(),
+        ...(result.item || nextForm)
+      }
+      const categoryOptions = buildManagerOptionLabels(this.data.categoryOptions || [], form.category)
+      const locationOptions = buildManagerOptionLabels(this.data.locationOptions || [], form.location)
+      const statusIndex = getStatusIndex(form.status)
+
+      this.setData({
+        submitting: false,
+        showEditModal: false,
+        notesCount: buildNotesCount(form),
+        categoryOptions,
+        locationOptions,
+        categoryIndex: getPickerIndex(categoryOptions, form.category),
+        locationIndex: getPickerIndex(locationOptions, form.location),
+        statusIndex,
+        editForm: createEmptyPantryForm(),
+        ...buildDetailViewData(form, this.data.statusOptions, statusIndex),
+        form
+      })
+      wx.showToast({
+        title: '已更新库存',
+        icon: 'success'
+      })
+    } catch (error) {
+      wx.showToast({
+        title: getErrorMessage(error),
+        icon: 'none'
+      })
+      this.setData({ submitting: false })
+    }
   },
 
   async submit() {

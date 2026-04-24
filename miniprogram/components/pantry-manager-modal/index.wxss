@@ -1,0 +1,219 @@
+.pantry-manager-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  box-sizing: border-box;
+  background: rgba(18, 28, 45, 0.28);
+  backdrop-filter: blur(8rpx);
+}
+
+.pantry-manager-modal {
+  width: 100%;
+  max-width: 680rpx;
+  max-height: 76vh;
+  overflow: auto;
+  padding: 26rpx;
+  border-radius: 34rpx;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--shadow-soft, 0 24rpx 42rpx rgba(37, 49, 71, 0.18));
+}
+
+.pantry-manager-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.pantry-manager-modal__title {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: var(--text-primary, #182234);
+}
+
+.pantry-manager-modal__close,
+.pantry-manager-modal__edit,
+.pantry-manager-modal__delete,
+.pantry-manager-modal__drag {
+  width: 56rpx;
+  min-width: 56rpx;
+  height: 56rpx;
+  border-radius: 999rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.pantry-manager-modal__close,
+.pantry-manager-modal__drag {
+  background: var(--surface-muted, #f2f4f8);
+  color: var(--text-secondary, #667084);
+}
+
+.pantry-manager-modal__meta {
+  margin-top: 18rpx;
+  padding: 8rpx 14rpx;
+  width: fit-content;
+  border-radius: 999rpx;
+  background: #eef5ff;
+  color: var(--brand, #4d7edc);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.pantry-manager-modal__input-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.pantry-manager-modal__input {
+  flex: 1;
+  min-width: 0;
+  height: 84rpx;
+  box-sizing: border-box;
+  padding: 0 22rpx;
+  border-radius: 18rpx;
+  border: 1px solid var(--border-soft, #edf1f5);
+  background: var(--surface-bg, #ffffff);
+  font-size: 28rpx;
+  color: var(--text-primary, #27323f);
+}
+
+.pantry-manager-modal__confirm {
+  width: 184rpx;
+  min-width: 0;
+  flex: none;
+  height: 84rpx;
+  border-radius: 16rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.pantry-manager-modal__hint {
+  margin-top: 18rpx;
+  font-size: 26rpx;
+  color: var(--text-secondary, #7a808d);
+}
+
+.pantry-manager-modal__empty {
+  margin-top: 18rpx;
+  min-height: 300rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  padding: 18rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(180deg, #f7fafc, #eef4f8);
+}
+
+.pantry-manager-modal__empty-illustration {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+  font-size: 46rpx;
+  font-weight: 800;
+  box-shadow: 0 14rpx 26rpx rgba(197, 106, 61, 0.24);
+}
+
+.pantry-manager-modal__empty-illustration--location {
+  background: linear-gradient(135deg, #7aa8ff, #4d7edc);
+  box-shadow: 0 14rpx 26rpx rgba(77, 126, 220, 0.24);
+}
+
+.pantry-manager-modal__empty-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #27323f;
+}
+
+.pantry-manager-modal__empty-text {
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #7a808d;
+  text-align: center;
+}
+
+.pantry-manager-modal__list {
+  margin-top: 18rpx;
+  max-height: 52vh;
+}
+
+.pantry-manager-modal__list-inner {
+  display: grid;
+  gap: 14rpx;
+}
+
+.pantry-manager-modal__item {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 20rpx;
+  background: var(--surface-bg, #fbfcfe);
+  border: 1px solid var(--border-soft, #edf1f5);
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.pantry-manager-modal__item--dragging {
+  transform: translateX(10rpx) scale(1.02);
+  background: linear-gradient(135deg, #f3fbf4, #ecf7ef);
+  border-color: #b9ddbf;
+  box-shadow: 0 16rpx 26rpx rgba(47, 139, 55, 0.18);
+}
+
+.pantry-manager-modal__drag--active {
+  transform: scale(1.08);
+  background: #e5f4e7;
+  color: #2f8b37;
+}
+
+.pantry-manager-modal__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text-primary, #27323f);
+}
+
+.pantry-manager-modal__actions {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.pantry-manager-modal__edit {
+  background: var(--surface-muted, #eef5ff);
+  color: var(--brand, #4d7edc);
+}
+
+.pantry-manager-modal__count {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: var(--surface-muted, #f4f5f8);
+  color: var(--text-tertiary, #8b95a3);
+  font-size: 22rpx;
+}
+
+.pantry-manager-modal__delete {
+  background: var(--surface-muted, #ffe9e9);
+  color: var(--danger, #d14b4b);
+}

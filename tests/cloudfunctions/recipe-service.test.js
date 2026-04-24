@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createRecipe,
   createRecipeCategory,
+  generateSampleRecipes,
   createRecipeTag,
   deleteRecipe,
   deleteRecipeCategory,
@@ -10,6 +11,7 @@ import {
   listRecipeCategories,
   listRecipeTags,
   listRecipes,
+  reorderRecipeCategories,
   updateRecipeCategory,
   updateRecipe
 } from '../../cloudfunctions/api/services/recipe-service'
@@ -17,6 +19,7 @@ import { ERROR_CODES } from '../../shared/constants/error-codes'
 
 function createRepository() {
   const recipes = []
+  const mealPlans = []
   const tags = []
   const recipeImages = []
   const deletedCloudFiles = []
@@ -71,6 +74,11 @@ function createRepository() {
         ...patch
       }
       return { ...recipes[index] }
+    },
+    async listAllMealPlans(spaceId) {
+      return mealPlans
+        .filter((item) => item.spaceId === spaceId && item.deletedAt === '')
+        .map((item) => ({ ...item }))
     },
     async listRecipeImagesByIds(spaceId, imageIds = []) {
       const idSet = new Set(imageIds)
@@ -136,6 +144,9 @@ function createRepository() {
     },
     __seedRecipeImage(image) {
       recipeImages.push({ ...image })
+    },
+    __seedMealPlan(plan) {
+      mealPlans.push({ ...plan })
     },
     async getSpace(spaceId) {
       const matched = spaces.get(spaceId)
@@ -435,6 +446,46 @@ describe('recipe service', () => {
       name: '精致凉菜'
     })
     expect(repository.__getSpaceCategories('space-1')).not.toContain('精致凉菜')
+  })
+
+  it('reorders recipe categories and returns the persisted order', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Cold Cucumber',
+          category: '健康时蔬'
+        }
+      },
+      context,
+      repository
+    )
+
+    const reordered = await reorderRecipeCategories(
+      {
+        spaceId: 'space-1',
+        names: ['美味汤羹', '健康时蔬']
+      },
+      context,
+      repository
+    )
+
+    expect(repository.__getSpaceCategories('space-1')).toEqual(['美味汤羹', '健康时蔬'])
+    expect(reordered.items).toEqual([
+      expect.objectContaining({
+        name: '美味汤羹',
+        recipeCount: 0,
+        deletable: true
+      }),
+      expect.objectContaining({
+        name: '健康时蔬',
+        recipeCount: 1,
+        deletable: false
+      })
+    ])
   })
 
   it('validates required fields and returns INVALID_INPUT', async () => {
@@ -759,6 +810,90 @@ describe('recipe service', () => {
     expect(listed.total).toBe(120)
     expect(listed.limit).toBe(100)
     expect(listed.hasMore).toBe(true)
+  })
+
+  it('adds recent done meal plan usage as recipe monthly sales counts', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Tomato Egg'
+        }
+      },
+      context,
+      repository
+    )
+    await createRecipe(
+      {
+        spaceId: 'space-1',
+        recipe: {
+          name: 'Mapo Tofu'
+        }
+      },
+      context,
+      repository
+    )
+
+    repository.__seedMealPlan({
+      _id: 'meal-1',
+      spaceId: 'space-1',
+      planDate: '2026-04-23',
+      status: 'done',
+      deletedAt: '',
+      recipes: [
+        { recipeId: 'recipe-1' },
+        { recipeId: 'recipe-2' }
+      ]
+    })
+    repository.__seedMealPlan({
+      _id: 'meal-2',
+      spaceId: 'space-1',
+      planDate: '2026-04-18',
+      status: 'done',
+      deletedAt: '',
+      recipes: [
+        { recipeId: 'recipe-1' }
+      ]
+    })
+    repository.__seedMealPlan({
+      _id: 'meal-3',
+      spaceId: 'space-1',
+      planDate: '2026-04-17',
+      status: 'planned',
+      deletedAt: '',
+      recipes: [
+        { recipeId: 'recipe-2' }
+      ]
+    })
+
+    const listed = await listRecipes(
+      {
+        spaceId: 'space-1'
+      },
+      context,
+      repository,
+      {
+        clock: {
+          now: () => new Date('2026-04-23T12:00:00.000Z')
+        }
+      }
+    )
+
+    expect(listed.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          _id: 'recipe-1',
+          planUsageCount: 2
+        }),
+        expect.objectContaining({
+          _id: 'recipe-2',
+          planUsageCount: 1
+        })
+      ])
+    )
   })
 
   it('uses repository.createRecipeAtomic when available', async () => {
@@ -1172,5 +1307,55 @@ describe('recipe service', () => {
         deletedAt: expect.any(String)
       })
     )
+  })
+
+  it('generates 30 sample recipes for owners and syncs generated categories into space settings', async () => {
+    const repository = createRepository()
+    const context = {
+      openid: 'owner-1',
+      membership: {
+        role: 'owner'
+      }
+    }
+
+    const created = await generateSampleRecipes(
+      {
+        spaceId: 'space-1',
+        count: 30
+      },
+      context,
+      repository
+    )
+
+    expect(created.count).toBe(30)
+    expect(created.items).toHaveLength(30)
+    expect(created.items.every((item) => item && item.name && item.category)).toBe(true)
+    expect(new Set(created.items.map((item) => item.category)).size).toBeGreaterThanOrEqual(4)
+    expect(repository.__getSpaceCategories('space-1')).toEqual(
+      expect.arrayContaining(Array.from(new Set(created.items.map((item) => item.category))))
+    )
+  })
+
+  it('rejects generating sample recipes for non-owner members', async () => {
+    const repository = createRepository()
+    const context = {
+      openid: 'member-1',
+      membership: {
+        role: 'member'
+      }
+    }
+
+    await expect(
+      generateSampleRecipes(
+        {
+          spaceId: 'space-1',
+          count: 30
+        },
+        context,
+        repository
+      )
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.SPACE_FORBIDDEN
+    })
   })
 })

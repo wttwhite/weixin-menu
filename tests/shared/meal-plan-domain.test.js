@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeMealPlanWrite, sortMealPlansBySchedule } from '../../shared/domain/meal-plan'
+import {
+  buildRecentRecipePlanUsageCounts,
+  normalizeMealPlanWrite,
+  sortMealPlansBySchedule
+} from '../../shared/domain/meal-plan'
 
 describe('meal-plan domain', () => {
   it('sorts meal plans by date then meal type order', () => {
@@ -17,6 +21,7 @@ describe('meal-plan domain', () => {
     const result = normalizeMealPlanWrite({
       planDate: ' 2026-04-10 ',
       mealType: ' Lunch ',
+      status: ' Done ',
       notes: ' low spice ',
       recipes: [
         {
@@ -38,6 +43,7 @@ describe('meal-plan domain', () => {
     expect(result).toEqual({
       planDate: '2026-04-10',
       mealType: 'lunch',
+      status: 'done',
       notes: 'low spice',
       recipes: [
         {
@@ -84,5 +90,51 @@ describe('meal-plan domain', () => {
         sortOrder: 2
       })
     )
+  })
+
+  it('defaults unknown status values to planned', () => {
+    const result = normalizeMealPlanWrite({
+      planDate: '2026-04-10',
+      mealType: 'dinner',
+      status: 'unknown',
+      recipes: [
+        {
+          recipeId: 'recipe-1',
+          recipe: { _id: 'recipe-1', name: 'A' }
+        }
+      ]
+    })
+
+    expect(result.status).toBe('planned')
+  })
+
+  it('counts only done recipe usage within the recent 30-day window', () => {
+    const counts = buildRecentRecipePlanUsageCounts([
+      {
+        planDate: '2026-04-23',
+        status: 'done',
+        recipes: [{ recipeId: 'recipe-1' }]
+      },
+      {
+        planDate: '2026-04-10',
+        status: 'done',
+        recipes: [{ recipeId: 'recipe-1' }, { recipeId: 'recipe-2' }]
+      },
+      {
+        planDate: '2026-04-09',
+        status: 'planned',
+        recipes: [{ recipeId: 'recipe-1' }]
+      },
+      {
+        planDate: '2026-03-01',
+        status: 'done',
+        recipes: [{ recipeId: 'recipe-3' }]
+      }
+    ], '2026-04-23')
+
+    expect(counts).toEqual({
+      'recipe-1': 2,
+      'recipe-2': 1
+    })
   })
 })

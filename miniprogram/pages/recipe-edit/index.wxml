@@ -1,4 +1,4 @@
-<view class="edit-page">
+<view class="edit-page" style="{{themeStyle}}">
   <view wx:if="{{!activeSpaceId}}" class="state-card">
     <view class="state-title">还没有可用空间</view>
     <view class="state-text">请先切换或创建空间，再管理菜谱。</view>
@@ -43,18 +43,23 @@
         </view>
       </view>
 
-      <view class="description-head">
-        <view class="description-head__label">菜谱描述</view>
-        <view class="description-head__count">{{summaryCount}}/100</view>
+      <view class="form-row form-row--textarea description-row">
+        <view class="form-row__label">菜谱描述</view>
+        <view class="description-row__main">
+          <view class="description-row__field-wrap">
+            <textarea
+              class="field-textarea field-textarea--hero field-textarea--inline"
+              data-field="summary"
+              value="{{form.summary}}"
+              maxlength="100"
+              placeholder="简单描述一下这道菜的特色..."
+              placeholder-class="field-placeholder"
+              bindinput="handleInput"
+            />
+          </view>
+          <view class="description-row__count">{{summaryCount}}/100</view>
+        </view>
       </view>
-      <textarea
-        class="field-textarea field-textarea--hero"
-        data-field="summary"
-        value="{{form.summary}}"
-        maxlength="100"
-        placeholder="简单描述一下这道菜的特色..."
-        bindinput="handleInput"
-      />
     </view>
 
     <view class="editor-section">
@@ -72,13 +77,16 @@
           data-field="name"
           value="{{item.name}}"
           placeholder="如：土豆 2个、五花肉 500g"
+          placeholder-class="field-placeholder"
           bindinput="handleIngredientInput"
         />
         <view class="row-card__side-actions">
           <view class="row-card__pill row-card__pill--danger" data-index="{{index}}" bindtap="removeIngredientRow">删除</view>
         </view>
       </view>
-      <t-button class="section-button section-button--soft" bindtap="addIngredientRow">＋ 新增食材</t-button>
+      <view class="section-button-wrap">
+        <t-button class="section-button section-button--soft" bindtap="addIngredientRow">＋ 新增食材</t-button>
+      </view>
 
       <view class="subsection-title subsection-title--steps">制作步骤</view>
       <view wx:for="{{stepViewItems}}" wx:key="displayIndex" class="step-card">
@@ -96,18 +104,13 @@
           value="{{item.content}}"
           maxlength="500"
           placeholder="详细描述制作步骤..."
-          bindinput="handleStepInput"
-        />
-        <input
-          class="field-input field-input--compact"
-          data-index="{{index}}"
-          data-field="tips"
-          value="{{item.tips}}"
-          placeholder="补充提示（可选）"
+          placeholder-class="field-placeholder"
           bindinput="handleStepInput"
         />
       </view>
-      <t-button class="section-button section-button--soft" bindtap="addStepRow">＋ 新增步骤</t-button>
+      <view class="section-button-wrap">
+        <t-button class="section-button section-button--soft" bindtap="addStepRow">＋ 新增步骤</t-button>
+      </view>
     </view>
 
     <view class="editor-section editor-section--last">
@@ -133,15 +136,7 @@
       <view class="rating-row">
         <view class="rating-row__label">推荐指数</view>
         <view class="rating-row__stars">
-          <text
-            wx:for="{{recommendationStarItems}}"
-            wx:key="value"
-            class="{{item.itemClass}}"
-            data-value="{{item.value}}"
-            bindtap="handleRecommendationTap"
-          >
-            ★
-          </text>
+          <text wx:for="{{recommendationStarItems}}" wx:key="value" class="{{item.itemClass}}" data-value="{{item.value}}" bindtap="handleRecommendationTap">★</text>
         </view>
         <view class="rating-row__value">{{recommendationScoreLabel}}</view>
       </view>
@@ -171,39 +166,21 @@
           <view class="field-label">难度</view>
           <input class="field-input" data-field="difficulty" value="{{form.difficulty}}" placeholder="简单 / 中等" bindinput="handleInput" />
         </view>
-        <view class="detail-grid__item">
-          <view class="field-label">份量</view>
-          <input class="field-input" data-field="servings" value="{{form.servings}}" placeholder="2-3 人" bindinput="handleInput" />
-        </view>
-        <view class="detail-grid__item">
-          <view class="field-label">备菜时长(分钟)</view>
-          <input class="field-input" data-field="prepTimeMinutes" value="{{form.prepTimeMinutes}}" placeholder="可选" bindinput="handleInput" />
-        </view>
       </view>
 
       <view class="field-switch">
         <text>收藏这道菜</text>
         <switch checked="{{form.isFavorite}}" bindchange="handleSwitchFavorite" />
       </view>
+    </view>
 
-      <view class="subsection-title">标签</view>
-      <view class="tag-list">
-        <tag-chip
-          wx:for="{{tagViewItems}}"
-          wx:key="_id"
-          tagId="{{item._id}}"
-          text="{{item.name}}"
-          color="{{item.color}}"
-          selected="{{item.selected}}"
-          bindselect="handleTagToggle"
-        />
+    <view wx:if="{{isEdit}}" class="editor-section editor-section--danger">
+      <view class="editor-section__head">
+        <view class="editor-section__icon editor-section__icon--danger">!</view>
+        <view class="editor-section__title">危险操作</view>
       </view>
-      <view class="inline-row">
-        <input class="field-input inline-row__input" value="{{newTagName}}" placeholder="添加新标签名称" bindinput="handleNewTagInput" />
-        <t-button class="inline-row__button" theme="primary" variant="outline" size="small" bindtap="createTag">添加标签</t-button>
-      </view>
-
-      <t-button wx:if="{{isEdit}}" class="delete-button" theme="danger" variant="outline" loading="{{deleting}}" bindtap="removeRecipe">删除菜谱</t-button>
+      <view class="editor-section__divider"></view>
+      <t-button class="delete-button" theme="danger" variant="outline" loading="{{deleting}}" bindtap="removeRecipe">删除菜谱</t-button>
     </view>
 
     <view class="bottom-actions">

@@ -119,6 +119,26 @@ function createRecipeService(dependencies = {}) {
       )
     },
 
+    async generateSampleRecipes(spaceId, count = 30) {
+      return unwrapResponse(
+        await cloudCall('api', {
+          action: 'generateSampleRecipes',
+          spaceId,
+          count
+        })
+      )
+    },
+
+    async reorderRecipeCategories(spaceId, names = []) {
+      return unwrapResponse(
+        await cloudCall('api', {
+          action: 'reorderRecipeCategories',
+          spaceId,
+          names
+        })
+      )
+    },
+
     async createRecipeTag(spaceId, tag) {
       return unwrapResponse(
         await cloudCall('api', {
@@ -181,6 +201,14 @@ async function deleteRecipeCategory(spaceId, name, dependencies = {}) {
   return createRecipeService(dependencies).deleteRecipeCategory(spaceId, name)
 }
 
+async function generateSampleRecipes(spaceId, count = 30, dependencies = {}) {
+  return createRecipeService(dependencies).generateSampleRecipes(spaceId, count)
+}
+
+async function reorderRecipeCategories(spaceId, names = [], dependencies = {}) {
+  return createRecipeService(dependencies).reorderRecipeCategories(spaceId, names)
+}
+
 async function createRecipeTag(spaceId, tag, dependencies = {}) {
   return createRecipeService(dependencies).createRecipeTag(spaceId, tag)
 }
@@ -197,10 +225,12 @@ module.exports = {
   deleteRecipe,
   deleteRecipeCategory,
   deleteRecipeTag,
+  generateSampleRecipes,
   getRecipeDetail,
   listRecipeCategories,
   listRecipeTags,
   listRecipes,
+  reorderRecipeCategories,
   updateRecipeCategory,
   updateRecipe
 }

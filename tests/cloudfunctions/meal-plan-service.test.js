@@ -84,6 +84,7 @@ describe('meal-plan service', () => {
         plan: {
           planDate: '2026-04-10',
           mealType: 'dinner',
+          status: 'planned',
           recipes: [{ recipeId: 'recipe-1', servingsOverride: '3', notes: '' }]
         }
       },
@@ -126,6 +127,7 @@ describe('meal-plan service', () => {
       expect.objectContaining({
         planDate: '2026-04-10',
         mealType: 'breakfast',
+        status: 'planned',
         recipes: [
           expect.objectContaining({
             recipeId: 'recipe-2',
@@ -186,6 +188,7 @@ describe('meal-plan service', () => {
         plan: {
           planDate: '2026-04-11',
           mealType: 'dinner',
+          status: 'cancelled',
           notes: 'extra tofu',
           recipes: [{ recipeId: 'recipe-2', servingsOverride: '5', notes: 'extra tofu' }]
         }
@@ -203,6 +206,7 @@ describe('meal-plan service', () => {
       expect.objectContaining({
         planDate: '2026-04-11',
         mealType: 'dinner',
+        status: 'cancelled',
         notes: 'extra tofu',
         recipes: [
           expect.objectContaining({

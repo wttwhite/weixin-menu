@@ -38,14 +38,15 @@ page {
   width: 120rpx;
   height: 120rpx;
   border-radius: 30rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-  color: #fff;
-  font-size: 48rpx;
-  font-weight: 700;
-  box-shadow: 0 14rpx 24rpx rgba(197, 106, 61, 0.26);
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 249, 241, 0.96), rgba(246, 231, 209, 0.95));
+  box-shadow: 0 14rpx 24rpx rgba(197, 106, 61, 0.18);
+}
+
+.management-card__cover-image {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .management-card__meta {
@@ -94,11 +95,14 @@ page {
   font-size: 34rpx;
 }
 
-.management-card__actions {
-  display: flex;
-  gap: 18rpx;
+.management-card__search {
   padding: 16rpx 24rpx 24rpx;
-  flex-wrap: wrap;
+}
+
+.management-card__search-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
 }
 
 .action-pill {
@@ -348,7 +352,7 @@ page {
   height: auto;
   width: 100%;
   box-sizing: border-box;
-  padding: 12rpx 18rpx 18rpx;
+  padding: 12rpx 18rpx 170rpx;
 }
 
 .channel-surface__scroll ::-webkit-scrollbar {
@@ -549,6 +553,27 @@ page {
   color: #d14b4b;
 }
 
+.floating-create-button {
+  position: fixed;
+  z-index: 35;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  box-shadow: 0 22rpx 34rpx rgba(197, 106, 61, 0.28);
+}
+
+.floating-create-button__icon {
+  color: #ffffff;
+  font-size: 52rpx;
+  line-height: 1;
+  font-weight: 700;
+  transform: translateY(-2rpx);
+}
+
 .settings-modal__overlay {
   position: fixed;
   inset: 0;
@@ -670,9 +695,18 @@ page {
 }
 
 .settings-modal__confirm {
-  --td-button-primary-bg-color: var(--brand);
-  --td-button-primary-active-bg-color: var(--brand-strong);
-  --td-button-primary-border-color: var(--brand);
+  width: 184rpx;
+  min-width: 0;
+  flex: none;
+  height: 84rpx;
+  border-radius: 16rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
 .settings-modal__hint {

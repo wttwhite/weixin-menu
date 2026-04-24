@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "编辑菜谱",
+  "navigationBarTitleText": "菜谱表单",
   "usingComponents": {
     "tag-chip": "/components/tag-chip/index",
     "image-uploader": "/components/image-uploader/index",

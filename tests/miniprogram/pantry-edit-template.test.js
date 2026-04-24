@@ -38,6 +38,23 @@ describe('pantry edit template', () => {
     expect(template).toContain('bindtap="clearOpenedDate"')
   })
 
+  it('renders a read-only detail view with shared pantry edit modal for existing items', () => {
+    const template = readFileSync('miniprogram/pages/pantry-edit/index.wxml', 'utf8')
+
+    expect(template).toContain('detail-shell')
+    expect(template).toContain('hero-card')
+    expect(template).toContain('action-row')
+    expect(template).toContain('card-head')
+    expect(template).toContain('detail-pair-grid')
+    expect(template).toContain('detail-edit-button')
+    expect(template).toContain('showEditModal')
+    expect(template).toContain('pantry-form-modal')
+    expect(template).toContain('bind:submit="submitEditModal"')
+    expect(template).toContain('bind:change="handleEditFormChange"')
+    expect(template.includes('`')).toBe(false)
+    expect(template.includes('${')).toBe(false)
+  })
+
   it('keeps notes textarea and delete action compact instead of full width', () => {
     const styles = readFileSync('miniprogram/pages/pantry-edit/index.wxss', 'utf8')
 

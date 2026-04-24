@@ -166,6 +166,161 @@ describe('pantry edit page flow', () => {
     expect(page.data.form.status).toBe('opened')
     expect(page.data.form.expirationDate).toBe('2026-04-10')
     expect(page.data.loadErrorMessage).toBe('')
+    expect(page.data.showEditModal).toBe(false)
+  })
+
+  it('opens shared edit modal from pantry detail and updates local detail state after save', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'dairy' }, { name: 'produce' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'fridge' }, { name: 'freezer' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'pantry-1',
+              name: 'Milk',
+              category: 'dairy',
+              quantity: '1',
+              unit: 'box',
+              location: 'fridge',
+              productionDate: '2026-01-10',
+              shelfLifeMonths: '3',
+              openedDate: '2026-01-18',
+              status: 'opened',
+              expirationDate: '2026-04-10',
+              notes: 'test'
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'pantry-1',
+              name: 'Fresh Milk',
+              category: 'produce',
+              quantity: '2',
+              unit: '瓶',
+              location: 'freezer',
+              productionDate: '2026-01-11',
+              shelfLifeMonths: '4',
+              openedDate: '2026-01-19',
+              status: 'active',
+              expirationDate: '2026-05-11',
+              notes: 'updated'
+            }
+          }
+        }
+      })
+    const showToast = vi.fn()
+    const navigateBack = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast,
+      navigateBack,
+      redirectTo: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry-edit/index.js')
+    page.onLoad({ pantryItemId: 'pantry-1' })
+    await flushAsyncWork()
+
+    page.openEditModal()
+    expect(page.data.showEditModal).toBe(true)
+    expect(page.data.editForm).toEqual(
+      expect.objectContaining({
+        name: 'Milk',
+        category: 'dairy',
+        location: 'fridge'
+      })
+    )
+
+    page.handleEditFormChange({
+      detail: {
+        form: {
+          ...page.data.editForm,
+          name: 'Fresh Milk',
+          category: 'produce',
+          quantity: '2',
+          unit: '瓶',
+          location: 'freezer',
+          productionDate: '2026-01-11',
+          shelfLifeMonths: '4',
+          openedDate: '2026-01-19',
+          status: 'active',
+          expirationDate: '2026-05-11',
+          notes: 'updated'
+        }
+      }
+    })
+
+    await page.submitEditModal({
+      detail: {
+        form: page.data.editForm
+      }
+    })
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenNthCalledWith(4, {
+      name: 'api',
+      data: {
+        action: 'updatePantryItem',
+        spaceId: 'space-1',
+        pantryItemId: 'pantry-1',
+        item: expect.objectContaining({
+          name: 'Fresh Milk',
+          category: 'produce',
+          quantity: '2',
+          unit: '瓶',
+          location: 'freezer',
+          status: 'active'
+        })
+      },
+      config: undefined
+    })
+    expect(page.data.showEditModal).toBe(false)
+    expect(page.data.form).toEqual(
+      expect.objectContaining({
+        name: 'Fresh Milk',
+        category: 'produce',
+        location: 'freezer',
+        status: 'active',
+        notes: 'updated'
+      })
+    )
+    expect(page.data.categoryOptions).toEqual(['未设置', 'dairy', 'produce'])
+    expect(page.data.locationOptions).toEqual(['未设置', 'fridge', 'freezer'])
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已更新库存',
+      icon: 'success'
+    })
+    expect(navigateBack).not.toHaveBeenCalled()
   })
 
   it('uses configured dropdowns and stepper actions for pantry fields', async () => {

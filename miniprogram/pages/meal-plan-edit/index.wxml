@@ -1,83 +1,138 @@
-<view class="meal-plan-edit-page">
-  <view class="error-text" wx:if="{{loadErrorMessage}}">{{loadErrorMessage}}</view>
+<view class="meal-plan-edit-page" style="{{themeStyle}}">
+  <view wx:if="{{loadErrorMessage}}" class="state-card">
+    <view class="state-title">计划加载失败</view>
+    <view class="state-text">{{loadErrorMessage}}</view>
+    <t-button class="state-button" theme="primary" bindtap="goBack">返回</t-button>
+  </view>
 
-  <view class="form-card">
-    <view class="field">
-      <view class="field-label">日期</view>
-      <picker mode="date" value="{{form.planDate}}" bindchange="handleDateChange">
-        <view class="picker-value">{{form.planDate}}</view>
-      </picker>
+  <view wx:elif="{{loading}}" class="state-card">
+    <view class="state-title">{{isEdit ? '正在加载计划...' : '正在准备新安排...'}}</view>
+  </view>
+
+  <view wx:else class="meal-plan-editor">
+    <view class="editor-section">
+      <view class="editor-section__head">
+        <view class="editor-section__icon">🗓</view>
+        <view class="editor-section__title">计划信息</view>
+      </view>
+      <view class="editor-section__divider"></view>
+
+      <view class="field-grid">
+        <view class="field-card">
+          <view class="field-label">日期</view>
+          <picker mode="date" value="{{form.planDate}}" bindchange="handleDateChange">
+            <view class="picker-value">{{form.planDate}}</view>
+          </picker>
+        </view>
+
+        <view class="field-card">
+          <view class="field-label">餐次</view>
+          <picker
+            mode="selector"
+            value="{{selectedMealTypeIndex}}"
+            range="{{mealTypeOptions}}"
+            range-key="label"
+            bindchange="handleMealTypeChange"
+          >
+            <view class="picker-value">{{mealTypeOptions[selectedMealTypeIndex].label}}</view>
+          </picker>
+        </view>
+      </view>
     </view>
 
-    <view class="field">
-      <view class="field-label">餐次</view>
-      <picker
-        mode="selector"
-        value="{{selectedMealTypeIndex}}"
-        range="{{mealTypeOptions}}"
-        range-key="label"
-        bindchange="handleMealTypeChange"
-      >
-        <view class="picker-value">{{mealTypeOptions[selectedMealTypeIndex].label}}</view>
-      </picker>
-    </view>
+    <view class="editor-section">
+      <view class="editor-section__head">
+        <view class="editor-section__icon">🍲</view>
+        <view class="editor-section__title">计划菜谱</view>
+      </view>
+      <view class="editor-section__divider"></view>
+      <view class="section-hint">支持按名称搜索后选择菜谱，每一行都可以单独配置份数。</view>
 
-    <view class="field">
-      <view class="field-label">计划菜谱</view>
-      <view wx:for="{{form.recipes}}" wx:key="index" class="recipe-row">
-        <picker
-          mode="selector"
-          data-index="{{index}}"
-          value="{{selectedRecipeIndexes[index]}}"
-          range="{{recipeOptions}}"
-          range-key="label"
-          bindchange="handleRecipeChange"
-        >
-          <view class="picker-value">{{recipeOptions[selectedRecipeIndexes[index]].label}}</view>
-        </picker>
+      <view wx:for="{{recipeRowViewItems}}" wx:key="rowIndex" class="recipe-card">
+        <view class="recipe-card__head">
+          <view class="recipe-card__title">菜谱 {{item.rowIndex}}</view>
+          <view class="row-pill row-pill--danger" data-index="{{index}}" bindtap="removeRecipeRow">删除</view>
+        </view>
 
+        <view class="field-label field-label--compact">选择菜谱</view>
+        <view class="{{item.recipePickerClass}}" data-index="{{index}}" bindtap="openRecipeSelector">
+          <view class="recipe-search__text">{{item.selectedRecipeLabel}}</view>
+          <view class="recipe-search__icon">⌕</view>
+        </view>
+
+        <view class="field-label field-label--compact">份数（可覆盖）</view>
         <input
-          class="field-input recipe-row__input"
-          value="{{item.servingsOverride}}"
-          placeholder="份数（可覆盖）"
+          class="field-input field-input--compact"
+          value="{{form.recipes[index].servingsOverride}}"
+          placeholder="例如：2"
           data-index="{{index}}"
           data-field="servingsOverride"
           bindinput="handleRecipeFieldInput"
         />
-
-        <t-button class="recipe-row__remove" theme="danger" variant="outline" size="small" data-index="{{index}}" bindtap="removeRecipeRow">删除这道菜</t-button>
       </view>
-      <t-button class="recipe-row__add" theme="primary" variant="outline" size="small" bindtap="addRecipeRow">添加计划菜谱</t-button>
+
+      <view class="section-button-wrap">
+        <t-button class="section-button section-button--soft" bindtap="addRecipeRow">＋ 添加计划菜谱</t-button>
+      </view>
     </view>
 
-    <view class="field">
-      <view class="field-label">备注</view>
+    <view class="editor-section">
+      <view class="editor-section__head">
+        <view class="editor-section__icon">✎</view>
+        <view class="editor-section__title">备注</view>
+      </view>
+      <view class="editor-section__divider"></view>
+
       <textarea
         class="field-textarea"
         value="{{form.notes}}"
-        placeholder="例如：少辣、需要备菜"
+        placeholder="例如：少辣、需要提前备菜"
         data-field="notes"
         bindinput="handleInput"
       />
     </view>
+
+    <view wx:if="{{isEdit}}" class="editor-section editor-section--danger">
+      <view class="editor-section__head">
+        <view class="editor-section__icon editor-section__icon--danger">!</view>
+        <view class="editor-section__title">危险操作</view>
+      </view>
+      <view class="editor-section__divider"></view>
+      <t-button class="delete-button" theme="danger" variant="outline" loading="{{deleting}}" bindtap="removeMealPlan">删除计划</t-button>
+    </view>
+
+    <view class="bottom-actions">
+      <t-button class="footer-close-btn" theme="default" bindtap="goBack">取消</t-button>
+      <t-button class="footer-submit-btn" theme="primary" loading="{{submitting}}" bindtap="submit">
+        {{isEdit ? '保存变更' : '创建计划'}}
+      </t-button>
+    </view>
   </view>
 
-  <view class="action-row">
-    <t-button class="ghost-btn" theme="default" variant="outline" bindtap="goBack">取消</t-button>
-    <t-button class="primary-btn" theme="primary" loading="{{submitting}}" bindtap="submit">
-      {{isEdit ? '保存变更' : '创建计划'}}
-    </t-button>
-  </view>
+  <view wx:if="{{showRecipeSelector}}" class="recipe-selector__overlay" catchtap="closeRecipeSelector">
+    <view class="recipe-selector" catchtap="noop">
+      <view class="recipe-selector__title">搜索并选择菜谱</view>
+      <input
+        class="recipe-selector__search-input"
+        value="{{recipeSearchKeyword}}"
+        placeholder="搜索菜谱名称"
+        bindinput="handleRecipeSearchInput"
+      />
 
-  <t-button
-    wx:if="{{isEdit}}"
-    class="danger-btn"
-    theme="danger"
-    variant="outline"
-    block
-    loading="{{deleting}}"
-    bindtap="removeMealPlan"
-  >
-    删除计划
-  </t-button>
+      <scroll-view scroll-y="true" class="recipe-selector__list">
+        <view wx:if="{{filteredRecipeOptions.length}}" class="recipe-selector__list-inner">
+          <view
+            wx:for="{{filteredRecipeOptions}}"
+            wx:key="value"
+            class="recipe-selector__option"
+            data-value="{{item.value}}"
+            bindtap="handleRecipeOptionSelect"
+          >
+            {{item.label}}
+          </view>
+        </view>
+        <view wx:else class="recipe-selector__empty">没有匹配的菜谱</view>
+      </scroll-view>
+    </view>
+  </view>
 </view>

@@ -148,6 +148,7 @@ async function createMealPlan(event = {}, context = {}, repository = {}, options
   const normalized = {
     planDate: rawPlan.planDate,
     mealType: rawPlan.mealType,
+    status: rawPlan.status,
     notes: rawPlan.notes,
     recipes: await buildEmbeddedRecipes(event.spaceId, rawPlan.recipes, repository)
   }
@@ -185,6 +186,7 @@ async function updateMealPlan(event = {}, context = {}, repository = {}, options
   const normalized = {
     planDate: rawPlan.planDate,
     mealType: rawPlan.mealType,
+    status: rawPlan.status,
     notes: rawPlan.notes,
     recipes: await buildEmbeddedRecipes(event.spaceId, rawPlan.recipes, repository)
   }

@@ -3,6 +3,7 @@ const { ERROR_CODES } = require('../../shared/constants/error-codes')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 const { buildManagerOptionLabels, createEmptyPantryForm } = require('../../utils/pantry-form')
+const { buildPantryManagerItems, getPantryManagerConfig } = require('../../utils/pantry-manager')
 const { syncCurrentTabBar } = require('../../utils/tab-bar')
 const { syncPageTheme } = require('../../utils/theme')
 
@@ -10,6 +11,11 @@ const DEFAULT_MANAGEMENT_CATEGORY_COUNT_TEXT = '暂无分类'
 const UNCATEGORIZED_KEY = '__uncategorized__'
 const STORED_STATUS_SEQUENCE = ['active', 'opened', 'empty', 'discarded']
 const MANAGER_DRAG_SWAP_THRESHOLD = 56
+const FLOATING_CREATE_SIZE_RPX = 112
+const FLOATING_CREATE_MARGIN_RPX = 24
+const FLOATING_CREATE_TOP_MARGIN_RPX = 120
+const FLOATING_CREATE_BOTTOM_CLEARANCE_RPX = 256
+const FLOATING_CREATE_DRAG_THRESHOLD_PX = 6
 
 const FRESHNESS_META = {
   expiring: {
@@ -56,37 +62,6 @@ const STATUS_ACTION_ITEMS = [
   { value: 'discarded', label: '标记为已丢弃' }
 ]
 
-const MANAGER_CONFIG = {
-  category: {
-    title: '分类管理',
-    inputPlaceholder: '输入分类名称',
-    loadingText: '正在读取分类...',
-    renameTitle: '重命名分类',
-    renamePlaceholder: '输入新的分类名称',
-    deleteTitle: '删除分类',
-    deleteLabel: '分类',
-    listMethod: 'listPantryCategories',
-    createMethod: 'createPantryCategory',
-    updateMethod: 'updatePantryCategory',
-    deleteMethod: 'deletePantryCategory',
-    reorderMethod: 'reorderPantryCategories'
-  },
-  location: {
-    title: '位置管理',
-    inputPlaceholder: '输入位置名称',
-    loadingText: '正在读取位置...',
-    renameTitle: '重命名位置',
-    renamePlaceholder: '输入新的位置名称',
-    deleteTitle: '删除位置',
-    deleteLabel: '位置',
-    listMethod: 'listPantryLocations',
-    createMethod: 'createPantryLocation',
-    updateMethod: 'updatePantryLocation',
-    deleteMethod: 'deletePantryLocation',
-    reorderMethod: 'reorderPantryLocations'
-  }
-}
-
 function createDateLabel(now = new Date()) {
   const year = now.getFullYear()
   const month = now.getMonth() + 1
@@ -101,6 +76,80 @@ function normalizeText(value) {
 function normalizeStoredStatus(value) {
   const text = normalizeText(value)
   return STORED_STATUS_SEQUENCE.includes(text) ? text : 'active'
+}
+
+function rpxToPx(rpx = 0, windowWidth = 375) {
+  return (Number(rpx) * Number(windowWidth)) / 750
+}
+
+function getWindowMetrics() {
+  let windowWidth = 375
+  let windowHeight = 667
+  let safeBottom = windowHeight
+
+  if (typeof wx !== 'undefined') {
+    let info = null
+    if (typeof wx.getWindowInfo === 'function') {
+      try {
+        info = wx.getWindowInfo()
+      } catch (error) {
+        void error
+      }
+    }
+    if (!info && typeof wx.getSystemInfoSync === 'function') {
+      try {
+        info = wx.getSystemInfoSync()
+      } catch (error) {
+        void error
+      }
+    }
+    if (info) {
+      windowWidth = Number(info.windowWidth || info.screenWidth || windowWidth)
+      windowHeight = Number(info.windowHeight || info.screenHeight || windowHeight)
+      const safeArea = info.safeArea || null
+      safeBottom = safeArea && typeof safeArea.bottom === 'number' ? safeArea.bottom : windowHeight
+    }
+  }
+
+  return {
+    windowWidth,
+    windowHeight,
+    safeBottom
+  }
+}
+
+function getFloatingCreateBounds() {
+  const metrics = getWindowMetrics()
+  const sizePx = rpxToPx(FLOATING_CREATE_SIZE_RPX, metrics.windowWidth)
+  const marginPx = rpxToPx(FLOATING_CREATE_MARGIN_RPX, metrics.windowWidth)
+  const minTop = rpxToPx(FLOATING_CREATE_TOP_MARGIN_RPX, metrics.windowWidth)
+  const bottomClearancePx = rpxToPx(FLOATING_CREATE_BOTTOM_CLEARANCE_RPX, metrics.windowWidth)
+  const minLeft = marginPx
+  const maxLeft = Math.max(minLeft, metrics.windowWidth - sizePx - marginPx)
+  const maxTop = Math.max(minTop, metrics.safeBottom - sizePx - marginPx - bottomClearancePx)
+
+  return {
+    minLeft,
+    maxLeft,
+    minTop,
+    maxTop
+  }
+}
+
+function clampFloatingCreatePosition(left = 0, top = 0) {
+  const bounds = getFloatingCreateBounds()
+  return {
+    left: Math.min(bounds.maxLeft, Math.max(bounds.minLeft, Number(left) || 0)),
+    top: Math.min(bounds.maxTop, Math.max(bounds.minTop, Number(top) || 0))
+  }
+}
+
+function buildDefaultFloatingCreatePosition() {
+  const bounds = getFloatingCreateBounds()
+  return {
+    left: bounds.maxLeft,
+    top: bounds.maxTop
+  }
 }
 
 function getCategoryKey(category) {
@@ -307,39 +356,16 @@ function buildManagementCoverText(items = []) {
 }
 
 function getManagerConfig(type = 'category') {
-  return MANAGER_CONFIG[type] || MANAGER_CONFIG.category
+  return getPantryManagerConfig(type)
 }
 
 function getManagerStateKeys(type = 'category') {
-  if (type === 'location') {
-    return {
-      inputKey: 'locationManagerInput',
-      loadingKey: 'locationManagerLoading',
-      itemsKey: 'locationManagerItems',
-      viewItemsKey: 'locationManagerViewItems'
-    }
-  }
-
   return {
     inputKey: 'categoryManagerInput',
     loadingKey: 'categoryManagerLoading',
     itemsKey: 'categoryManagerItems',
-    viewItemsKey: 'categoryManagerViewItems'
+    metaKey: 'categoryManagerMetaText'
   }
-}
-
-function buildManagerViewItems(items = [], options = {}) {
-  return (items || []).map((item, index) => {
-    const isDragging = options.draggingType === options.type && options.draggingIndex === index
-    return {
-    ...item,
-    showCountBadge: (item.pantryItemCount || 0) > 0,
-    countText: `${item.pantryItemCount || 0}项库存`,
-    showDelete: !((item.pantryItemCount || 0) > 0),
-    itemClass: isDragging ? 'settings-modal__item settings-modal__item--dragging' : 'settings-modal__item',
-    dragClass: isDragging ? 'settings-modal__drag settings-modal__drag--active' : 'settings-modal__drag'
-    }
-  })
 }
 
 function replaceManagerItem(items = [], previousName = '', nextItem = {}) {
@@ -415,6 +441,22 @@ function moveArrayItem(items = [], fromIndex = 0, toIndex = 0) {
 }
 
 function getTouchPageY(event = {}) {
+  if (
+    event.detail &&
+    Array.isArray(event.detail.touches) &&
+    event.detail.touches.length &&
+    typeof event.detail.touches[0].pageY === 'number'
+  ) {
+    return event.detail.touches[0].pageY
+  }
+  if (
+    event.detail &&
+    Array.isArray(event.detail.changedTouches) &&
+    event.detail.changedTouches.length &&
+    typeof event.detail.changedTouches[0].pageY === 'number'
+  ) {
+    return event.detail.changedTouches[0].pageY
+  }
   if (Array.isArray(event.touches) && event.touches.length && typeof event.touches[0].pageY === 'number') {
     return event.touches[0].pageY
   }
@@ -452,17 +494,10 @@ function buildManagerUpdates(page, type = 'category', managerItems = [], extras 
   const keys = getManagerStateKeys(type)
   const updates = {
     [keys.itemsKey]: managerItems,
-    [keys.viewItemsKey]: buildManagerViewItems(managerItems, {
-      type,
-      draggingType: page.data.draggingManagerType,
-      draggingIndex: page.data.draggingManagerIndex
-    }),
+    [keys.metaKey]: `${managerItems.length} ${getManagerConfig(type).metaSuffix || '类'}`,
     ...extras
   }
-
-  if (type === 'category') {
-    updates.categorySourceValues = managerItems.map((item) => item.name)
-  }
+  updates.categorySourceValues = managerItems.map((item) => item.name)
 
   return updates
 }
@@ -537,21 +572,19 @@ Page({
     processedCount: 0,
     processedCountText: '已处理 0 项',
     showSettingsModal: false,
-    draggingManagerType: '',
     draggingManagerIndex: -1,
     categoryManagerInput: '',
     categoryManagerLoading: false,
     categoryManagerItems: [],
-    categoryManagerViewItems: [],
-    locationManagerInput: '',
-    locationManagerLoading: false,
-    locationManagerItems: [],
-    locationManagerViewItems: [],
+    categoryManagerMetaText: '0 类',
     showCreateModal: false,
     submittingCreate: false,
     createForm: createEmptyPantryForm(),
     createCategoryOptions: ['未设置'],
     createLocationOptions: ['未设置'],
+    floatingCreateLeft: 0,
+    floatingCreateTop: 0,
+    floatingCreateInitialized: false,
     railScrollHeight: 400,
     surfaceScrollHeight: 400,
     customScrollbarVisible: false,
@@ -560,6 +593,7 @@ Page({
   },
 
   onReady() {
+    this.initializeFloatingCreatePosition()
     const query = wx.createSelectorQuery().in(this)
     query.select('.channel-layout').boundingClientRect()
     query.select('.channel-surface').boundingClientRect()
@@ -573,7 +607,9 @@ Page({
 
   onShow() {
     this.managerDragState = null
+    this.floatingCreateDragState = null
     syncPageTheme(this)
+    this.initializeFloatingCreatePosition()
     syncCurrentTabBar(this, '/pages/pantry/index')
     this.loadPantry()
   },
@@ -581,6 +617,19 @@ Page({
   async onPullDownRefresh() {
     await this.loadPantry()
     wx.stopPullDownRefresh()
+  },
+
+  initializeFloatingCreatePosition(force = false) {
+    if (!force && this.data.floatingCreateInitialized) {
+      return
+    }
+
+    const nextPosition = buildDefaultFloatingCreatePosition()
+    this.setData({
+      floatingCreateLeft: nextPosition.left,
+      floatingCreateTop: nextPosition.top,
+      floatingCreateInitialized: true
+    })
   },
 
   syncDerivedState(overrides = {}) {
@@ -665,16 +714,12 @@ Page({
         processedCount: 0,
         processedCountText: '已处理 0 项',
         showSettingsModal: false,
-        draggingManagerType: '',
         draggingManagerIndex: -1,
         categoryManagerInput: '',
         categoryManagerLoading: false,
         categoryManagerItems: [],
-        categoryManagerViewItems: [],
-        locationManagerInput: '',
-        locationManagerLoading: false,
-        locationManagerItems: [],
-        locationManagerViewItems: []
+        categoryManagerMetaText: '0 类',
+        floatingCreateInitialized: false
       })
       return
     }
@@ -792,6 +837,90 @@ Page({
     }
   },
 
+  async handleFloatingCreateTap() {
+    if (this.ignoreNextFloatingCreateTap) {
+      this.ignoreNextFloatingCreateTap = false
+      return
+    }
+    return this.goCreate()
+  },
+
+  handleFloatingCreateTouchStart(event) {
+    const touch = Array.isArray(event.touches) && event.touches.length
+      ? event.touches[0]
+      : event && event.detail && Array.isArray(event.detail.touches) && event.detail.touches.length
+        ? event.detail.touches[0]
+        : null
+    if (!touch || typeof touch.pageX !== 'number' || typeof touch.pageY !== 'number') {
+      return
+    }
+
+    this.floatingCreateDragState = {
+      startX: touch.pageX,
+      startY: touch.pageY,
+      startLeft: this.data.floatingCreateLeft,
+      startTop: this.data.floatingCreateTop,
+      dirty: false
+    }
+  },
+
+  handleFloatingCreateTouchMove(event) {
+    if (!this.floatingCreateDragState) {
+      return
+    }
+
+    const touch = Array.isArray(event.touches) && event.touches.length
+      ? event.touches[0]
+      : event && event.detail && Array.isArray(event.detail.touches) && event.detail.touches.length
+        ? event.detail.touches[0]
+        : null
+    if (!touch || typeof touch.pageX !== 'number' || typeof touch.pageY !== 'number') {
+      return
+    }
+
+    const deltaX = touch.pageX - this.floatingCreateDragState.startX
+    const deltaY = touch.pageY - this.floatingCreateDragState.startY
+    if (
+      !this.floatingCreateDragState.dirty &&
+      Math.abs(deltaX) < FLOATING_CREATE_DRAG_THRESHOLD_PX &&
+      Math.abs(deltaY) < FLOATING_CREATE_DRAG_THRESHOLD_PX
+    ) {
+      return
+    }
+
+    this.floatingCreateDragState.dirty = true
+    const nextPosition = clampFloatingCreatePosition(
+      this.floatingCreateDragState.startLeft + deltaX,
+      this.floatingCreateDragState.startTop + deltaY
+    )
+    this.setData({
+      floatingCreateLeft: nextPosition.left,
+      floatingCreateTop: nextPosition.top
+    })
+  },
+
+  handleFloatingCreateTouchEnd() {
+    if (!this.floatingCreateDragState) {
+      return
+    }
+    const dragState = this.floatingCreateDragState
+    this.floatingCreateDragState = null
+    if (dragState.dirty) {
+      this.ignoreNextFloatingCreateTap = true
+    }
+  },
+
+  handleFloatingCreateTouchCancel() {
+    if (!this.floatingCreateDragState) {
+      return
+    }
+    const dragState = this.floatingCreateDragState
+    this.floatingCreateDragState = null
+    if (dragState.dirty) {
+      this.ignoreNextFloatingCreateTap = true
+    }
+  },
+
   handleCreateFormChange(event) {
     this.setData({
       createForm: event && event.detail && event.detail.form
@@ -882,22 +1011,18 @@ Page({
     try {
       const service = createPantryService()
       const result = await service[config.listMethod](this.data.activeSpaceId)
-      const items = Array.isArray(result.items) ? result.items : []
+      const items = buildPantryManagerItems(Array.isArray(result.items) ? result.items : [], type)
       this.setData({
         [keys.loadingKey]: false,
         [keys.itemsKey]: items,
-        [keys.viewItemsKey]: buildManagerViewItems(items, {
-          type,
-          draggingType: this.data.draggingManagerType,
-          draggingIndex: this.data.draggingManagerIndex
-        })
+        [keys.metaKey]: `${items.length} ${config.metaSuffix || '类'}`
       })
     } catch (error) {
       if (shouldTreatManagerListAsEmpty(error)) {
         this.setData({
           [keys.loadingKey]: false,
           [keys.itemsKey]: [],
-          [keys.viewItemsKey]: []
+          [keys.metaKey]: `0 ${config.metaSuffix || '类'}`
         })
         return
       }
@@ -914,20 +1039,18 @@ Page({
     }
 
     this.setData({
-      showSettingsModal: true
+      showSettingsModal: true,
+      draggingManagerIndex: -1
     })
 
-    await Promise.all([
-      this.loadManagerItems('category'),
-      this.loadManagerItems('location')
-    ])
+    await this.loadManagerItems('category')
   },
 
   closeSettingsModal() {
     this.setData({
       showSettingsModal: false,
-      categoryManagerInput: '',
-      locationManagerInput: ''
+      draggingManagerIndex: -1,
+      categoryManagerInput: ''
     })
   },
 
@@ -942,10 +1065,6 @@ Page({
     this.handleManagerInput('category', event)
   },
 
-  handleLocationManagerInput(event) {
-    this.handleManagerInput('location', event)
-  },
-
   async submitManagerCreate(type = 'category') {
     const keys = getManagerStateKeys(type)
     const config = getManagerConfig(type)
@@ -957,11 +1076,14 @@ Page({
 
     try {
       const result = await service[config.createMethod](this.data.activeSpaceId, name)
-      const nextManagerItems = appendManagerItem(this.data[keys.itemsKey] || [], result.item || {
-        name,
-        pantryItemCount: 0,
-        deletable: true
-      })
+      const nextManagerItems = buildPantryManagerItems(
+        appendManagerItem(this.data[keys.itemsKey] || [], result.item || {
+          name,
+          pantryItemCount: 0,
+          deletable: true
+        }),
+        type
+      )
 
       this.syncDerivedState(buildManagerUpdates(this, type, nextManagerItems, {
         [keys.inputKey]: ''
@@ -976,10 +1098,6 @@ Page({
     return this.submitManagerCreate('category')
   },
 
-  async submitLocationManagerCreate() {
-    return this.submitManagerCreate('location')
-  },
-
   async persistManagerOrder(type = 'category', names = []) {
     const config = getManagerConfig(type)
     const service = createPantryService()
@@ -988,8 +1106,9 @@ Page({
 
   handleManagerDragStart(event) {
     const dataset = event && event.currentTarget ? event.currentTarget.dataset || {} : {}
-    const type = dataset.type || 'category'
-    const index = Number(dataset.index)
+    const detail = event && event.detail ? event.detail : {}
+    const type = dataset.type || detail.type || 'category'
+    const index = Number(dataset.index !== undefined ? dataset.index : detail.index)
     const touchPageY = getTouchPageY(event)
     const keys = getManagerStateKeys(type)
     const items = (this.data[keys.itemsKey] || []).slice()
@@ -1007,13 +1126,7 @@ Page({
       dirty: false
     }
     this.setData({
-      draggingManagerType: type,
-      draggingManagerIndex: index,
-      [keys.viewItemsKey]: buildManagerViewItems(items, {
-        type,
-        draggingType: type,
-        draggingIndex: index
-      })
+      draggingManagerIndex: index
     })
   },
 
@@ -1048,13 +1161,7 @@ Page({
 
     this.setData({
       [keys.itemsKey]: nextItems,
-      draggingManagerType: this.managerDragState.type,
-      draggingManagerIndex: nextIndex,
-      [keys.viewItemsKey]: buildManagerViewItems(nextItems, {
-        type: this.managerDragState.type,
-        draggingType: this.managerDragState.type,
-        draggingIndex: nextIndex
-      })
+      draggingManagerIndex: nextIndex
     })
   },
 
@@ -1068,16 +1175,7 @@ Page({
 
     if (!dragState.dirty) {
       this.setData({
-        draggingManagerType: '',
-        draggingManagerIndex: -1,
-        [getManagerStateKeys(dragState.type).viewItemsKey]: buildManagerViewItems(
-          this.data[getManagerStateKeys(dragState.type).itemsKey] || [],
-          {
-            type: dragState.type,
-            draggingType: '',
-            draggingIndex: -1
-          }
-        )
+        draggingManagerIndex: -1
       })
       return
     }
@@ -1090,14 +1188,9 @@ Page({
       const result = await this.persistManagerOrder(dragState.type, names)
       const persistedItems = Array.isArray(result.items) ? result.items : reorderedItems
       const updates = {
-        draggingManagerType: '',
         draggingManagerIndex: -1,
-        [keys.itemsKey]: persistedItems,
-        [keys.viewItemsKey]: buildManagerViewItems(persistedItems, {
-          type: dragState.type,
-          draggingType: '',
-          draggingIndex: -1
-        })
+        [keys.itemsKey]: buildPantryManagerItems(persistedItems, dragState.type),
+        [keys.metaKey]: `${persistedItems.length} ${getManagerConfig(dragState.type).metaSuffix || '类'}`
       }
 
       if (dragState.type === 'category') {
@@ -1107,14 +1200,9 @@ Page({
       this.syncDerivedState(updates)
     } catch (error) {
       this.setData({
-        draggingManagerType: '',
         draggingManagerIndex: -1,
         [keys.itemsKey]: dragState.snapshotItems,
-        [keys.viewItemsKey]: buildManagerViewItems(dragState.snapshotItems, {
-          type: dragState.type,
-          draggingType: '',
-          draggingIndex: -1
-        })
+        [keys.metaKey]: `${dragState.snapshotItems.length} ${getManagerConfig(dragState.type).metaSuffix || '类'}`
       })
       showOperationError(error)
     }
@@ -1129,37 +1217,25 @@ Page({
     this.managerDragState = null
     if (!dragState.dirty) {
       this.setData({
-        draggingManagerType: '',
-        draggingManagerIndex: -1,
-        [getManagerStateKeys(dragState.type).viewItemsKey]: buildManagerViewItems(
-          this.data[getManagerStateKeys(dragState.type).itemsKey] || [],
-          {
-            type: dragState.type,
-            draggingType: '',
-            draggingIndex: -1
-          }
-        )
+        draggingManagerIndex: -1
       })
       return
     }
 
     const keys = getManagerStateKeys(dragState.type)
     this.setData({
-      draggingManagerType: '',
       draggingManagerIndex: -1,
       [keys.itemsKey]: dragState.snapshotItems,
-      [keys.viewItemsKey]: buildManagerViewItems(dragState.snapshotItems, {
-        type: dragState.type,
-        draggingType: '',
-        draggingIndex: -1
-      })
+      [keys.metaKey]: `${dragState.snapshotItems.length} ${getManagerConfig(dragState.type).metaSuffix || '类'}`
     })
   },
 
   async renameManagerItem(type = 'category', event) {
-    const previousName = event && event.currentTarget && event.currentTarget.dataset
-      ? event.currentTarget.dataset.name || ''
-      : ''
+    const previousName = event && event.detail && event.detail.name
+      ? event.detail.name
+      : event && event.currentTarget && event.currentTarget.dataset
+        ? event.currentTarget.dataset.name || ''
+        : ''
     if (!previousName || typeof wx.showModal !== 'function') {
       return
     }
@@ -1184,9 +1260,12 @@ Page({
     try {
       const service = createPantryService()
       const result = await service[config.updateMethod](this.data.activeSpaceId, previousName, name)
-      const nextManagerItems = replaceManagerItem(this.data[getManagerStateKeys(type).itemsKey] || [], previousName, result.item || {
-        name
-      })
+      const nextManagerItems = buildPantryManagerItems(
+        replaceManagerItem(this.data[getManagerStateKeys(type).itemsKey] || [], previousName, result.item || {
+          name
+        }),
+        type
+      )
       const updates = buildManagerUpdates(this, type, nextManagerItems)
 
       if (type === 'category') {
@@ -1205,14 +1284,11 @@ Page({
     return this.renameManagerItem('category', event)
   },
 
-  async renameLocationManagerItem(event) {
-    return this.renameManagerItem('location', event)
-  },
-
   async deleteManagerItem(type = 'category', event) {
     const dataset = event && event.currentTarget ? event.currentTarget.dataset || {} : {}
-    const name = dataset.name || ''
-    const deletable = dataset.deletable === true || dataset.deletable === 'true'
+    const detail = event && event.detail ? event.detail : {}
+    const name = detail.name || dataset.name || ''
+    const deletable = detail.deletable === true || detail.deletable === 'true' || dataset.deletable === true || dataset.deletable === 'true'
     if (!name || !deletable || typeof wx.showModal !== 'function') {
       return
     }
@@ -1230,7 +1306,10 @@ Page({
     try {
       const service = createPantryService()
       await service[config.deleteMethod](this.data.activeSpaceId, name)
-      const nextManagerItems = removeManagerItem(this.data[getManagerStateKeys(type).itemsKey] || [], name)
+      const nextManagerItems = buildPantryManagerItems(
+        removeManagerItem(this.data[getManagerStateKeys(type).itemsKey] || [], name),
+        type
+      )
       this.syncDerivedState(buildManagerUpdates(this, type, nextManagerItems))
     } catch (error) {
       showOperationError(error)
@@ -1239,10 +1318,6 @@ Page({
 
   async deleteCategoryManagerItem(event) {
     return this.deleteManagerItem('category', event)
-  },
-
-  async deleteLocationManagerItem(event) {
-    return this.deleteManagerItem('location', event)
   },
 
   async handleCycleUsageStatus(event) {
@@ -1299,6 +1374,22 @@ Page({
       : ''
     if (!pantryItemId || !this.data.activeSpaceId) {
       return
+    }
+
+    const currentItem = (this.data.items || []).find((item) => item && item._id === pantryItemId)
+    if (!currentItem) {
+      return
+    }
+
+    if (typeof wx !== 'undefined' && typeof wx.showModal === 'function') {
+      const modal = await wx.showModal({
+        title: '删除库存',
+        content: `确认删除“${currentItem.name || '这个库存项'}”吗？`,
+        confirmColor: '#d14b4b'
+      })
+      if (!modal.confirm) {
+        return
+      }
     }
 
     try {

@@ -75,6 +75,23 @@ function buildManagementCategorySummary(sectionOptions = []) {
   return labels.length ? labels.join(' · ') : DEFAULT_CATEGORY_SUMMARY
 }
 
+function buildRecipeSummary(total = 0, limit = 0, hasMore = false) {
+  if (!total) {
+    return '这个空间还没有菜谱，先创建第一道拿手菜吧。'
+  }
+  if (hasMore && limit > 0) {
+    return `当前空间共 ${total} 道菜谱，当前显示前 ${limit} 道。`
+  }
+  return `当前空间共 ${total} 道菜谱，可按分类和标签快速浏览。`
+}
+
+function buildRecipeTruncationMessage(limit = 0, hasMore = false) {
+  if (!hasMore || limit <= 0) {
+    return ''
+  }
+  return `当前仅显示前 ${limit} 道菜谱，请继续筛选以缩小范围。`
+}
+
 function buildSectionOptionsFromManagedCategories(categories = [], items = []) {
   const managedItems = (categories || []).filter(
     (item) => item && typeof item.name === 'string' && typeof item.recipeCount === 'number'
@@ -266,6 +283,85 @@ function removeRecipeCategoryManagerItem(items = [], name = '') {
   return (items || []).filter((item) => item && item.name !== name)
 }
 
+function prependRecipeItem(items = [], nextItem = {}) {
+  if (!nextItem || !nextItem._id) {
+    return (items || []).slice()
+  }
+
+  return [nextItem].concat((items || []).filter((item) => item && item._id !== nextItem._id))
+}
+
+function incrementRecipeCategoryCount(items = [], categoryName = '') {
+  const normalizedCategoryName = typeof categoryName === 'string' ? categoryName.trim() : ''
+  const nextItems = (items || []).slice()
+  if (!normalizedCategoryName) {
+    return nextItems
+  }
+
+  const matchedIndex = nextItems.findIndex((item) => item && item.name === normalizedCategoryName)
+  if (matchedIndex === -1) {
+    return nextItems.concat({
+      name: normalizedCategoryName,
+      recipeCount: 1,
+      deletable: false
+    })
+  }
+
+  nextItems[matchedIndex] = {
+    ...nextItems[matchedIndex],
+    recipeCount: (nextItems[matchedIndex].recipeCount || 0) + 1,
+    deletable: false
+  }
+  return nextItems
+}
+
+function moveArrayItem(items = [], fromIndex = 0, toIndex = 0) {
+  const nextItems = (items || []).slice()
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= nextItems.length ||
+    toIndex >= nextItems.length ||
+    fromIndex === toIndex
+  ) {
+    return nextItems
+  }
+
+  const [movedItem] = nextItems.splice(fromIndex, 1)
+  nextItems.splice(toIndex, 0, movedItem)
+  return nextItems
+}
+
+function getTouchPageY(event = {}) {
+  if (
+    event.detail &&
+    Array.isArray(event.detail.touches) &&
+    event.detail.touches.length &&
+    typeof event.detail.touches[0].pageY === 'number'
+  ) {
+    return event.detail.touches[0].pageY
+  }
+  if (
+    event.detail &&
+    Array.isArray(event.detail.changedTouches) &&
+    event.detail.changedTouches.length &&
+    typeof event.detail.changedTouches[0].pageY === 'number'
+  ) {
+    return event.detail.changedTouches[0].pageY
+  }
+  if (Array.isArray(event.touches) && event.touches.length && typeof event.touches[0].pageY === 'number') {
+    return event.touches[0].pageY
+  }
+  if (
+    Array.isArray(event.changedTouches) &&
+    event.changedTouches.length &&
+    typeof event.changedTouches[0].pageY === 'number'
+  ) {
+    return event.changedTouches[0].pageY
+  }
+  return null
+}
+
 function renameRecipeItemsCategory(items = [], previousName = '', nextName = '') {
   return (items || []).map((item) => {
     if (!item || (item.category || '') !== previousName) {
@@ -301,6 +397,7 @@ Page({
     categoryManagerInput: '',
     categoryManagerItems: [],
     categoryManagerViewItems: [],
+    categoryManagerDraggingIndex: -1,
     selectedRecipeIds: [],
     selectedRecipesCount: 0,
     showPlanModal: false,
@@ -320,18 +417,52 @@ Page({
     showEmptyState: false,
     errorMessage: '',
     truncationMessage: '',
-    summary: '正在读取菜谱...'
+    summary: '正在读取菜谱...',
+    recipeListTotal: 0,
+    recipeListLimit: 0,
+    recipeListHasMore: false,
+    railScrollHeight: 400,
+    surfaceScrollHeight: 400
+  },
+
+  onReady() {
+    this.updateScrollableHeights()
   },
 
   onShow() {
     syncPageTheme(this)
     syncCurrentTabBar(this, '/pages/recipes/index')
+    if (this.consumeQueuedCreatedRecipe()) {
+      return
+    }
     this.loadRecipes()
   },
 
   async onPullDownRefresh() {
     await this.loadRecipes()
     wx.stopPullDownRefresh()
+  },
+
+  updateScrollableHeights() {
+    if (typeof wx === 'undefined' || typeof wx.createSelectorQuery !== 'function') {
+      return
+    }
+
+    const query = wx.createSelectorQuery().in(this)
+    query.select('.channel-layout').boundingClientRect()
+    query.select('.channel-surface').boundingClientRect()
+    query.exec((res) => {
+      const next = {}
+      if (res[0] && res[0].height > 0 && res[0].height !== this.data.railScrollHeight) {
+        next.railScrollHeight = res[0].height
+      }
+      if (res[1] && res[1].height > 0 && res[1].height !== this.data.surfaceScrollHeight) {
+        next.surfaceScrollHeight = res[1].height
+      }
+      if (Object.keys(next).length) {
+        this.setData(next)
+      }
+    })
   },
 
   syncRecipeView(overrides = {}) {
@@ -381,6 +512,8 @@ Page({
       visibleItems,
       showEmptyState: !items.length,
       ...buildEmptyStateView(items, nextState.activeSpaceId)
+    }, () => {
+      this.updateScrollableHeights()
     })
   },
 
@@ -422,6 +555,9 @@ Page({
         showEmptyState: false,
         ...buildEmptyStateView([], ''),
         truncationMessage: '',
+        recipeListTotal: 0,
+        recipeListLimit: 0,
+        recipeListHasMore: false,
         summary: '请先选择一个空间，再开始管理共享菜谱。'
       })
       return
@@ -440,19 +576,17 @@ Page({
           )
         : []
       const total = typeof result.total === 'number' ? result.total : items.length
-      const limit =
-        typeof result.limit === 'number' && result.limit > 0 ? result.limit : items.length
+      const limit = typeof result.limit === 'number' && result.limit > 0 ? result.limit : 0
       const hasMore = Boolean(result.hasMore) || (limit > 0 && total > limit)
       this.syncRecipeView({
         loading: false,
         items,
         categoryManagerItems,
-        truncationMessage: hasMore ? `当前仅显示前 ${limit} 道菜谱，请继续筛选以缩小范围。` : '',
-        summary: items.length
-          ? hasMore
-            ? `当前空间共 ${total} 道菜谱，当前显示前 ${limit} 道。`
-            : `当前空间共 ${total} 道菜谱，可按分类和标签快速浏览。`
-          : '这个空间还没有菜谱，先创建第一道拿手菜吧。'
+        recipeListTotal: total,
+        recipeListLimit: limit,
+        recipeListHasMore: hasMore,
+        truncationMessage: buildRecipeTruncationMessage(limit, hasMore),
+        summary: buildRecipeSummary(total, limit, hasMore)
       })
     } catch (error) {
       this.setData({
@@ -484,6 +618,9 @@ Page({
         showVisibleItems: false,
         showEmptyState: false,
         ...buildEmptyStateView([], activeSpaceId),
+        recipeListTotal: 0,
+        recipeListLimit: 0,
+        recipeListHasMore: false,
         errorMessage: getErrorMessage(error),
         truncationMessage: '',
         summary: '菜谱加载失败，请稍后重试。'
@@ -492,8 +629,13 @@ Page({
   },
 
   goCreate() {
+    const activeCategory = this.data.activeSectionKey && this.data.activeSectionKey !== 'all'
+      ? this.data.activeSectionKey
+      : ''
     wx.navigateTo({
-      url: '/pages/recipe-edit/index'
+      url: activeCategory
+        ? `/pages/recipe-edit/index?category=${encodeURIComponent(activeCategory)}`
+        : '/pages/recipe-edit/index'
     })
   },
 
@@ -509,6 +651,56 @@ Page({
       visibleItems,
       ...buildEmptyStateView(this.data.items || [], this.data.activeSpaceId)
     })
+  },
+
+  queueCreatedRecipe(recipe = {}) {
+    this.pendingCreatedRecipe = recipe && recipe._id ? { ...recipe } : null
+  },
+
+  consumeQueuedCreatedRecipe() {
+    if (!this.pendingCreatedRecipe) {
+      return false
+    }
+
+    const createdRecipe = this.pendingCreatedRecipe
+    this.pendingCreatedRecipe = null
+    return this.applyCreatedRecipe(createdRecipe)
+  },
+
+  applyCreatedRecipe(recipe = {}) {
+    if (!recipe || !recipe._id) {
+      return false
+    }
+
+    const currentItems = Array.isArray(this.data.items) ? this.data.items : []
+    const currentTotal =
+      typeof this.data.recipeListTotal === 'number' && this.data.recipeListTotal > 0
+        ? this.data.recipeListTotal
+        : currentItems.length
+    const alreadyExists = currentItems.some((item) => item && item._id === recipe._id)
+    const nextTotal = alreadyExists ? currentTotal : currentTotal + 1
+    const nextLimit = typeof this.data.recipeListLimit === 'number' ? this.data.recipeListLimit : 0
+    let nextItems = prependRecipeItem(currentItems, recipe)
+    let nextHasMore = Boolean(this.data.recipeListHasMore)
+
+    if (nextLimit > 0 && nextItems.length > nextLimit) {
+      nextItems = nextItems.slice(0, nextLimit)
+      nextHasMore = true
+    }
+
+    this.syncRecipeView({
+      loading: false,
+      items: nextItems,
+      categoryManagerItems: alreadyExists
+        ? this.data.categoryManagerItems || []
+        : incrementRecipeCategoryCount(this.data.categoryManagerItems || [], recipe.category || ''),
+      recipeListTotal: nextTotal,
+      recipeListLimit: nextLimit,
+      recipeListHasMore: nextHasMore,
+      truncationMessage: buildRecipeTruncationMessage(nextLimit, nextHasMore),
+      summary: buildRecipeSummary(nextTotal, nextLimit, nextHasMore)
+    })
+    return true
   },
 
   openSpace() {
@@ -749,7 +941,8 @@ Page({
     }
 
     this.setData({
-      showCategoryManager: true
+      showCategoryManager: true,
+      categoryManagerDraggingIndex: -1
     })
 
     if (!forceReload && Array.isArray(this.data.categoryManagerItems) && this.data.categoryManagerItems.length) {
@@ -781,15 +974,17 @@ Page({
   },
 
   closeCategoryManager() {
+    this.categoryManagerDragState = null
     this.setData({
       showCategoryManager: false,
-      categoryManagerInput: ''
+      categoryManagerInput: '',
+      categoryManagerDraggingIndex: -1
     })
   },
 
   handleCategoryManagerInput(event) {
     this.setData({
-      categoryManagerInput: event.detail.value
+      categoryManagerInput: event && event.detail ? event.detail.value : ''
     })
   },
 
@@ -821,7 +1016,9 @@ Page({
   },
 
   async renameCategory(event) {
-    const previousName = event.currentTarget.dataset.name || ''
+    const previousName = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.name || ''
+      : (event && event.detail ? event.detail.name || '' : '')
     if (!previousName) {
       return
     }
@@ -871,10 +1068,14 @@ Page({
   },
 
   async deleteCategory(event) {
-    const name = event.currentTarget.dataset.name || ''
+    const name = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.name || ''
+      : (event && event.detail ? event.detail.name || '' : '')
     const deletable =
-      event.currentTarget.dataset.deletable === true ||
-      event.currentTarget.dataset.deletable === 'true'
+      (event && event.currentTarget && event.currentTarget.dataset
+        ? event.currentTarget.dataset.deletable === true || event.currentTarget.dataset.deletable === 'true'
+        : false) ||
+      Boolean(event && event.detail && event.detail.deletable)
     if (!name || !deletable) {
       return
     }
@@ -901,5 +1102,112 @@ Page({
         })
       }
     }
+  }
+,
+
+  handleCategoryManagerDragStart(event) {
+    const index = Number(event && event.detail ? event.detail.index : -1)
+    const touchPageY = getTouchPageY(event)
+    const items = (this.data.categoryManagerItems || []).slice()
+    if (!Number.isInteger(index) || index < 0 || index >= items.length || typeof touchPageY !== 'number') {
+      return
+    }
+
+    this.categoryManagerDragState = {
+      startIndex: index,
+      currentIndex: index,
+      startY: touchPageY,
+      snapshotItems: items,
+      dirty: false
+    }
+    this.setData({
+      categoryManagerDraggingIndex: index
+    })
+  },
+
+  handleCategoryManagerDragMove(event) {
+    if (!this.categoryManagerDragState) {
+      return
+    }
+
+    const touchPageY = getTouchPageY(event)
+    if (typeof touchPageY !== 'number') {
+      return
+    }
+
+    const currentItems = (this.data.categoryManagerItems || []).slice()
+    const deltaY = touchPageY - this.categoryManagerDragState.startY
+    if (Math.abs(deltaY) < 56) {
+      return
+    }
+
+    const direction = deltaY > 0 ? 1 : -1
+    const nextIndex = Math.max(0, Math.min(currentItems.length - 1, this.categoryManagerDragState.currentIndex + direction))
+    if (nextIndex === this.categoryManagerDragState.currentIndex) {
+      this.categoryManagerDragState.startY = touchPageY
+      return
+    }
+
+    const nextItems = moveArrayItem(currentItems, this.categoryManagerDragState.currentIndex, nextIndex)
+    this.categoryManagerDragState.currentIndex = nextIndex
+    this.categoryManagerDragState.startY = touchPageY
+    this.categoryManagerDragState.dirty = true
+    this.setData({
+      categoryManagerItems: nextItems,
+      categoryManagerViewItems: buildCategoryManagerViewItems(nextItems),
+      categoryManagerDraggingIndex: nextIndex
+    })
+  },
+
+  async handleCategoryManagerDragEnd() {
+    if (!this.categoryManagerDragState) {
+      return
+    }
+
+    const dragState = this.categoryManagerDragState
+    this.categoryManagerDragState = null
+
+    if (!dragState.dirty) {
+      this.setData({
+        categoryManagerDraggingIndex: -1
+      })
+      return
+    }
+
+    const reorderedItems = (this.data.categoryManagerItems || []).slice()
+    const names = reorderedItems.map((item) => item.name)
+
+    try {
+      const result = await createRecipeService().reorderRecipeCategories(this.data.activeSpaceId, names)
+      this.syncRecipeView({
+        categoryManagerItems: Array.isArray(result.items) ? result.items : reorderedItems,
+        categoryManagerDraggingIndex: -1
+      })
+    } catch (error) {
+      this.syncRecipeView({
+        categoryManagerItems: dragState.snapshotItems,
+        categoryManagerDraggingIndex: -1
+      })
+      if (typeof wx.showToast === 'function') {
+        wx.showToast({
+          title: getErrorMessage(error),
+          icon: 'none'
+        })
+      }
+    }
+  },
+
+  handleCategoryManagerDragCancel() {
+    if (!this.categoryManagerDragState) {
+      return
+    }
+
+    const dragState = this.categoryManagerDragState
+    this.categoryManagerDragState = null
+    this.setData({
+      categoryManagerItems: dragState.snapshotItems,
+      categoryManagerViewItems: buildCategoryManagerViewItems(dragState.snapshotItems),
+      categoryManagerDraggingIndex: -1
+    })
   }
 })

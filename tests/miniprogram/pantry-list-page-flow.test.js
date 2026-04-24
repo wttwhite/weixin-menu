@@ -191,7 +191,7 @@ describe('pantry list page flow', () => {
     })
   })
 
-  it('opens the settings modal from the top-right entry and loads categories and locations together', async () => {
+  it('opens the settings modal from the top-right entry and loads pantry categories only', async () => {
     const callFunction = vi
       .fn()
       .mockResolvedValueOnce({
@@ -217,14 +217,6 @@ describe('pantry list page flow', () => {
           code: 0,
           data: {
             items: [{ name: 'dairy', pantryItemCount: 1, deletable: false }]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [{ name: 'fridge', pantryItemCount: 1, deletable: false }]
           }
         }
       })
@@ -255,14 +247,7 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
-    expect(callFunction).toHaveBeenNthCalledWith(3, {
-      name: 'api',
-      data: {
-        action: 'listPantryLocations',
-        spaceId: 'space-1'
-      },
-      config: undefined
-    })
+    expect(callFunction).toHaveBeenCalledTimes(2)
     expect(page.data.showSettingsModal).toBe(true)
     expect(page.data.categoryManagerItems).toEqual([
       expect.objectContaining({
@@ -271,16 +256,9 @@ describe('pantry list page flow', () => {
         deletable: false
       })
     ])
-    expect(page.data.locationManagerItems).toEqual([
-      expect.objectContaining({
-        name: 'fridge',
-        pantryItemCount: 1,
-        deletable: false
-      })
-    ])
   })
 
-  it('treats missing category and location data as empty state without showing not-found toast', async () => {
+  it('treats missing category data as empty state without showing not-found toast', async () => {
     const showToast = vi.fn()
     const callFunction = vi
       .fn()
@@ -310,13 +288,6 @@ describe('pantry list page flow', () => {
           data: null
         }
       })
-      .mockResolvedValueOnce({
-        result: {
-          code: 404,
-          message: 'Pantry location not found',
-          data: null
-        }
-      })
     global.wx = {
       cloud: {
         callFunction
@@ -343,7 +314,6 @@ describe('pantry list page flow', () => {
     })
     expect(page.data.showSettingsModal).toBe(true)
     expect(page.data.categoryManagerItems).toEqual([])
-    expect(page.data.locationManagerItems).toEqual([])
   })
 
   it('shows a deploy hint when creating a category hits an unsupported cloud action', async () => {
@@ -366,14 +336,6 @@ describe('pantry list page flow', () => {
                 usageStatus: 'normal'
               }
             ]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: []
           }
         }
       })
@@ -555,6 +517,80 @@ describe('pantry list page flow', () => {
     ])
   })
 
+  it('positions the floating create button higher than the custom tab bar by default', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      getWindowInfo: vi.fn().mockReturnValue({
+        windowWidth: 375,
+        windowHeight: 812,
+        safeArea: {
+          bottom: 780
+        }
+      }),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.initializeFloatingCreatePosition(true)
+
+    expect(page.data.floatingCreateLeft).toBe(307)
+    expect(page.data.floatingCreateTop).toBe(584)
+  })
+
+  it('opens create from the floating button and ignores the tap immediately after a drag move', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      getWindowInfo: vi.fn().mockReturnValue({
+        windowWidth: 375,
+        windowHeight: 812,
+        safeArea: {
+          bottom: 780
+        }
+      }),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      floatingCreateLeft: 260,
+      floatingCreateTop: 520
+    })
+    page.goCreate = vi.fn()
+
+    await page.handleFloatingCreateTap()
+    expect(page.goCreate).toHaveBeenCalledTimes(1)
+
+    page.handleFloatingCreateTouchStart({
+      touches: [{ pageX: 260, pageY: 520 }]
+    })
+    page.handleFloatingCreateTouchMove({
+      touches: [{ pageX: 30, pageY: 80 }]
+    })
+    expect(page.data.floatingCreateLeft).not.toBe(260)
+    expect(page.data.floatingCreateTop).not.toBe(520)
+    page.handleFloatingCreateTouchEnd()
+
+    await page.handleFloatingCreateTap()
+    expect(page.goCreate).toHaveBeenCalledTimes(1)
+  })
+
   it('reorders category manager items by dragging the handle and persists the new order', async () => {
     const callFunction = vi
       .fn()
@@ -585,14 +621,6 @@ describe('pantry list page flow', () => {
               { name: 'dairy', pantryItemCount: 1, deletable: false },
               { name: 'dry', pantryItemCount: 0, deletable: true }
             ]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [{ name: 'fridge', pantryItemCount: 1, deletable: false }]
           }
         }
       })
@@ -635,7 +663,6 @@ describe('pantry list page flow', () => {
       },
       touches: [{ pageY: 0 }]
     })
-    expect(page.data.draggingManagerType).toBe('category')
     expect(page.data.draggingManagerIndex).toBe(0)
 
     page.handleManagerDragMove({
@@ -658,7 +685,7 @@ describe('pantry list page flow', () => {
       }
     })
 
-    expect(callFunction).toHaveBeenNthCalledWith(4, {
+    expect(callFunction).toHaveBeenNthCalledWith(3, {
       name: 'api',
       data: {
         action: 'reorderPantryCategories',
@@ -667,7 +694,7 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
-    expect(page.data.draggingManagerType).toBe('')
+    expect(page.data.draggingManagerIndex).toBe(-1)
   })
 
   it('creates, renames, and deletes pantry categories from the settings modal', async () => {
@@ -697,14 +724,6 @@ describe('pantry list page flow', () => {
           code: 0,
           data: {
             items: [{ name: 'dairy', pantryItemCount: 1, deletable: false }]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [{ name: 'fridge', pantryItemCount: 1, deletable: false }]
           }
         }
       })
@@ -769,7 +788,7 @@ describe('pantry list page flow', () => {
     })
     await page.submitCategoryManagerCreate()
 
-    expect(callFunction).toHaveBeenNthCalledWith(4, {
+    expect(callFunction).toHaveBeenNthCalledWith(3, {
       name: 'api',
       data: {
         action: 'createPantryCategory',
@@ -778,7 +797,7 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
-    expect(callFunction).toHaveBeenCalledTimes(4)
+    expect(callFunction).toHaveBeenCalledTimes(3)
     expect(page.data.categoryManagerInput).toBe('')
     expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['dairy', 'dry'])
 
@@ -789,7 +808,7 @@ describe('pantry list page flow', () => {
         }
       }
     })
-    expect(callFunction).toHaveBeenNthCalledWith(5, {
+    expect(callFunction).toHaveBeenNthCalledWith(4, {
       name: 'api',
       data: {
         action: 'updatePantryCategory',
@@ -799,7 +818,7 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
-    expect(callFunction).toHaveBeenCalledTimes(5)
+    expect(callFunction).toHaveBeenCalledTimes(4)
     expect(page.data.items[0]).toEqual(
       expect.objectContaining({
         _id: 'pantry-1',
@@ -817,7 +836,7 @@ describe('pantry list page flow', () => {
         }
       }
     })
-    expect(callFunction).toHaveBeenNthCalledWith(6, {
+    expect(callFunction).toHaveBeenNthCalledWith(5, {
       name: 'api',
       data: {
         action: 'deletePantryCategory',
@@ -826,115 +845,10 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
-    expect(callFunction).toHaveBeenCalledTimes(6)
+    expect(callFunction).toHaveBeenCalledTimes(5)
     expect(page.data.categoryManagerItems).toEqual([
       expect.objectContaining({
         name: '冷藏乳品',
-        pantryItemCount: 1,
-        deletable: false
-      })
-    ])
-  })
-
-  it('renames pantry locations locally without reloading the full pantry list', async () => {
-    const callFunction = vi
-      .fn()
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [
-              {
-                _id: 'pantry-1',
-                name: 'Milk',
-                category: 'dairy',
-                location: 'fridge',
-                quantity: '1',
-                unit: '盒',
-                status: 'fresh',
-                usageStatus: 'normal'
-              }
-            ]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [{ name: 'dairy', pantryItemCount: 1, deletable: false }]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            items: [{ name: 'fridge', pantryItemCount: 1, deletable: false }]
-          }
-        }
-      })
-      .mockResolvedValueOnce({
-        result: {
-          code: 0,
-          data: {
-            item: { name: '冷藏室', pantryItemCount: 1, deletable: false }
-          }
-        }
-      })
-    const showModal = vi.fn().mockResolvedValue({
-      confirm: true,
-      content: '冷藏室'
-    })
-    global.wx = {
-      cloud: {
-        callFunction
-      },
-      navigateTo: vi.fn(),
-      showModal,
-      showToast: vi.fn(),
-      stopPullDownRefresh: vi.fn()
-    }
-    global.getApp = () => ({
-      globalData: {
-        activeSpaceId: 'space-1'
-      }
-    })
-
-    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
-    page.onShow()
-    await flushAsyncWork()
-    await page.openSettingsModal()
-
-    await page.renameLocationManagerItem({
-      currentTarget: {
-        dataset: {
-          name: 'fridge'
-        }
-      }
-    })
-
-    expect(callFunction).toHaveBeenCalledTimes(4)
-    expect(callFunction).toHaveBeenNthCalledWith(4, {
-      name: 'api',
-      data: {
-        action: 'updatePantryLocation',
-        spaceId: 'space-1',
-        previousName: 'fridge',
-        name: '冷藏室'
-      },
-      config: undefined
-    })
-    expect(page.data.items[0]).toEqual(
-      expect.objectContaining({
-        _id: 'pantry-1',
-        location: '冷藏室',
-        locationLabel: '冷藏室'
-      })
-    )
-    expect(page.data.locationManagerItems).toEqual([
-      expect.objectContaining({
-        name: '冷藏室',
         pantryItemCount: 1,
         deletable: false
       })
@@ -1151,11 +1065,15 @@ describe('pantry list page flow', () => {
           }
         }
       })
+    const showModal = vi.fn().mockResolvedValue({
+      confirm: true
+    })
     global.wx = {
       cloud: {
         callFunction
       },
       navigateTo: vi.fn(),
+      showModal,
       showToast: vi.fn(),
       stopPullDownRefresh: vi.fn()
     }
@@ -1178,6 +1096,11 @@ describe('pantry list page flow', () => {
     })
     await flushAsyncWork()
 
+    expect(showModal).toHaveBeenCalledWith({
+      title: '删除库存',
+      content: '确认删除“Milk”吗？',
+      confirmColor: '#d14b4b'
+    })
     expect(callFunction).toHaveBeenNthCalledWith(2, {
       name: 'api',
       data: {
@@ -1189,6 +1112,66 @@ describe('pantry list page flow', () => {
     })
     expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Rice'])
     expect(page.data.categoryViewItems.map((item) => item.label)).toEqual(['全部', 'dairy', 'dry'])
+  })
+
+  it('does not delete pantry items when the delete confirmation is cancelled', async () => {
+    const callFunction = vi.fn().mockResolvedValueOnce({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'pantry-1',
+              name: 'Milk',
+              category: 'dairy',
+              location: 'fridge',
+              quantity: '1',
+              unit: '盒',
+              status: 'fresh',
+              usageStatus: 'normal'
+            }
+          ]
+        }
+      }
+    })
+    const showModal = vi.fn().mockResolvedValue({
+      confirm: false
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      showModal,
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.handleDeleteItem({
+      currentTarget: {
+        dataset: {
+          pantryItemId: 'pantry-1'
+        }
+      }
+    })
+    await flushAsyncWork()
+
+    expect(showModal).toHaveBeenCalledWith({
+      title: '删除库存',
+      content: '确认删除“Milk”吗？',
+      confirmColor: '#d14b4b'
+    })
+    expect(callFunction).toHaveBeenCalledTimes(1)
+    expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Milk'])
   })
 
   it('shows cloud error toast when pantry status update fails', async () => {

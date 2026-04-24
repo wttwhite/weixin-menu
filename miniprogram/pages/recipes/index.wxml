@@ -52,20 +52,22 @@
 
   <view wx:else class="channel-layout">
     <view class="channel-rail">
-      <view class="channel-rail__inner">
-        <view
-          wx:for="{{sectionViewItems}}"
-          wx:key="key"
-          class="{{item.itemClass}}"
-          data-key="{{item.key}}"
-          bindtap="handleSectionChange"
-        >
-          {{item.label}}
+      <scroll-view class="channel-rail__scroll" scroll-y="true" show-scrollbar="{{false}}" style="height:{{railScrollHeight}}px">
+        <view class="channel-rail__inner">
+          <view
+            wx:for="{{sectionViewItems}}"
+            wx:key="key"
+            class="{{item.itemClass}}"
+            data-key="{{item.key}}"
+            bindtap="handleSectionChange"
+          >
+            {{item.label}}
+          </view>
         </view>
-      </view>
+      </scroll-view>
     </view>
 
-    <view class="channel-surface">
+    <view class="channel-column">
       <view class="surface-head">
         <view>
           <view class="surface-eyebrow">菜谱频道</view>
@@ -74,42 +76,46 @@
         <view class="surface-meta">{{visibleItemsCountText}}</view>
       </view>
 
-      <view wx:if="{{showVisibleItems}}" class="dish-list">
-        <view wx:for="{{visibleItems}}" wx:key="_id" class="dish-card">
-          <view class="dish-thumb" data-recipe-id="{{item._id}}" bindtap="openRecipeFromCard">
-            <image
-              wx:if="{{item.coverImageUrl}}"
-              class="dish-thumb__image"
-              src="{{item.coverImageUrl}}"
-              mode="aspectFill"
-            />
-            <view wx:else class="dish-thumb__image dish-thumb__image--placeholder">热卖</view>
-          </view>
+      <view class="channel-surface">
+        <scroll-view class="channel-surface__scroll" scroll-y="{{showVisibleItems}}" show-scrollbar="{{false}}" style="height:{{surfaceScrollHeight}}px">
+          <view wx:if="{{showVisibleItems}}" class="dish-list">
+            <view wx:for="{{visibleItems}}" wx:key="_id" class="dish-card">
+              <view class="dish-thumb" data-recipe-id="{{item._id}}" bindtap="openRecipeFromCard">
+                <image
+                  wx:if="{{item.coverImageUrl}}"
+                  class="dish-thumb__image"
+                  src="{{item.coverImageUrl}}"
+                  mode="aspectFill"
+                />
+                <view wx:else class="dish-thumb__image dish-thumb__image--placeholder">热卖</view>
+              </view>
 
-          <view class="dish-body" data-recipe-id="{{item._id}}" bindtap="openRecipeFromCard">
-            <view class="dish-name">{{item.name}}</view>
-            <view wx:if="{{item.recommendationStars}}" class="dish-stars">{{item.recommendationStars}}</view>
-            <view class="dish-servings">{{item.servingsDisplay}}</view>
-            <view class="dish-summary">{{item.summaryDisplay}}</view>
-          </view>
+              <view class="dish-body" data-recipe-id="{{item._id}}" bindtap="openRecipeFromCard">
+                <view class="dish-name">{{item.name}}</view>
+                <view wx:if="{{item.recommendationStars}}" class="dish-stars">{{item.recommendationStars}}</view>
+                <view class="dish-servings">{{item.servingsDisplay}}</view>
+                <view class="dish-summary">{{item.summaryDisplay}}</view>
+              </view>
 
-          <view class="dish-side">
-            <view class="dish-usage">月销 {{item.planUsageCount}}</view>
-            <view
-              class="{{item.selectionClass}}"
-              data-recipe-id="{{item._id}}"
-              bindtap="toggleRecipeSelection"
-            >
-              <text class="dish-add__symbol {{item.selected ? 'dish-add__symbol--selected' : ''}}">{{item.selectionSymbol}}</text>
+              <view class="dish-side">
+                <view class="dish-usage">月销 {{item.planUsageCount}}</view>
+                <view
+                  class="{{item.selectionClass}}"
+                  data-recipe-id="{{item._id}}"
+                  bindtap="toggleRecipeSelection"
+                >
+                  <text class="dish-add__symbol {{item.selected ? 'dish-add__symbol--selected' : ''}}">{{item.selectionSymbol}}</text>
+                </view>
+              </view>
             </view>
           </view>
-        </view>
-      </view>
 
-      <view wx:else class="empty-card empty-card--inline">
-        <view class="empty-card__title">{{emptyTitle}}</view>
-        <view class="empty-card__text">{{emptyText}}</view>
-        <t-button class="empty-card__button" theme="primary" block bindtap="goCreate">{{emptyButtonText}}</t-button>
+          <view wx:else class="empty-card empty-card--inline">
+            <view class="empty-card__title">{{emptyTitle}}</view>
+            <view class="empty-card__text">{{emptyText}}</view>
+            <t-button class="empty-card__button" theme="primary" block bindtap="goCreate">{{emptyButtonText}}</t-button>
+          </view>
+        </scroll-view>
       </view>
     </view>
   </view>
@@ -177,44 +183,20 @@
     </view>
   </view>
 
-  <view wx:if="{{showCategoryManager}}" class="category-modal__overlay" catchtap="closeCategoryManager">
-    <view class="category-modal" catchtap="noop">
-      <view class="category-modal__header">
-        <view class="category-modal__title">分类管理</view>
-        <view class="category-modal__close" bindtap="closeCategoryManager">×</view>
-      </view>
-
-      <view class="category-modal__input-row">
-        <input
-          class="category-modal__input"
-          value="{{categoryManagerInput}}"
-          placeholder="输入分类名称"
-          bindinput="handleCategoryManagerInput"
-        />
-        <t-button class="category-modal__confirm" theme="primary" size="medium" bindtap="submitCategoryManagerCreate">确定</t-button>
-      </view>
-
-      <view wx:if="{{categoryManagerLoading}}" class="category-modal__hint">正在读取分类...</view>
-
-      <view wx:else class="category-modal__list">
-        <view wx:for="{{categoryManagerViewItems}}" wx:key="name" class="category-modal__item">
-          <view class="category-modal__drag">⋮⋮</view>
-          <view class="category-modal__name">{{item.name}}</view>
-          <view class="category-modal__actions">
-            <view class="category-modal__edit" data-name="{{item.name}}" bindtap="renameCategory">✎</view>
-            <view wx:if="{{item.showCountBadge}}" class="category-modal__count">{{item.countText}}</view>
-            <view
-              wx:elif="{{item.showDelete}}"
-              class="category-modal__delete"
-              data-name="{{item.name}}"
-              data-deletable="{{item.deletable}}"
-              bindtap="deleteCategory"
-            >
-              ×
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
+  <recipe-category-manager-modal
+    visible="{{showCategoryManager}}"
+    loading="{{categoryManagerLoading}}"
+    input-value="{{categoryManagerInput}}"
+    items="{{categoryManagerViewItems}}"
+    dragging-index="{{categoryManagerDraggingIndex}}"
+    bind:close="closeCategoryManager"
+    bind:inputchange="handleCategoryManagerInput"
+    bind:submit="submitCategoryManagerCreate"
+    bind:rename="renameCategory"
+    bind:delete="deleteCategory"
+    bind:dragstart="handleCategoryManagerDragStart"
+    bind:dragmove="handleCategoryManagerDragMove"
+    bind:dragend="handleCategoryManagerDragEnd"
+    bind:dragcancel="handleCategoryManagerDragCancel"
+  />
 </view>

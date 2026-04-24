@@ -14,6 +14,113 @@
     <t-button class="state-button" theme="primary" bindtap="goBack">返回列表</t-button>
   </view>
 
+  <view wx:elif="{{isEdit}}" class="detail-page detail-shell">
+    <view class="detail-content">
+      <view class="hero-card hero-card--pantry">
+        <view class="hero-overlay hero-overlay--plain">
+          <view class="hero-copy-panel">
+            <view class="hero-badge">{{detailCategoryText}}</view>
+            <view class="hero-title">{{detailNameText}}</view>
+            <view class="hero-summary">{{detailLocationText}} · {{detailStatusText}}</view>
+            <view class="hero-metrics">
+              <view class="hero-metric">{{detailQuantityText}}</view>
+              <view class="hero-metric">{{detailHeroExpirationText}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="action-row">
+        <t-button t-class="action-btn action-btn--edit detail-edit-button" theme="primary" bindtap="openEditModal">🖊 编辑库存</t-button>
+        <t-button t-class="action-btn action-btn--delete" theme="danger" variant="outline" loading="{{deleting}}" bindtap="removeItem">🗑 移出库存</t-button>
+      </view>
+
+      <view class="card">
+        <view class="card-head">
+          <view class="card-head__left">
+            <view class="card-head__icon">📦</view>
+            <view class="card-title">库存概览</view>
+          </view>
+          <view class="card-head__meta">{{detailStatusText}}</view>
+        </view>
+        <view class="card-divider"></view>
+
+        <view class="detail-pair-grid">
+          <view class="detail-pair">
+            <view class="detail-pair__label">分类</view>
+            <view class="detail-pair__value">{{detailCategoryText}}</view>
+          </view>
+          <view class="detail-pair">
+            <view class="detail-pair__label">位置</view>
+            <view class="detail-pair__value">{{detailLocationText}}</view>
+          </view>
+          <view class="detail-pair">
+            <view class="detail-pair__label">数量</view>
+            <view class="detail-pair__value">{{detailQuantityText}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="card">
+        <view class="card-head">
+          <view class="card-head__left">
+            <view class="card-head__icon">🗓</view>
+            <view class="card-title">时间信息</view>
+          </view>
+          <view class="card-head__meta">{{detailShelfLifeText}}</view>
+        </view>
+        <view class="card-divider"></view>
+
+        <view class="detail-pair-grid">
+          <view class="detail-pair">
+            <view class="detail-pair__label">生产日期</view>
+            <view class="detail-pair__value">{{detailProductionDateText}}</view>
+          </view>
+          <view class="detail-pair">
+            <view class="detail-pair__label">保质期(月)</view>
+            <view class="detail-pair__value">{{detailShelfLifeText}}</view>
+          </view>
+          <view class="detail-pair">
+            <view class="detail-pair__label">过期日期</view>
+            <view class="detail-pair__value">{{detailExpirationDateText}}</view>
+          </view>
+          <view class="detail-pair">
+            <view class="detail-pair__label">开封日期</view>
+            <view class="detail-pair__value">{{detailOpenedDateText}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="card">
+        <view class="card-head">
+          <view class="card-head__left">
+            <view class="card-head__icon">📝</view>
+            <view class="card-title">备注</view>
+          </view>
+        </view>
+        <view class="card-divider"></view>
+        <view class="card-text">{{detailNotesDisplayText}}</view>
+      </view>
+    </view>
+
+    <view class="bottom-actions">
+      <t-button class="footer-close-btn footer-close-button" theme="default" block bindtap="goBack">关闭</t-button>
+    </view>
+
+    <pantry-form-modal
+      visible="{{showEditModal}}"
+      title="编辑库存"
+      submit-label="保存库存"
+      submitting="{{submitting}}"
+      value="{{editForm}}"
+      category-options="{{categoryOptions}}"
+      location-options="{{locationOptions}}"
+      bind:change="handleEditFormChange"
+      bind:close="closeEditModal"
+      bind:submit="submitEditModal"
+    />
+  </view>
+
   <view wx:else class="editor-shell">
     <view class="editor-section">
       <view class="editor-section__head">

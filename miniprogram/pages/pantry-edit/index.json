@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "库存",
   "usingComponents": {
+    "pantry-form-modal": "/components/pantry-form-modal/index",
     "t-button": "tdesign-miniprogram/button/button"
   }
 }

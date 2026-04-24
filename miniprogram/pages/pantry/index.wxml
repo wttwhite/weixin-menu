@@ -8,7 +8,9 @@
 
   <view class="management-card">
     <view class="management-card__top">
-      <view class="management-card__cover">{{managementCoverText}}</view>
+      <view class="management-card__cover">
+        <image class="management-card__cover-image" src="/images/pantry-management-hero.svg" mode="aspectFill" />
+      </view>
 
       <view class="management-card__meta">
         <view class="management-card__title">库存管理</view>
@@ -19,23 +21,8 @@
       <view class="management-card__more" bindtap="openSettingsModal">⋮</view>
     </view>
 
-    <view class="management-card__actions">
-      <t-button class="action-pill" theme="primary" shape="round" bindtap="goCreate">＋ 添加库存</t-button>
-    </view>
-  </view>
-
-  <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
-  <view wx:if="{{!errorMessage && truncationMessage}}" class="feedback-card">{{truncationMessage}}</view>
-
-  <view wx:if="{{!activeSpaceId}}" class="empty-card">
-    <view class="empty-card__title">先选择一个空间</view>
-    <view class="empty-card__text">空间用于团队共享库存、菜谱、计划和采购数据。</view>
-    <t-button class="empty-card__button" theme="primary" block bindtap="openSpace">前往选择空间</t-button>
-  </view>
-
-  <view wx:else class="pantry-body">
-    <view class="search-card">
-      <view class="search-card__row">
+    <view wx:if="{{activeSpaceId}}" class="management-card__search">
+      <view class="management-card__search-row">
         <view class="search-box">
           <view class="search-box__icon">⌕</view>
           <input
@@ -52,7 +39,18 @@
         <view class="processed-toggle" bindtap="handleToggleProcessed">{{showProcessedText}}</view>
       </view>
     </view>
+  </view>
 
+  <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
+  <view wx:if="{{!errorMessage && truncationMessage}}" class="feedback-card">{{truncationMessage}}</view>
+
+  <view wx:if="{{!activeSpaceId}}" class="empty-card">
+    <view class="empty-card__title">先选择一个空间</view>
+    <view class="empty-card__text">空间用于团队共享库存、菜谱、计划和采购数据。</view>
+    <t-button class="empty-card__button" theme="primary" block bindtap="openSpace">前往选择空间</t-button>
+  </view>
+
+  <view wx:else class="pantry-body">
     <view class="channel-layout">
       <view class="channel-rail">
         <scroll-view class="channel-rail__scroll" scroll-y="true" show-scrollbar="{{false}}" style="height:{{railScrollHeight}}px">
@@ -141,130 +139,42 @@
     </view>
   </view>
 
-  <view wx:if="{{showSettingsModal}}" class="settings-modal__overlay" catchtap="closeSettingsModal">
-    <view class="settings-modal" catchtap="noop">
-      <view class="settings-modal__header">
-        <view class="settings-modal__title">库存配置</view>
-        <view class="settings-modal__close" bindtap="closeSettingsModal">×</view>
-      </view>
-
-      <view class="settings-modal__content">
-        <view class="settings-modal__section settings-modal__section--category">
-          <view class="settings-modal__section-head">
-            <view class="settings-modal__section-title">分类管理</view>
-            <view class="settings-modal__section-meta">{{categoryManagerItems.length}} 类</view>
-          </view>
-
-          <view class="settings-modal__input-row">
-            <input
-              class="settings-modal__input"
-              value="{{categoryManagerInput}}"
-              placeholder="输入分类名称"
-              bindinput="handleCategoryManagerInput"
-            />
-            <t-button class="settings-modal__confirm" theme="primary" size="small" bindtap="submitCategoryManagerCreate">确定</t-button>
-          </view>
-
-          <view wx:if="{{categoryManagerLoading}}" class="settings-modal__hint">正在读取分类...</view>
-
-          <view wx:elif="{{!categoryManagerViewItems.length}}" class="settings-modal__empty">
-            <view class="settings-modal__empty-illustration">类</view>
-            <view class="settings-modal__empty-title">暂无分类</view>
-            <view class="settings-modal__empty-text">还没有维护库存分类，先添加一个常用分类。</view>
-          </view>
-
-          <scroll-view wx:else scroll-y="true" class="settings-modal__list">
-            <view class="settings-modal__list-inner">
-              <view wx:for="{{categoryManagerViewItems}}" wx:key="name" class="{{item.itemClass}}">
-                <view
-                  class="{{item.dragClass}}"
-                  data-type="category"
-                  data-index="{{index}}"
-                  catchtouchstart="handleManagerDragStart"
-                  catchtouchmove="handleManagerDragMove"
-                  catchtouchend="handleManagerDragEnd"
-                  catchtouchcancel="handleManagerDragCancel"
-                >
-                  ⋮⋮
-                </view>
-                <view class="settings-modal__name">{{item.name}}</view>
-                <view class="settings-modal__actions">
-                  <view class="settings-modal__edit" data-name="{{item.name}}" bindtap="renameCategoryManagerItem">✎</view>
-                  <view wx:if="{{item.showCountBadge}}" class="settings-modal__count">{{item.countText}}</view>
-                  <view
-                    wx:elif="{{item.showDelete}}"
-                    class="settings-modal__delete"
-                    data-name="{{item.name}}"
-                    data-deletable="{{item.deletable}}"
-                    bindtap="deleteCategoryManagerItem"
-                  >
-                    ×
-                  </view>
-                </view>
-              </view>
-            </view>
-          </scroll-view>
-        </view>
-
-        <view class="settings-modal__section settings-modal__section--location">
-          <view class="settings-modal__section-head">
-            <view class="settings-modal__section-title">位置管理</view>
-            <view class="settings-modal__section-meta">{{locationManagerItems.length}} 处</view>
-          </view>
-
-          <view class="settings-modal__input-row">
-            <input
-              class="settings-modal__input"
-              value="{{locationManagerInput}}"
-              placeholder="输入位置名称"
-              bindinput="handleLocationManagerInput"
-            />
-            <t-button class="settings-modal__confirm" theme="primary" size="small" bindtap="submitLocationManagerCreate">确定</t-button>
-          </view>
-
-          <view wx:if="{{locationManagerLoading}}" class="settings-modal__hint">正在读取位置...</view>
-
-          <view wx:elif="{{!locationManagerViewItems.length}}" class="settings-modal__empty">
-            <view class="settings-modal__empty-illustration settings-modal__empty-illustration--location">位</view>
-            <view class="settings-modal__empty-title">暂无位置</view>
-            <view class="settings-modal__empty-text">还没有维护库存位置，先添加一个常用存放位置。</view>
-          </view>
-
-          <scroll-view wx:else scroll-y="true" class="settings-modal__list">
-            <view class="settings-modal__list-inner">
-              <view wx:for="{{locationManagerViewItems}}" wx:key="name" class="{{item.itemClass}}">
-                <view
-                  class="{{item.dragClass}}"
-                  data-type="location"
-                  data-index="{{index}}"
-                  catchtouchstart="handleManagerDragStart"
-                  catchtouchmove="handleManagerDragMove"
-                  catchtouchend="handleManagerDragEnd"
-                  catchtouchcancel="handleManagerDragCancel"
-                >
-                  ⋮⋮
-                </view>
-                <view class="settings-modal__name">{{item.name}}</view>
-                <view class="settings-modal__actions">
-                  <view class="settings-modal__edit" data-name="{{item.name}}" bindtap="renameLocationManagerItem">✎</view>
-                  <view wx:if="{{item.showCountBadge}}" class="settings-modal__count">{{item.countText}}</view>
-                  <view
-                    wx:elif="{{item.showDelete}}"
-                    class="settings-modal__delete"
-                    data-name="{{item.name}}"
-                    data-deletable="{{item.deletable}}"
-                    bindtap="deleteLocationManagerItem"
-                  >
-                    ×
-                  </view>
-                </view>
-              </view>
-            </view>
-          </scroll-view>
-        </view>
-      </view>
-    </view>
+  <view
+    wx:if="{{activeSpaceId}}"
+    class="floating-create-button"
+    style="left: {{floatingCreateLeft}}px; top: {{floatingCreateTop}}px;"
+    catchtap="handleFloatingCreateTap"
+    catchtouchstart="handleFloatingCreateTouchStart"
+    catchtouchmove="handleFloatingCreateTouchMove"
+    catchtouchend="handleFloatingCreateTouchEnd"
+    catchtouchcancel="handleFloatingCreateTouchCancel"
+  >
+    <view class="floating-create-button__icon">＋</view>
   </view>
+
+  <pantry-manager-modal
+    visible="{{showSettingsModal}}"
+    title="食材分类"
+    meta-text="{{categoryManagerMetaText}}"
+    input-placeholder="输入分类名称"
+    input-value="{{categoryManagerInput}}"
+    loading="{{categoryManagerLoading}}"
+    loading-text="正在读取分类..."
+    items="{{categoryManagerItems}}"
+    dragging-index="{{draggingManagerIndex}}"
+    empty-illustration="类"
+    empty-title="暂无分类"
+    empty-text="还没有维护库存分类，先添加一个常用分类。"
+    bind:close="closeSettingsModal"
+    bind:inputchange="handleCategoryManagerInput"
+    bind:submit="submitCategoryManagerCreate"
+    bind:rename="renameCategoryManagerItem"
+    bind:delete="deleteCategoryManagerItem"
+    bind:dragstart="handleManagerDragStart"
+    bind:dragmove="handleManagerDragMove"
+    bind:dragend="handleManagerDragEnd"
+    bind:dragcancel="handleManagerDragCancel"
+  />
 
   <pantry-form-modal
     visible="{{showCreateModal}}"

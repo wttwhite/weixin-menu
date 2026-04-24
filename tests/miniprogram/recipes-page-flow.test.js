@@ -47,6 +47,61 @@ beforeEach(() => {
 })
 
 describe('recipes page flow', () => {
+  it('passes active category to create page and omits it for all-section', async () => {
+    const navigateTo = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn().mockResolvedValue({
+          result: {
+            code: 0,
+            data: {
+              items: [
+                { _id: 'recipe-1', name: 'Mapo', category: '川菜' },
+                { _id: 'recipe-2', name: 'Soup', category: '汤' }
+              ]
+            }
+          }
+        })
+      },
+      navigateTo,
+      switchTab: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    page.handleSectionChange({
+      currentTarget: {
+        dataset: {
+          key: '川菜'
+        }
+      }
+    })
+    page.goCreate()
+    page.handleSectionChange({
+      currentTarget: {
+        dataset: {
+          key: 'all'
+        }
+      }
+    })
+    page.goCreate()
+
+    expect(navigateTo).toHaveBeenNthCalledWith(1, {
+      url: '/pages/recipe-edit/index?category=%E5%B7%9D%E8%8F%9C'
+    })
+    expect(navigateTo).toHaveBeenNthCalledWith(2, {
+      url: '/pages/recipe-edit/index'
+    })
+  })
+
   it('shows truncation summary when server indicates capped recipe list has more items', async () => {
     global.wx = {
       cloud: {
@@ -232,6 +287,85 @@ describe('recipes page flow', () => {
 
     expect(page.data.activeSectionKey).toBe('川菜')
     expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Mapo', 'Twice Cooked Pork'])
+  })
+
+  it('consumes queued created recipe locally, inserts it at the front, and skips full reload on return', async () => {
+    const callFunction = vi.fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              { _id: 'recipe-1', name: '菌菇汤', category: '美味汤羹', servings: '2' },
+              { _id: 'recipe-2', name: 'Mapo', category: '川菜', servings: '3' }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              { name: '美味汤羹', recipeCount: 1, deletable: false },
+              { name: '川菜', recipeCount: 1, deletable: false }
+            ]
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      switchTab: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    page.handleSectionChange({
+      currentTarget: {
+        dataset: {
+          key: '美味汤羹'
+        }
+      }
+    })
+
+    page.queueCreatedRecipe({
+      _id: 'recipe-new',
+      name: '番茄菌菇汤',
+      category: '美味汤羹',
+      servings: '2',
+      prepTimeMinutes: '10',
+      cookTimeMinutes: '20',
+      ingredients: [{ name: '番茄' }],
+      steps: [{ content: '炖煮' }]
+    })
+
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.items.map((item) => item.name)).toEqual(['番茄菌菇汤', '菌菇汤', 'Mapo'])
+    expect(page.data.visibleItems.map((item) => item.name)).toEqual(['番茄菌菇汤', '菌菇汤'])
+    expect(page.data.categoryManagerItems).toEqual([
+      expect.objectContaining({
+        name: '美味汤羹',
+        recipeCount: 2
+      }),
+      expect.objectContaining({
+        name: '川菜',
+        recipeCount: 1
+      })
+    ])
   })
 
   it('switches to pantry tab from the recipes quick link', async () => {
@@ -774,5 +908,97 @@ describe('recipes page flow', () => {
       config: undefined
     })
     expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['四季时蔬', '饮品酒水'])
+  })
+
+  it('reorders recipe categories from the category manager and syncs rail order', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              { _id: 'recipe-1', name: 'Mapo', category: '健康时蔬' },
+              { _id: 'recipe-2', name: 'Tea', category: '饮品酒水' }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              { name: '健康时蔬', recipeCount: 1, deletable: false },
+              { name: '饮品酒水', recipeCount: 1, deletable: false }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              { name: '饮品酒水', recipeCount: 1, deletable: false },
+              { name: '健康时蔬', recipeCount: 1, deletable: false }
+            ]
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      switchTab: vi.fn(),
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+    await page.openCategoryManager()
+
+    page.handleCategoryManagerDragStart({
+      detail: {
+        index: 0,
+        touches: [{ pageY: 0 }]
+      }
+    })
+    expect(page.data.categoryManagerDraggingIndex).toBe(0)
+
+    page.handleCategoryManagerDragMove({
+      detail: {
+        touches: [{ pageY: 80 }]
+      }
+    })
+    expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['饮品酒水', '健康时蔬'])
+    expect(page.data.categoryManagerDraggingIndex).toBe(1)
+
+    await page.handleCategoryManagerDragEnd()
+
+    expect(callFunction).toHaveBeenNthCalledWith(3, {
+      name: 'api',
+      data: {
+        action: 'reorderRecipeCategories',
+        spaceId: 'space-1',
+        names: ['饮品酒水', '健康时蔬']
+      },
+      config: undefined
+    })
+    expect(page.data.sectionOptions).toEqual([
+      { key: 'all', label: '全部' },
+      { key: '饮品酒水', label: '饮品酒水' },
+      { key: '健康时蔬', label: '健康时蔬' }
+    ])
+    expect(page.data.sectionViewItems.map((item) => item.label)).toEqual(['全部', '饮品酒水', '健康时蔬'])
+    expect(page.data.categoryManagerDraggingIndex).toBe(-1)
   })
 })

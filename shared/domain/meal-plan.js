@@ -7,6 +7,12 @@ const MEAL_TYPE_ORDER = Object.freeze({
   snack: 4
 })
 
+const MEAL_PLAN_STATUS = Object.freeze({
+  PLANNED: 'planned',
+  DONE: 'done',
+  CANCELLED: 'cancelled'
+})
+
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -19,6 +25,17 @@ function normalizeDate(value) {
 function normalizeMealType(value) {
   const mealType = normalizeText(value).toLowerCase()
   return MEAL_TYPE_ORDER[mealType] ? mealType : ''
+}
+
+function normalizeMealPlanStatus(value) {
+  const status = normalizeText(value).toLowerCase()
+  if (status === MEAL_PLAN_STATUS.DONE) {
+    return MEAL_PLAN_STATUS.DONE
+  }
+  if (status === MEAL_PLAN_STATUS.CANCELLED) {
+    return MEAL_PLAN_STATUS.CANCELLED
+  }
+  return MEAL_PLAN_STATUS.PLANNED
 }
 
 function normalizeRecipeSnapshot(recipe = {}) {
@@ -62,9 +79,70 @@ function normalizeMealPlanWrite(input = {}) {
   return {
     planDate: normalizeDate(input.planDate || input.date),
     mealType: normalizeMealType(input.mealType),
+    status: normalizeMealPlanStatus(input.status),
     notes: normalizeText(input.notes),
     recipes: normalizedRecipes
   }
+}
+
+function toIsoDate(value = '') {
+  const text = normalizeText(value)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return ''
+  }
+
+  const [year, month, day] = text.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return ''
+  }
+
+  return text
+}
+
+function shiftIsoDate(isoDate = '', days = 0) {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+function buildRecentRecipePlanUsageCounts(plans = [], today = new Date().toISOString().slice(0, 10), windowDays = 30) {
+  const normalizedToday = toIsoDate(today)
+  const safeWindowDays = Math.max(1, Math.trunc(windowDays))
+  if (!normalizedToday) {
+    return {}
+  }
+
+  const startDate = shiftIsoDate(normalizedToday, -(safeWindowDays - 1))
+  const counts = {}
+
+  for (const plan of plans || []) {
+    const planDate = toIsoDate(plan && plan.planDate)
+    if (
+      !planDate ||
+      planDate < startDate ||
+      planDate > normalizedToday ||
+      normalizeMealPlanStatus(plan && plan.status) !== MEAL_PLAN_STATUS.DONE ||
+      normalizeText(plan && plan.deletedAt)
+    ) {
+      continue
+    }
+
+    for (const recipe of Array.isArray(plan.recipes) ? plan.recipes : []) {
+      const recipeId = normalizeText(recipe && recipe.recipeId)
+      if (!recipeId) {
+        continue
+      }
+      counts[recipeId] = (counts[recipeId] || 0) + 1
+    }
+  }
+
+  return counts
 }
 
 function compareMealPlanSchedule(left = {}, right = {}) {
@@ -117,8 +195,11 @@ function sortMealPlansBySchedule(items = []) {
 }
 
 module.exports = {
+  buildRecentRecipePlanUsageCounts,
   MEAL_TYPE_ORDER,
+  MEAL_PLAN_STATUS,
   normalizeMealPlanRecipe,
+  normalizeMealPlanStatus,
   normalizeMealPlanWrite,
   sortMealPlansBySchedule
 }

@@ -2,6 +2,7 @@
   "navigationBarTitleText": "库存",
   "enablePullDownRefresh": true,
   "usingComponents": {
+    "pantry-manager-modal": "/components/pantry-manager-modal/index",
     "pantry-form-modal": "/components/pantry-form-modal/index",
     "t-button": "tdesign-miniprogram/button/button",
     "t-input": "tdesign-miniprogram/input/input",

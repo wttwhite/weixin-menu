@@ -2,26 +2,38 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 describe('pantry page settings modal', () => {
+  it('uses a shared pantry manager modal for category-only settings', () => {
+    const template = readFileSync('miniprogram/pages/pantry/index.wxml', 'utf8')
+
+    expect(template).toContain('pantry-manager-modal')
+    expect(template).toContain('visible="{{showSettingsModal}}"')
+    expect(template).toContain('title="食材分类"')
+    expect(template).toContain('bind:submit="submitCategoryManagerCreate"')
+    expect(template).toContain('bind:rename="renameCategoryManagerItem"')
+    expect(template).toContain('bind:delete="deleteCategoryManagerItem"')
+    expect(template.includes('submitLocationManagerCreate')).toBe(false)
+    expect(template.includes('renameLocationManagerItem')).toBe(false)
+    expect(template.includes('deleteLocationManagerItem')).toBe(false)
+  })
+
   it('renders a combined settings modal for category and location managers', () => {
     const template = readFileSync('miniprogram/pages/pantry/index.wxml', 'utf8')
 
     expect(template).toContain('bindtap="openSettingsModal"')
     expect(template).toContain('pantry-form-modal')
     expect(template).toContain('showCreateModal')
-    expect(template).toContain('库存配置')
-    expect(template).toContain('分类管理')
-    expect(template).toContain('位置管理')
+    expect(template).toContain('management-card__search')
+    expect(template).toContain('management-card__search-row')
+    expect(template).toContain('floating-create-button')
+    expect(template).toContain('食材分类')
     expect(template).toContain('{{managementStatusText}}')
     expect(template.includes('{{managementCategoryCountText}}')).toBe(false)
-    expect(template).toContain('settings-modal__section settings-modal__section--category')
-    expect(template).toContain('settings-modal__section settings-modal__section--location')
-    expect(template).toContain('settings-modal__empty')
-    expect(template).toContain('settings-modal__empty-illustration')
-    expect(template).toContain('catchtouchstart="handleManagerDragStart"')
-    expect(template).toContain('catchtouchmove="handleManagerDragMove"')
-    expect(template).toContain('catchtouchend="handleManagerDragEnd"')
-    expect(template).toContain('class="{{item.itemClass}}"')
-    expect(template).toContain('class="{{item.dragClass}}"')
+    expect(template.includes('位置管理')).toBe(false)
+    expect(template.includes('settings-modal__section')).toBe(false)
+    expect(template.includes('settings-modal__empty')).toBe(false)
+    expect(template.includes('class="search-card"')).toBe(false)
+    expect(template.includes('class="action-pill"')).toBe(false)
+    expect(template.includes('catchtouchstart="handleManagerDragStart"')).toBe(false)
     expect(template.includes('action-pill--space')).toBe(false)
     expect(template.includes('bindtap="openManagementMenu"')).toBe(false)
   })
@@ -29,6 +41,8 @@ describe('pantry page settings modal', () => {
   it('places usage status next to the pantry name and only renders freshness badge when needed', () => {
     const template = readFileSync('miniprogram/pages/pantry/index.wxml', 'utf8')
 
+    expect(template).toContain('/images/pantry-management-hero.svg')
+    expect(template.includes('{{managementCoverText}}')).toBe(false)
     expect(template).toMatch(/pantry-item__header[\s\S]*pantry-item__name[\s\S]*usageStatusLabel/)
     expect(template).toContain('wx:if="{{item.showStatusBadge}}"')
     expect(template).toContain('{{item.usageActionIcon}}')

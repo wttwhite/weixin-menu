@@ -2,6 +2,8 @@
   "navigationBarTitleText": "我的",
   "enablePullDownRefresh": true,
   "usingComponents": {
+    "pantry-manager-modal": "/components/pantry-manager-modal/index",
+    "recipe-category-manager-modal": "/components/recipe-category-manager-modal/index",
     "t-button": "tdesign-miniprogram/button/button",
     "t-input": "tdesign-miniprogram/input/input"
   }

@@ -49,8 +49,13 @@
   align-items: center;
   justify-content: center;
   font-size: 34rpx;
+  line-height: 1;
   color: #fff;
   background: var(--brand, #c56a3d);
+}
+
+.uploader__entry--camera .uploader__entry-icon {
+  transform: translateY(-2rpx);
 }
 
 .uploader__entry--album .uploader__entry-icon {

@@ -2,6 +2,7 @@ const { createMealPlanService } = require('../../services/meal-plan')
 const { createRecipeService } = require('../../services/recipe')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const { syncPageTheme } = require('../../utils/theme')
 
 const MEAL_TYPE_OPTIONS = [
   { label: '早餐', value: 'breakfast' },
@@ -30,6 +31,15 @@ function buildRecipeOptions(recipes = []) {
       value: item._id
     }))
   )
+}
+
+function buildFilteredRecipeOptions(recipeOptions = [], keyword = '') {
+  const normalizedKeyword = typeof keyword === 'string' ? keyword.trim().toLowerCase() : ''
+  const options = (recipeOptions || []).filter((item) => item && item.value)
+  if (!normalizedKeyword) {
+    return options
+  }
+  return options.filter((item) => String(item.label || '').toLowerCase().includes(normalizedKeyword))
 }
 
 function mergeRecipeOptions(recipes = [], fallbackRecipes = []) {
@@ -73,14 +83,31 @@ function createEmptyForm() {
   return {
     planDate: getTodayDate(),
     mealType: 'dinner',
+    status: 'planned',
     notes: '',
     recipes: [createEmptyPlanRecipe()]
   }
 }
 
+function buildRecipeRowViewItems(recipes = [], recipeOptions = [], selectedRecipeIndexes = []) {
+  const rows = Array.isArray(recipes) && recipes.length ? recipes : [createEmptyPlanRecipe()]
+  return rows.map((item, index) => {
+    const selectedIndex = typeof selectedRecipeIndexes[index] === 'number' ? selectedRecipeIndexes[index] : 0
+    const selectedOption = recipeOptions[selectedIndex] || recipeOptions[0] || { label: '请选择菜谱', value: '' }
+    return {
+      ...item,
+      rowIndex: index + 1,
+      selectedRecipeLabel: selectedOption.label || '请选择菜谱',
+      recipePickerClass: selectedOption.value ? 'recipe-search' : 'recipe-search recipe-search--placeholder'
+    }
+  })
+}
+
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     submitting: false,
     deleting: false,
     isEdit: false,
@@ -88,7 +115,12 @@ Page({
     activeSpaceId: '',
     recipes: [],
     recipeOptions: [{ label: '请选择菜谱', value: '' }],
+    recipeRowViewItems: [],
     selectedRecipeIndexes: [0],
+    showRecipeSelector: false,
+    activeRecipeRowIndex: -1,
+    recipeSearchKeyword: '',
+    filteredRecipeOptions: [],
     mealTypeOptions: MEAL_TYPE_OPTIONS,
     selectedMealTypeIndex: getMealTypeIndex('dinner'),
     loadErrorMessage: '',
@@ -104,6 +136,7 @@ Page({
   },
 
   onShow() {
+    syncPageTheme(this)
     this.bootstrap()
   },
 
@@ -122,7 +155,12 @@ Page({
         form: createEmptyForm(),
         recipes: [],
         recipeOptions: [{ label: '请选择菜谱', value: '' }],
+        recipeRowViewItems: buildRecipeRowViewItems([createEmptyPlanRecipe()], [{ label: '请选择菜谱', value: '' }], [0]),
         selectedRecipeIndexes: [0],
+        showRecipeSelector: false,
+        activeRecipeRowIndex: -1,
+        recipeSearchKeyword: '',
+        filteredRecipeOptions: [],
         selectedMealTypeIndex: getMealTypeIndex('dinner')
       })
       return
@@ -141,7 +179,11 @@ Page({
       const nextData = {
         loading: false,
         recipes,
-        recipeOptions
+        recipeOptions,
+        filteredRecipeOptions: buildFilteredRecipeOptions(recipeOptions, ''),
+        showRecipeSelector: false,
+        activeRecipeRowIndex: -1,
+        recipeSearchKeyword: ''
       }
 
       if (this.data.isEdit && this.data.mealPlanId) {
@@ -156,6 +198,7 @@ Page({
         nextData.form = {
           planDate: target.planDate || getTodayDate(),
           mealType: target.mealType || 'dinner',
+          status: target.status || 'planned',
           notes: target.notes || '',
           recipes: (Array.isArray(target.recipes) && target.recipes.length
             ? target.recipes
@@ -174,11 +217,19 @@ Page({
         nextData.selectedRecipeIndexes = [0]
       }
 
+      nextData.recipeRowViewItems = buildRecipeRowViewItems(
+        nextData.form.recipes,
+        recipeOptions,
+        nextData.selectedRecipeIndexes
+      )
+
       this.setData(nextData)
     } catch (error) {
       this.setData({
         loading: false,
-        loadErrorMessage: getErrorMessage(error)
+        loadErrorMessage: getErrorMessage(error),
+        showRecipeSelector: false,
+        activeRecipeRowIndex: -1
       })
     }
   },
@@ -218,9 +269,11 @@ Page({
 
   addRecipeRow() {
     const nextRecipes = (this.data.form.recipes || []).concat(createEmptyPlanRecipe())
+    const nextSelectedRecipeIndexes = buildRecipeIndices(this.data.recipeOptions, nextRecipes)
     this.setData({
       'form.recipes': nextRecipes,
-      selectedRecipeIndexes: buildRecipeIndices(this.data.recipeOptions, nextRecipes)
+      selectedRecipeIndexes: nextSelectedRecipeIndexes,
+      recipeRowViewItems: buildRecipeRowViewItems(nextRecipes, this.data.recipeOptions, nextSelectedRecipeIndexes)
     })
   },
 
@@ -228,11 +281,81 @@ Page({
     const index = Number(event.currentTarget.dataset.index)
     const nextRecipes = (this.data.form.recipes || []).filter((item, currentIndex) => currentIndex !== index)
     const safeRecipes = nextRecipes.length ? nextRecipes : [createEmptyPlanRecipe()]
+    const nextSelectedRecipeIndexes = buildRecipeIndices(this.data.recipeOptions, safeRecipes)
     this.setData({
       'form.recipes': safeRecipes,
-      selectedRecipeIndexes: buildRecipeIndices(this.data.recipeOptions, safeRecipes)
+      selectedRecipeIndexes: nextSelectedRecipeIndexes,
+      recipeRowViewItems: buildRecipeRowViewItems(safeRecipes, this.data.recipeOptions, nextSelectedRecipeIndexes)
     })
   },
+
+  openRecipeSelector(event) {
+    const index = Number(event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.index
+      : -1)
+    if (!Number.isInteger(index) || index < 0) {
+      return
+    }
+
+    this.setData({
+      showRecipeSelector: true,
+      activeRecipeRowIndex: index,
+      recipeSearchKeyword: '',
+      filteredRecipeOptions: buildFilteredRecipeOptions(this.data.recipeOptions, '')
+    })
+  },
+
+  closeRecipeSelector() {
+    this.setData({
+      showRecipeSelector: false,
+      activeRecipeRowIndex: -1,
+      recipeSearchKeyword: '',
+      filteredRecipeOptions: buildFilteredRecipeOptions(this.data.recipeOptions, '')
+    })
+  },
+
+  handleRecipeSearchInput(event) {
+    const value = event && event.detail ? event.detail.value : ''
+    this.setData({
+      recipeSearchKeyword: value,
+      filteredRecipeOptions: buildFilteredRecipeOptions(this.data.recipeOptions, value)
+    })
+  },
+
+  handleRecipeOptionSelect(event) {
+    const value = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.value || ''
+      : ''
+    const index = this.data.activeRecipeRowIndex
+    if (!value || !Number.isInteger(index) || index < 0) {
+      return
+    }
+
+    const selectedRecipeIndex = buildRecipeIndex(this.data.recipeOptions, value)
+    const nextSelectedRecipeIndexes = (this.data.selectedRecipeIndexes || []).slice()
+    nextSelectedRecipeIndexes[index] = selectedRecipeIndex
+    const nextRecipes = (this.data.form.recipes || []).map((item, currentIndex) => {
+      if (currentIndex !== index) {
+        return item
+      }
+      return {
+        ...item,
+        recipeId: value
+      }
+    })
+
+    this.setData({
+      'form.recipes': nextRecipes,
+      selectedRecipeIndexes: nextSelectedRecipeIndexes,
+      recipeRowViewItems: buildRecipeRowViewItems(nextRecipes, this.data.recipeOptions, nextSelectedRecipeIndexes),
+      showRecipeSelector: false,
+      activeRecipeRowIndex: -1,
+      recipeSearchKeyword: '',
+      filteredRecipeOptions: buildFilteredRecipeOptions(this.data.recipeOptions, '')
+    })
+  },
+
+  noop() {},
 
   handleInput(event) {
     const field = event.currentTarget.dataset.field

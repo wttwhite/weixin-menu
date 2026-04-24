@@ -4,7 +4,8 @@
   padding: 28rpx 24rpx 180rpx;
   background:
     radial-gradient(circle at top, rgba(255, 230, 186, 0.3), transparent 28%),
-    linear-gradient(180deg, #f8f9fc 0%, #eef2f8 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 22%),
+    linear-gradient(180deg, var(--page-bg, #f8f9fc) 0%, #eef2f8 100%);
 }
 
 .editor-shell,
@@ -21,8 +22,7 @@
   box-shadow: 0 20rpx 34rpx rgba(56, 63, 79, 0.1);
 }
 
-.state-title,
-.editor-section__title {
+.state-title {
   font-size: 46rpx;
   font-weight: 800;
   color: #182234;
@@ -54,6 +54,21 @@
   font-size: 26rpx;
 }
 
+.editor-section__head {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  min-width: 0;
+}
+
+.editor-section__title {
+  min-width: 0;
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #182234;
+  white-space: nowrap;
+}
+
 .editor-section__divider {
   height: 1px;
   margin: 18rpx 0 8rpx;
@@ -67,6 +82,10 @@
   margin-top: 20rpx;
 }
 
+.form-row--textarea {
+  align-items: flex-start;
+}
+
 .form-row__label {
   width: 156rpx;
   flex-shrink: 0;
@@ -74,6 +93,7 @@
   font-weight: 700;
   color: #27323f;
   white-space: nowrap;
+  text-align: right;
 }
 
 .form-row__required {
@@ -102,6 +122,10 @@
   color: #27323f;
 }
 
+.field-placeholder {
+  color: #b6bdc8;
+}
+
 .field-input--inline {
   margin-top: 0;
 }
@@ -119,7 +143,7 @@
   padding: 0;
   height: 44rpx;
   line-height: 44rpx;
-  color: #9aa3af;
+  color: #27323f;
 }
 
 .field-input--compact {
@@ -141,8 +165,13 @@
   height: 80rpx;
 }
 
+.field-textarea--inline {
+  margin-top: 8rpx;
+}
+
 .field-textarea--step {
-  min-height: 170rpx;
+  min-height: 120rpx;
+  height: 120rpx;
 }
 
 .category-picker {
@@ -217,20 +246,31 @@
   color: var(--brand);
 }
 
-.description-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.description-row {
   margin-top: 24rpx;
 }
 
-.description-head__label {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #27323f;
+.description-row .form-row__label {
+  min-height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
-.description-head__count {
+.description-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.description-row__field-wrap {
+  width: 100%;
+}
+
+.description-row__count {
+  align-self: flex-end;
+  margin-top: 8rpx;
   font-size: 22rpx;
   color: #8c95a2;
 }
@@ -248,6 +288,7 @@
 
 .subsection-hint {
   margin-top: 6rpx;
+  margin-bottom: 14rpx;
   font-size: 22rpx;
   color: #8d96a3;
 }
@@ -312,9 +353,24 @@
 
 .section-button {
   margin-top: 16rpx;
-  --td-button-default-bg-color: #f2f4f8;
-  --td-button-default-color: #4b5563;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section-button-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.section-button--soft {
+  width: auto;
+  align-self: center;
+  --td-button-default-bg-color: rgba(197, 106, 61, 0.12);
+  --td-button-default-color: var(--brand);
   --td-button-default-border-color: transparent;
+  --td-button-height: 60rpx;
+  --td-button-font-size: 22rpx;
 }
 
 .inline-row__button {
@@ -329,6 +385,10 @@
   align-self: flex-start;
   --td-button-danger-outline-color: #d14b4b;
   --td-button-danger-outline-border-color: rgba(209, 75, 75, 0.4);
+}
+
+.editor-section--danger {
+  border: 1px solid rgba(209, 75, 75, 0.12);
 }
 
 .bottom-actions {
@@ -384,6 +444,7 @@
 .rating-row {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 14rpx;
   margin-top: 24rpx;
   min-height: 52rpx;
@@ -402,7 +463,9 @@
   display: flex;
   gap: 10rpx;
   align-items: center;
+  flex: none;
   height: 52rpx;
+  white-space: nowrap;
 }
 
 .rating-star {
@@ -445,6 +508,23 @@
   justify-content: space-between;
   font-size: 26rpx;
   color: #5f6773;
+}
+
+.editor-section--last .subsection-title {
+  margin-top: 24rpx;
+}
+
+.editor-section--last .subsection-hint {
+  margin-top: 10rpx;
+  margin-bottom: 18rpx;
+}
+
+.editor-section--last .detail-grid {
+  margin-top: 18rpx;
+}
+
+.editor-section--last .field-switch {
+  margin-top: 28rpx;
 }
 
 .tag-list {

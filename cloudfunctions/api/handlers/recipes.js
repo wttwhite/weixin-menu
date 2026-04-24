@@ -40,12 +40,20 @@ async function deleteRecipeCategory({ event, context, repository }) {
   return recipeService.deleteRecipeCategory(event, context, repository)
 }
 
+async function reorderRecipeCategories({ event, context, repository }) {
+  return recipeService.reorderRecipeCategories(event, context, repository)
+}
+
 async function createRecipeTag({ event, context, repository }) {
   return recipeService.createRecipeTag(event, context, repository)
 }
 
 async function deleteRecipeTag({ event, context, repository }) {
   return recipeService.deleteRecipeTag(event, context, repository)
+}
+
+async function generateSampleRecipes({ event, context, repository }) {
+  return recipeService.generateSampleRecipes(event, context, repository)
 }
 
 module.exports = {
@@ -55,10 +63,12 @@ module.exports = {
   deleteRecipe,
   deleteRecipeCategory,
   deleteRecipeTag,
+  generateSampleRecipes,
   getRecipeDetail,
   listRecipeCategories,
   listRecipeTags,
   listRecipes,
+  reorderRecipeCategories,
   updateRecipeCategory,
   updateRecipe
 }

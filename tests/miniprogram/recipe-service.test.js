@@ -7,6 +7,7 @@ import {
   deleteRecipe,
   deleteRecipeCategory,
   deleteRecipeTag,
+  generateSampleRecipes,
   getRecipeDetail,
   listRecipeCategories,
   listRecipeTags,
@@ -91,6 +92,12 @@ describe('createRecipeService', () => {
           data: { deleted: true, name: '饮品' }
         }
       })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: { count: 30, items: [{ _id: 'recipe-seed-1' }] }
+        }
+      })
 
     const service = createRecipeService({ callCloud })
     await service.listRecipes('space-1')
@@ -105,6 +112,7 @@ describe('createRecipeService', () => {
     await service.createRecipeCategory('space-1', '凉菜')
     await service.updateRecipeCategory('space-1', '热菜', '家常热菜')
     await service.deleteRecipeCategory('space-1', '饮品')
+    await service.generateSampleRecipes('space-1', 30)
 
     expect(callCloud).toHaveBeenNthCalledWith(1, 'api', {
       action: 'listRecipes',
@@ -165,6 +173,11 @@ describe('createRecipeService', () => {
       spaceId: 'space-1',
       name: '饮品'
     })
+    expect(callCloud).toHaveBeenNthCalledWith(13, 'api', {
+      action: 'generateSampleRecipes',
+      spaceId: 'space-1',
+      count: 30
+    })
   })
 
   it('unwraps non-zero api responses into thrown errors', async () => {
@@ -199,5 +212,6 @@ describe('recipe service helpers', () => {
     expect(typeof createRecipeCategory).toBe('function')
     expect(typeof updateRecipeCategory).toBe('function')
     expect(typeof deleteRecipeCategory).toBe('function')
+    expect(typeof generateSampleRecipes).toBe('function')
   })
 })

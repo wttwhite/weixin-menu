@@ -101,6 +101,14 @@
 
     <view class="profile-section">
       <view class="profile-section__title">数据与分析</view>
+      <view wx:if="{{canRenameSpace}}" class="action-row" bindtap="handleGenerateRecipeSamples">
+        <view class="action-row__icon">🍳</view>
+        <view class="action-row__body">
+          <view class="action-row__title">随机生成 30 个测试菜谱</view>
+          <view class="action-row__desc">一键填充当前空间菜谱数据，方便联调页面效果</view>
+        </view>
+        <view class="action-row__arrow">›</view>
+      </view>
       <view class="action-row" bindtap="openBackup">
         <view class="action-row__icon">💾</view>
         <view class="action-row__body">
@@ -120,29 +128,42 @@
     </view>
   </view>
 
-  <view wx:if="{{showManagerModal}}" class="manager-modal" catchtap="closeManagerModal">
-    <view class="manager-modal__panel" catchtap="noop">
-      <view class="manager-modal__title">{{managerTitle}}</view>
-      <view class="manager-modal__input">
-        <t-input value="{{managerInput}}" placeholder="{{managerInputPlaceholder}}" bindchange="handleManagerInput" />
-      </view>
-      <t-button class="manager-modal__submit" theme="primary" block bindtap="submitManagerCreate">新增</t-button>
-      <view wx:if="{{managerLoading}}" class="manager-modal__empty">正在读取...</view>
-      <view wx:elif="{{!managerItems.length}}" class="manager-modal__empty">暂无配置项</view>
-      <view wx:else class="manager-list">
-        <view wx:for="{{managerItems}}" wx:key="name" class="manager-row">
-          <view class="manager-row__body">
-            <view class="manager-row__title">{{item.name}}</view>
-            <view class="manager-row__meta">{{item.countText}}</view>
-          </view>
-          <view class="manager-row__actions">
-            <view class="manager-row__action" data-name="{{item.name}}" bindtap="renameManagerItem">编辑</view>
-            <view wx:if="{{item.showDelete}}" class="manager-row__action manager-row__action--danger" data-name="{{item.name}}" data-show-delete="{{item.showDelete}}" bindtap="deleteManagerItem">删除</view>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
+  <recipe-category-manager-modal
+    visible="{{showRecipeCategoryManager}}"
+    loading="{{recipeCategoryManagerLoading}}"
+    input-value="{{recipeCategoryManagerInput}}"
+    items="{{recipeCategoryManagerItems}}"
+    bind:close="closeRecipeCategoryManager"
+    bind:inputchange="handleRecipeCategoryManagerInput"
+    bind:submit="submitRecipeCategoryManagerCreate"
+    bind:rename="renameRecipeCategoryManagerItem"
+    bind:delete="deleteRecipeCategoryManagerItem"
+  />
+
+  <pantry-manager-modal
+    visible="{{showPantryManagerModal}}"
+    title="{{pantryManagerTitle}}"
+    meta-text="{{pantryManagerMetaText}}"
+    input-placeholder="{{pantryManagerInputPlaceholder}}"
+    input-value="{{pantryManagerInput}}"
+    loading="{{pantryManagerLoading}}"
+    loading-text="{{pantryManagerLoadingText}}"
+    items="{{pantryManagerItems}}"
+    dragging-index="{{pantryManagerDraggingIndex}}"
+    empty-illustration="{{pantryManagerEmptyIllustration}}"
+    empty-illustration-class="{{pantryManagerEmptyIllustrationClass}}"
+    empty-title="{{pantryManagerEmptyTitle}}"
+    empty-text="{{pantryManagerEmptyText}}"
+    bind:close="closePantryManagerModal"
+    bind:inputchange="handlePantryManagerInput"
+    bind:submit="submitPantryManagerCreate"
+    bind:rename="renamePantryManagerItem"
+    bind:delete="deletePantryManagerItem"
+    bind:dragstart="handlePantryManagerDragStart"
+    bind:dragmove="handlePantryManagerDragMove"
+    bind:dragend="handlePantryManagerDragEnd"
+    bind:dragcancel="handlePantryManagerDragCancel"
+  />
 
   <view wx:if="{{showThemeModal}}" class="theme-modal" catchtap="closeThemeModal">
     <view class="theme-modal__panel" catchtap="noop">

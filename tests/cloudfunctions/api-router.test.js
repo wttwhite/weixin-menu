@@ -108,6 +108,47 @@ describe('createApiHandler', () => {
       retryable: false
     })
   })
+
+  it('wires generateSampleRecipes through the default api handler', async () => {
+    let recipeIndex = 0
+    const repository = {
+      findMembership: async () => ({
+        _id: 'member-1',
+        spaceId: 'space-1',
+        openid: 'owner-1',
+        role: 'owner',
+        status: 'active'
+      }),
+      getSpace: async () => ({
+        _id: 'space-1',
+        settings: {
+          recipeCategories: []
+        }
+      }),
+      updateSpace: async (_spaceId, patch) => ({
+        _id: 'space-1',
+        ...patch
+      }),
+      listRecipeTags: async () => [],
+      createRecipe: async (data) => ({
+        _id: `recipe-${++recipeIndex}`,
+        ...data
+      })
+    }
+    const handler = createApiHandler({
+      createContext: async () => ({ openid: 'owner-1' }),
+      createRepository: async () => repository
+    })
+
+    const response = await handler({
+      action: 'generateSampleRecipes',
+      spaceId: 'space-1',
+      count: 30
+    })
+
+    expect(response.code).toBe(ERROR_CODES.OK)
+    expect(response.data.count).toBe(30)
+  })
 })
 
 describe('api repository wiring', () => {
