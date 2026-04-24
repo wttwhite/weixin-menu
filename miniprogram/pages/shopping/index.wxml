@@ -147,8 +147,8 @@
     </view>
   </view>
 
-  <view wx:if="{{showListModal}}" class="shopping-modal__overlay" catchtap="closeListModal">
-    <view class="shopping-modal" catchtap="noop">
+  <view wx:if="{{showListModal}}" class="shopping-modal__overlay" catchtap="closeListModal" catchtouchmove="noop">
+    <view class="shopping-modal" catchtap="noop" catchtouchmove="noop">
       <view class="shopping-modal__title">{{listModalTitle}}</view>
 
       <input

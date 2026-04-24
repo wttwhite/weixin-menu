@@ -435,6 +435,12 @@ Page({
     if (this.consumeQueuedCreatedRecipe()) {
       return
     }
+    if (this.consumeSuppressedOnShowReload()) {
+      return
+    }
+    if (this.shouldReuseLoadedState()) {
+      return
+    }
     this.loadRecipes()
   },
 
@@ -560,6 +566,7 @@ Page({
         recipeListHasMore: false,
         summary: '请先选择一个空间，再开始管理共享菜谱。'
       })
+      this.hasLoadedRecipesOnce = true
       return
     }
 
@@ -588,6 +595,7 @@ Page({
         truncationMessage: buildRecipeTruncationMessage(limit, hasMore),
         summary: buildRecipeSummary(total, limit, hasMore)
       })
+      this.hasLoadedRecipesOnce = true
     } catch (error) {
       this.setData({
         loading: false,
@@ -625,6 +633,7 @@ Page({
         truncationMessage: '',
         summary: '菜谱加载失败，请稍后重试。'
       })
+      this.hasLoadedRecipesOnce = false
     }
   },
 
@@ -655,6 +664,37 @@ Page({
 
   queueCreatedRecipe(recipe = {}) {
     this.pendingCreatedRecipe = recipe && recipe._id ? { ...recipe } : null
+    this.skipNextOnShowReload = false
+    this.forceRefreshOnNextShow = false
+  },
+
+  suppressNextOnShowReload() {
+    this.skipNextOnShowReload = true
+  },
+
+  markNeedsRefreshOnNextShow() {
+    this.forceRefreshOnNextShow = true
+    this.skipNextOnShowReload = false
+  },
+
+  consumeSuppressedOnShowReload() {
+    if (!this.skipNextOnShowReload) {
+      return false
+    }
+
+    this.skipNextOnShowReload = false
+    return this.data.activeSpaceId === getActiveSpaceId()
+  },
+
+  shouldReuseLoadedState() {
+    if (this.forceRefreshOnNextShow) {
+      this.forceRefreshOnNextShow = false
+      return false
+    }
+
+    return Boolean(this.hasLoadedRecipesOnce) &&
+      !this.data.errorMessage &&
+      this.data.activeSpaceId === getActiveSpaceId()
   },
 
   consumeQueuedCreatedRecipe() {
@@ -700,6 +740,7 @@ Page({
       truncationMessage: buildRecipeTruncationMessage(nextLimit, nextHasMore),
       summary: buildRecipeSummary(nextTotal, nextLimit, nextHasMore)
     })
+    this.hasLoadedRecipesOnce = true
     return true
   },
 

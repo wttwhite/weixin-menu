@@ -283,4 +283,62 @@ describe('recipe detail page flow', () => {
     })
     expect(callFunction).toHaveBeenCalledTimes(2)
   })
+
+  it('marks the recipes page for refresh after deleting a recipe from detail view', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'recipe-1',
+              name: 'Mapo',
+              images: []
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            recipeId: 'recipe-1',
+            deleted: true
+          }
+        }
+      })
+    const markNeedsRefreshOnNextShow = vi.fn()
+    global.wx = {
+      cloud: { callFunction },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo: vi.fn(),
+      showModal: vi.fn().mockResolvedValue({ confirm: true }),
+      showToast: vi.fn()
+    }
+    global.getCurrentPages = () => [
+      {
+        route: 'pages/recipes/index',
+        markNeedsRefreshOnNextShow
+      },
+      {
+        route: 'pages/recipe-detail/index'
+      }
+    ]
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.removeRecipe()
+
+    expect(markNeedsRefreshOnNextShow).toHaveBeenCalledTimes(1)
+  })
 })

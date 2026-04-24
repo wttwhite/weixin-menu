@@ -2,11 +2,14 @@ const { createPantryService } = require('../../services/pantry')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 const {
+  buildUnitOptionItems,
   buildManagerOptionLabels,
   buildPickerUpdates,
   createEmptyPantryForm,
+  formatStepperValue,
   getPickerIndex,
   getPickerValue,
+  normalizeDecimalStepperValue,
   normalizeStepperValue,
   normalizeText,
   resolveExpirationDate
@@ -65,6 +68,39 @@ function buildDetailViewData(form = {}, statusOptions = [], statusIndex = 0) {
   }
 }
 
+function findPreviousPageByRoute(route = '') {
+  if (typeof getCurrentPages !== 'function') {
+    return null
+  }
+
+  const pages = getCurrentPages()
+  if (!Array.isArray(pages) || pages.length < 2) {
+    return null
+  }
+
+  for (let index = pages.length - 2; index >= 0; index -= 1) {
+    const page = pages[index] || null
+    if (!page) {
+      continue
+    }
+    if ((page.route || '') === route) {
+      return page
+    }
+  }
+
+  return null
+}
+
+function markPantryPageForRefresh() {
+  const pantryPage = findPreviousPageByRoute('pages/pantry/index')
+  if (!pantryPage || typeof pantryPage.markNeedsRefreshOnNextShow !== 'function') {
+    return false
+  }
+
+  pantryPage.markNeedsRefreshOnNextShow()
+  return true
+}
+
 Page({
   data: {
     loading: true,
@@ -81,6 +117,9 @@ Page({
     categoryOptions: ['未设置'],
     locationOptions: ['未设置'],
     statusOptions: STATUS_OPTIONS.map((item) => item.label),
+    showUnitSelector: false,
+    unitDraft: '',
+    unitOptionItems: buildUnitOptionItems(''),
     categoryIndex: 0,
     locationIndex: 0,
     statusIndex: 0,
@@ -161,6 +200,9 @@ Page({
         locationOptions,
         categoryIndex: getPickerIndex(categoryOptions, form.category),
         locationIndex: getPickerIndex(locationOptions, form.location),
+        showUnitSelector: false,
+        unitDraft: normalizeText(form.unit),
+        unitOptionItems: buildUnitOptionItems(form.unit),
         statusIndex: getStatusIndex(form.status),
         showEditModal: false,
         editForm: createEmptyPantryForm(),
@@ -189,6 +231,8 @@ Page({
     }
     this.setData({
       [`form.${field}`]: nextValue,
+      unitDraft: field === 'unit' ? normalizeText(nextValue) : this.data.unitDraft,
+      unitOptionItems: field === 'unit' ? buildUnitOptionItems(nextValue) : this.data.unitOptionItems,
       notesCount: buildNotesCount(nextForm)
     })
   },
@@ -241,6 +285,71 @@ Page({
     })
   },
 
+  openUnitSelector() {
+    this.setData({
+      showUnitSelector: true,
+      unitDraft: normalizeText(this.data.form.unit),
+      unitOptionItems: buildUnitOptionItems(this.data.form.unit)
+    })
+  },
+
+  closeUnitSelector() {
+    this.setData({
+      showUnitSelector: false,
+      unitDraft: normalizeText(this.data.form.unit),
+      unitOptionItems: buildUnitOptionItems(this.data.form.unit)
+    })
+  },
+
+  handleUnitDraftInput(event) {
+    const value = event && event.detail ? event.detail.value : ''
+    this.setData({
+      unitDraft: value,
+      unitOptionItems: buildUnitOptionItems(value)
+    })
+  },
+
+  handleUnitOptionTap(event) {
+    const unit = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.unit || ''
+      : ''
+    const nextForm = {
+      ...this.data.form,
+      unit
+    }
+    this.setData({
+      showUnitSelector: false,
+      form: nextForm,
+      unitDraft: normalizeText(unit),
+      unitOptionItems: buildUnitOptionItems(unit)
+    })
+  },
+
+  confirmUnitSelector() {
+    const nextUnit = normalizeText(this.data.unitDraft)
+    this.setData({
+      showUnitSelector: false,
+      form: {
+        ...this.data.form,
+        unit: nextUnit
+      },
+      unitDraft: nextUnit,
+      unitOptionItems: buildUnitOptionItems(nextUnit)
+    })
+  },
+
+  clearUnit() {
+    this.setData({
+      showUnitSelector: false,
+      form: {
+        ...this.data.form,
+        unit: ''
+      },
+      unitDraft: '',
+      unitOptionItems: buildUnitOptionItems('')
+    })
+  },
+
   handleUsageStatusSelect(event) {
     const nextIndex = Number(event.detail.value)
     const nextStatus = STATUS_OPTIONS[nextIndex] ? STATUS_OPTIONS[nextIndex].value : 'active'
@@ -255,9 +364,16 @@ Page({
   },
 
   adjustStepperField(field, delta, minimum = 0, emptyWhenZero = false) {
-    const current = normalizeStepperValue(this.data.form[field], minimum, minimum)
+    const usesDecimalStep = field === 'quantity'
+    const current = usesDecimalStep
+      ? normalizeDecimalStepperValue(this.data.form[field], minimum, minimum, 1)
+      : normalizeStepperValue(this.data.form[field], minimum, minimum)
     const nextValue = Math.max(minimum, current + delta)
-    const normalizedValue = emptyWhenZero && nextValue === 0 ? '' : String(nextValue)
+    const normalizedValue = emptyWhenZero && nextValue === 0
+      ? ''
+      : usesDecimalStep
+        ? formatStepperValue(nextValue, 1)
+        : String(nextValue)
     let nextForm = {
       ...this.data.form,
       [field]: normalizedValue
@@ -274,11 +390,11 @@ Page({
   },
 
   decrementQuantity() {
-    this.adjustStepperField('quantity', -1, 1, false)
+    this.adjustStepperField('quantity', -0.5, 0.5, false)
   },
 
   incrementQuantity() {
-    this.adjustStepperField('quantity', 1, 1, false)
+    this.adjustStepperField('quantity', 0.5, 0.5, false)
   },
 
   decrementShelfLifeMonths() {
@@ -450,6 +566,7 @@ Page({
       } else {
         await service.createPantryItem(this.data.activeSpaceId, this.data.form)
       }
+      markPantryPageForRefresh()
 
       wx.showToast({
         title: this.data.isEdit ? '已更新库存' : '已添加库存',
@@ -492,6 +609,7 @@ Page({
         this.data.activeSpaceId,
         this.data.pantryItemId
       )
+      markPantryPageForRefresh()
       wx.showToast({
         title: '已移出库存',
         icon: 'success'

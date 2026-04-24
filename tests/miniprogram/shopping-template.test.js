@@ -40,10 +40,20 @@ describe('shopping page template', () => {
     expect(styles).toMatch(/\.shopping-page\s*\{[\s\S]*padding:\s*20rpx 16rpx calc\(env\(safe-area-inset-bottom\) \+ 12\d?rpx\);/)
   })
 
+  it('removes background styling from the outer shopping page wrapper and locks modal touch scroll', () => {
+    const template = readFileSync('miniprogram/pages/shopping/index.wxml', 'utf8')
+    const styles = readFileSync('miniprogram/pages/shopping/index.wxss', 'utf8')
+    const shoppingPageBlock = styles.match(/\.shopping-page\s*\{[^}]*\}/)
+
+    expect(styles).toMatch(/page\s*\{[\s\S]*background:\s*transparent;/)
+    expect(shoppingPageBlock ? shoppingPageBlock[0] : '').not.toMatch(/background:/)
+    expect(template).toContain('class="shopping-modal__overlay" catchtap="closeListModal" catchtouchmove="noop"')
+    expect(template).toContain('class="shopping-modal" catchtap="noop" catchtouchmove="noop"')
+  })
+
   it('uses theme variables across the shopping page instead of fixed page colors', () => {
     const styles = readFileSync('miniprogram/pages/shopping/index.wxss', 'utf8')
 
-    expect(styles).toContain('var(--page-bg')
     expect(styles).toContain('var(--surface-bg')
     expect(styles).toContain('var(--surface-muted')
     expect(styles).toContain('var(--brand')

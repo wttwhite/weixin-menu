@@ -257,7 +257,7 @@ page {
 .rail-item {
   width: 100%;
   box-sizing: border-box;
-  min-height: 92rpx;
+  min-height: 80rpx;
   line-height: 1.35;
   padding: 20rpx 10rpx;
   margin: 0;
@@ -575,7 +575,7 @@ page {
   border-radius: 999rpx;
   background: #fff3ec;
   color: var(--brand-strong);
-  font-size: 24rpx;
+  font-size: 28rpx;
   font-weight: 700;
 }
 

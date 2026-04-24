@@ -1,7 +1,10 @@
 const {
+  buildUnitOptionItems,
   createEmptyPantryForm,
+  formatStepperValue,
   getPickerIndex,
   getPickerValue,
+  normalizeDecimalStepperValue,
   normalizeStepperValue,
   normalizeText,
   resolveExpirationDate
@@ -36,6 +39,20 @@ function buildNotesCount(form = {}) {
 function getStatusIndex(value = 'active') {
   const index = STATUS_OPTIONS.findIndex((item) => item.value === normalizeText(value))
   return index >= 0 ? index : 0
+}
+
+function buildCategorySelectorItems(categoryOptions = [], selectedCategoryIndex = 0) {
+  return (categoryOptions || [])
+    .map((label, index) => ({
+      index,
+      label,
+      disabled: index === 0,
+      itemClass:
+        index === selectedCategoryIndex
+          ? 'category-selector__item category-selector__item--active'
+          : 'category-selector__item'
+    }))
+    .filter((item) => !item.disabled)
 }
 
 Component({
@@ -75,6 +92,11 @@ Component({
     form: createEmptyPantryForm(),
     categoryIndex: 0,
     locationIndex: 0,
+    showCategorySelector: false,
+    categorySelectorItems: [],
+    showUnitSelector: false,
+    unitDraft: '',
+    unitOptionItems: buildUnitOptionItems(''),
     statusOptions: STATUS_OPTIONS.map((item) => item.label),
     statusIndex: 0,
     notesCount: '0'
@@ -87,11 +109,17 @@ Component({
       }
 
       const form = cloneForm(value)
+      const categoryIndex = getPickerIndex(categoryOptions || [], form.category)
       this.setData({
         today: getTodayDate(),
         form,
-        categoryIndex: getPickerIndex(categoryOptions || [], form.category),
+        categoryIndex,
         locationIndex: getPickerIndex(locationOptions || [], form.location),
+        showCategorySelector: false,
+        categorySelectorItems: buildCategorySelectorItems(categoryOptions || [], categoryIndex),
+        showUnitSelector: false,
+        unitDraft: normalizeText(form.unit),
+        unitOptionItems: buildUnitOptionItems(form.unit),
         statusIndex: getStatusIndex(form.status),
         notesCount: buildNotesCount(form)
       })
@@ -108,11 +136,15 @@ Component({
     },
 
     updateForm(nextForm = {}) {
+      const categoryIndex = getPickerIndex(this.data.categoryOptions || [], nextForm.category)
       this.setData({
         form: nextForm,
         notesCount: buildNotesCount(nextForm),
-        categoryIndex: getPickerIndex(this.data.categoryOptions || [], nextForm.category),
+        categoryIndex,
         locationIndex: getPickerIndex(this.data.locationOptions || [], nextForm.location),
+        categorySelectorItems: buildCategorySelectorItems(this.data.categoryOptions || [], categoryIndex),
+        unitDraft: normalizeText(nextForm.unit),
+        unitOptionItems: buildUnitOptionItems(nextForm.unit),
         statusIndex: getStatusIndex(nextForm.status)
       })
       this.emitFormChange(nextForm)
@@ -139,18 +171,109 @@ Component({
       this.updateForm(nextForm)
     },
 
-    handleCategorySelect(event) {
-      const nextIndex = Number(event.detail.value)
+    openCategorySelector() {
+      if (!Array.isArray(this.data.categoryOptions) || this.data.categoryOptions.length <= 1) {
+        return
+      }
+
+      this.setData({
+        showCategorySelector: true,
+        categorySelectorItems: buildCategorySelectorItems(
+          this.data.categoryOptions || [],
+          this.data.categoryIndex
+        )
+      })
+    },
+
+    closeCategorySelector() {
+      this.setData({
+        showCategorySelector: false
+      })
+    },
+
+    handleCategoryOptionTap(event) {
+      const name = event && event.currentTarget && event.currentTarget.dataset
+        ? event.currentTarget.dataset.name || ''
+        : ''
+      if (!name) {
+        return
+      }
+
+      this.setData({
+        showCategorySelector: false
+      })
       this.updateForm({
         ...this.data.form,
-        category: getPickerValue(this.data.categoryOptions || [], nextIndex)
+        category: name
       })
     },
 
     clearCategory() {
+      this.setData({
+        showCategorySelector: false
+      })
       this.updateForm({
         ...this.data.form,
         category: ''
+      })
+    },
+
+    openUnitSelector() {
+      this.setData({
+        showUnitSelector: true,
+        unitDraft: normalizeText(this.data.form.unit),
+        unitOptionItems: buildUnitOptionItems(this.data.form.unit)
+      })
+    },
+
+    closeUnitSelector() {
+      this.setData({
+        showUnitSelector: false,
+        unitDraft: normalizeText(this.data.form.unit),
+        unitOptionItems: buildUnitOptionItems(this.data.form.unit)
+      })
+    },
+
+    handleUnitDraftInput(event) {
+      const value = event && event.detail ? event.detail.value : ''
+      this.setData({
+        unitDraft: value,
+        unitOptionItems: buildUnitOptionItems(value)
+      })
+    },
+
+    handleUnitOptionTap(event) {
+      const unit = event && event.currentTarget && event.currentTarget.dataset
+        ? event.currentTarget.dataset.unit || ''
+        : ''
+      this.setData({
+        showUnitSelector: false
+      })
+      this.updateForm({
+        ...this.data.form,
+        unit
+      })
+    },
+
+    confirmUnitSelector() {
+      this.setData({
+        showUnitSelector: false
+      })
+      this.updateForm({
+        ...this.data.form,
+        unit: normalizeText(this.data.unitDraft)
+      })
+    },
+
+    clearUnit() {
+      this.setData({
+        showUnitSelector: false,
+        unitDraft: '',
+        unitOptionItems: buildUnitOptionItems('')
+      })
+      this.updateForm({
+        ...this.data.form,
+        unit: ''
       })
     },
 
@@ -179,9 +302,16 @@ Component({
     },
 
     adjustStepperField(field, delta, minimum = 0, emptyWhenZero = false) {
-      const current = normalizeStepperValue(this.data.form[field], minimum, minimum)
+      const usesDecimalStep = field === 'quantity'
+      const current = usesDecimalStep
+        ? normalizeDecimalStepperValue(this.data.form[field], minimum, minimum, 1)
+        : normalizeStepperValue(this.data.form[field], minimum, minimum)
       const nextValue = Math.max(minimum, current + delta)
-      const normalizedValue = emptyWhenZero && nextValue === 0 ? '' : String(nextValue)
+      const normalizedValue = emptyWhenZero && nextValue === 0
+        ? ''
+        : usesDecimalStep
+          ? formatStepperValue(nextValue, 1)
+          : String(nextValue)
       const nextForm = {
         ...this.data.form,
         [field]: normalizedValue
@@ -195,11 +325,11 @@ Component({
     },
 
     decrementQuantity() {
-      this.adjustStepperField('quantity', -1, 1, false)
+      this.adjustStepperField('quantity', -0.5, 0.5, false)
     },
 
     incrementQuantity() {
-      this.adjustStepperField('quantity', 1, 1, false)
+      this.adjustStepperField('quantity', 0.5, 0.5, false)
     },
 
     decrementShelfLifeMonths() {

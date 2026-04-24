@@ -168,6 +168,31 @@ function buildEditorViewData(options = {}) {
   }
 }
 
+function buildCreateModeInitialState(activeSpaceId = '', initialCategory = '') {
+  const form = {
+    ...createEmptyForm(),
+    category: initialCategory || ''
+  }
+  const categoryOptions = initialCategory
+    ? [DEFAULT_CATEGORY_LABEL, initialCategory]
+    : [DEFAULT_CATEGORY_LABEL]
+  const selectedCategoryIndex = initialCategory ? 1 : 0
+  return {
+    activeSpaceId,
+    loading: false,
+    loadErrorMessage: '',
+    form,
+    categoryOptions,
+    selectedCategoryIndex,
+    ...buildEditorViewData({
+      form,
+      categoryOptions,
+      selectedCategoryIndex,
+      isEdit: false
+    })
+  }
+}
+
 function resolvePageTitle(isEdit = false) {
   return isEdit ? '编辑菜谱' : '新增菜谱'
 }
@@ -200,6 +225,29 @@ function getPreviousPage() {
   return pages[pages.length - 2] || null
 }
 
+function findPreviousPageByRoute(route = '') {
+  if (typeof getCurrentPages !== 'function') {
+    return null
+  }
+
+  const pages = getCurrentPages()
+  if (!Array.isArray(pages) || pages.length < 2) {
+    return null
+  }
+
+  for (let index = pages.length - 2; index >= 0; index -= 1) {
+    const page = pages[index] || null
+    if (!page) {
+      continue
+    }
+    if ((page.route || '') === route) {
+      return page
+    }
+  }
+
+  return null
+}
+
 function queueCreatedRecipeOnPreviousPage(recipe = {}) {
   if (!recipe || !recipe._id) {
     return false
@@ -211,6 +259,26 @@ function queueCreatedRecipeOnPreviousPage(recipe = {}) {
   }
 
   previousPage.queueCreatedRecipe(recipe)
+  return true
+}
+
+function markPreviousRecipesPageForCreateReturn() {
+  const previousPage = getPreviousPage()
+  if (!previousPage || typeof previousPage.suppressNextOnShowReload !== 'function') {
+    return false
+  }
+
+  previousPage.suppressNextOnShowReload()
+  return true
+}
+
+function markRecipesPageForRefresh() {
+  const recipesPage = findPreviousPageByRoute('pages/recipes/index')
+  if (!recipesPage || typeof recipesPage.markNeedsRefreshOnNextShow !== 'function') {
+    return false
+  }
+
+  recipesPage.markNeedsRefreshOnNextShow()
   return true
 }
 
@@ -254,13 +322,18 @@ Page({
     const recipeId = options && options.recipeId ? options.recipeId : ''
     const isEdit = Boolean(recipeId)
     const initialCategory = isEdit ? '' : normalizeInitialCategory(options && options.category ? options.category : '')
-    this.setData({
+    const nextData = {
       recipeId,
       isEdit,
       initialCategory,
       loadingTitle: recipeId ? '正在加载菜谱信息...' : '正在准备新菜谱...',
       hasBootstrapped: false
-    })
+    }
+    if (!isEdit) {
+      Object.assign(nextData, buildCreateModeInitialState(getActiveSpaceId(), initialCategory))
+      markPreviousRecipesPageForCreateReturn()
+    }
+    this.setData(nextData)
     if (typeof wx !== 'undefined' && typeof wx.setNavigationBarTitle === 'function') {
       wx.setNavigationBarTitle({
         title: resolvePageTitle(isEdit)
@@ -329,7 +402,7 @@ Page({
     const activeSpaceId = activeSpaceIdInput || getActiveSpaceId()
     this.setData({
       activeSpaceId,
-      loading: true,
+      loading: Boolean(this.data.isEdit),
       isBootstrapping: true,
       hasBootstrapped: true,
       loadErrorMessage: ''
@@ -402,6 +475,34 @@ Page({
       )
       this.setData(nextData)
     } catch (error) {
+      if (!this.data.isEdit) {
+        const currentCategory = this.data.form ? this.data.form.category || '' : ''
+        const nextCategoryOptions = buildCategoryOptions([], currentCategory)
+        const nextSelectedCategoryIndex = getCategoryIndex(nextCategoryOptions, currentCategory)
+        const nextData = {
+          loading: false,
+          isBootstrapping: false,
+          loadErrorMessage: getErrorMessage(error),
+          availableTags: [],
+          recipeCategories: [],
+          categoryOptions: nextCategoryOptions,
+          selectedCategoryIndex: nextSelectedCategoryIndex,
+          tagViewItems: [],
+          cancelledPendingImageIds: []
+        }
+        Object.assign(
+          nextData,
+          buildEditorViewData({
+            form: this.data.form,
+            categoryOptions: nextCategoryOptions,
+            selectedCategoryIndex: nextSelectedCategoryIndex,
+            isEdit: false
+          })
+        )
+        this.setData(nextData)
+        return
+      }
+
       const nextData = {
         loading: false,
         isBootstrapping: false,
@@ -698,7 +799,7 @@ Page({
     if (
       this.data.submitting ||
       this.data.loading ||
-      this.data.loadErrorMessage ||
+      (this.data.isEdit && this.data.loadErrorMessage) ||
       !this.data.activeSpaceId
     ) {
       return
@@ -734,6 +835,7 @@ Page({
       const service = createRecipeService()
       if (this.data.isEdit) {
         await service.updateRecipe(this.data.activeSpaceId, this.data.recipeId, payload)
+        markRecipesPageForRefresh()
       } else {
         const result = await service.createRecipe(this.data.activeSpaceId, payload)
         queueCreatedRecipeOnPreviousPage(result && result.item ? result.item : null)
@@ -913,6 +1015,7 @@ Page({
     })
     try {
       await createRecipeService().deleteRecipe(this.data.activeSpaceId, this.data.recipeId)
+      markRecipesPageForRefresh()
       wx.showToast({
         title: '已删除菜谱',
         icon: 'success'

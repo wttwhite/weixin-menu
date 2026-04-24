@@ -86,8 +86,10 @@ describe('meal-plans page template', () => {
 
   it('uses theme variables for the meal plans hero and page surface', () => {
     const styles = readFileSync('miniprogram/pages/meal-plans/index.wxss', 'utf8')
+    const mealPlansPageBlock = styles.match(/\.meal-plans-page\s*\{[^}]*\}/)
 
-    expect(styles).toContain('var(--page-bg')
+    expect(styles).toMatch(/page\s*\{[\s\S]*background:\s*transparent;/)
+    expect(mealPlansPageBlock ? mealPlansPageBlock[0] : '').not.toMatch(/background:/)
     expect(styles).toContain('var(--surface-bg')
     expect(styles).toContain('var(--surface-muted')
     expect(styles).toContain('var(--brand')
@@ -97,5 +99,14 @@ describe('meal-plans page template', () => {
     expect(styles).toContain('var(--text-tertiary')
     expect(styles).toContain('var(--border-soft')
     expect(styles).toContain('var(--shadow-soft')
+  })
+
+  it('locks touch scrolling on meal plan overlays', () => {
+    const template = readFileSync('miniprogram/pages/meal-plans/index.wxml', 'utf8')
+
+    expect(template).toContain('class="meal-plan-status-modal__overlay" catchtap="closeMealPlanStatusModal" catchtouchmove="noop"')
+    expect(template).toContain('class="meal-plan-status-modal" catchtap="noop" catchtouchmove="noop"')
+    expect(template).toContain('class="inventory-modal__overlay" catchtap="closeInventoryModal" catchtouchmove="noop"')
+    expect(template).toContain('class="inventory-modal__panel" catchtap="noop" catchtouchmove="noop"')
   })
 })

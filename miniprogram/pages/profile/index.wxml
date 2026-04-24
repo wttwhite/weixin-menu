@@ -93,25 +93,17 @@
         <view class="action-row__icon">🎨</view>
         <view class="action-row__body">
           <view class="action-row__title">换肤</view>
-          <view class="action-row__desc">切换浅绿、奶油或暖橙主题</view>
+          <view class="action-row__desc">切换暖色、冷蓝、海盐与樱粉主题</view>
         </view>
         <view class="action-row__arrow">›</view>
       </view>
     </view>
 
     <view class="profile-section">
-      <view class="profile-section__title">数据与分析</view>
-      <view wx:if="{{canRenameSpace}}" class="action-row" bindtap="handleGenerateRecipeSamples">
-        <view class="action-row__icon">🍳</view>
-        <view class="action-row__body">
-          <view class="action-row__title">随机生成 30 个测试菜谱</view>
-          <view class="action-row__desc">一键填充当前空间菜谱数据，方便联调页面效果</view>
-        </view>
-        <view class="action-row__arrow">›</view>
-      </view>
-      <view class="action-row" bindtap="openBackup">
-        <view class="action-row__icon">💾</view>
-        <view class="action-row__body">
+    <view class="profile-section__title">数据与分析</view>
+    <view class="action-row" bindtap="openBackup">
+      <view class="action-row__icon">💾</view>
+      <view class="action-row__body">
           <view class="action-row__title">数据备份</view>
           <view class="action-row__desc">导出备份或进入导入页面</view>
         </view>
@@ -165,8 +157,8 @@
     bind:dragcancel="handlePantryManagerDragCancel"
   />
 
-  <view wx:if="{{showThemeModal}}" class="theme-modal" catchtap="closeThemeModal">
-    <view class="theme-modal__panel" catchtap="noop">
+  <view wx:if="{{showThemeModal}}" class="theme-modal" catchtap="closeThemeModal" catchtouchmove="noop">
+    <view class="theme-modal__panel" catchtap="noop" catchtouchmove="noop">
       <view class="theme-modal__title">换肤</view>
       <view class="theme-chip-list">
         <view

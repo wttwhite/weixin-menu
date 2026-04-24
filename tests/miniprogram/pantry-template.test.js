@@ -100,6 +100,7 @@ describe('pantry page settings modal', () => {
     expect(styles).toMatch(/\.channel-rail\s*\{[\s\S]*overflow:\s*hidden;/)
     expect(styles).toMatch(/\.channel-rail__scroll\s*\{[\s\S]*flex:\s*1;/)
     expect(styles).toMatch(/\.channel-rail__scroll\s*\{[\s\S]*min-height:\s*0;/)
+    expect(styles).toMatch(/\.channel-rail__scroll\s*\{[\s\S]*background:\s*rgba\(230,\s*236,\s*244,\s*0\.92\);/)
     expect(styles).toMatch(/\.channel-surface\s*\{[\s\S]*overflow:\s*hidden;/)
     expect(styles).toMatch(/\.channel-surface__scroll\s*\{[\s\S]*height:\s*auto;/)
     expect(styles).toMatch(/\.rail-item\s*\{[\s\S]*flex-direction:\s*row;/)
@@ -107,5 +108,12 @@ describe('pantry page settings modal', () => {
     expect(styles).toMatch(/\.rail-item__label\s*\{[\s\S]*white-space:\s*nowrap;/)
     expect(styles).toMatch(/\.rail-item__count\s*\{[\s\S]*white-space:\s*nowrap;/)
     expect(styles.includes('.pantry-item__thumb')).toBe(false)
+  })
+
+  it('uses a shorter pantry search box than before', () => {
+    const styles = readFileSync('miniprogram/pages/pantry/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.search-box\s*\{[\s\S]*height:\s*72rpx;/)
+    expect(styles).toMatch(/\.search-box__input\s*\{[\s\S]*height:\s*72rpx;/)
   })
 })

@@ -1,49 +1,88 @@
 <view class="statistics-page" style="{{themeStyle}}">
   <view class="statistics-hero">
-    <view class="statistics-kicker">Dashboard</view>
-    <view class="statistics-title">{{activeSpaceId || '尚未选择空间'}}</view>
-    <view class="statistics-text">查看空间内菜谱、库存与采购进展。</view>
-    <view class="statistics-actions">
-      <t-button class="stat-btn stat-btn--ghost" variant="outline" bindtap="openSpace">切换空间</t-button>
-      <t-button class="stat-btn" theme="primary" bindtap="openMembers">成员管理</t-button>
-      <t-button class="stat-btn" theme="primary" bindtap="openBackup">备份中心</t-button>
+    <view class="statistics-hero__kicker">Kitchen Analytics</view>
+    <view class="statistics-hero__title">{{activeSpaceId || '尚未选择空间'}}</view>
+    <view class="statistics-hero__summary">{{heroSummaryText}}</view>
+
+    <view class="statistics-hero__chips">
+      <view wx:for="{{heroChipItems}}" wx:key="key" class="statistics-hero__chip">
+        <view class="statistics-hero__chip-label">{{item.label}}</view>
+        <view class="statistics-hero__chip-value">{{item.valueText}}</view>
+      </view>
     </view>
   </view>
 
   <view wx:if="{{errorMessage}}" class="feedback-card feedback-card--error">{{errorMessage}}</view>
+
   <view wx:elif="{{loading}}" class="feedback-card">正在加载统计数据...</view>
 
-  <view wx:elif="{{activeSpaceId}}" class="dashboard-grid">
-    <view class="metric-card">
-      <view class="metric-label">菜谱总数</view>
-      <view class="metric-value">{{dashboard.recipeCount}}</view>
-    </view>
-    <view class="metric-card">
-      <view class="metric-label">库存项总数</view>
-      <view class="metric-value">{{dashboard.pantryCount}}</view>
-    </view>
-    <view class="metric-card">
-      <view class="metric-label">临期库存</view>
-      <view class="metric-value">{{dashboard.upcomingExpirations}}</view>
-    </view>
-    <view class="metric-card">
-      <view class="metric-label">空间成员</view>
-      <view class="metric-value">{{dashboard.memberCount}}</view>
-    </view>
+  <view wx:elif="{{!activeSpaceId}}" class="feedback-card">
+    当前还没有可用空间，先切换到一个共享空间再查看统计看板。
   </view>
 
-  <view wx:if="{{!loading && !errorMessage && activeSpaceId}}" class="progress-card">
-    <view class="metric-label">采购进度</view>
-    <view class="progress-value">
-      {{dashboard.shoppingProgress.checked}} / {{dashboard.shoppingProgress.total}} ({{dashboard.shoppingProgress.percent}}%)
+  <view wx:else class="statistics-body">
+    <view class="statistics-section-head">
+      <view class="statistics-section-head__eyebrow">空间概览</view>
+      <view class="statistics-section-head__title">关键指标</view>
     </view>
-  </view>
 
-  <view wx:if="{{!loading && !errorMessage && activeSpaceId}}" class="backup-card">
-    <view class="metric-label">最近备份</view>
-    <view class="backup-text" wx:if="{{dashboard.recentBackup.status === 'available'}}">
-      最近更新时间：{{dashboard.recentBackup.updatedAt}}
+    <view class="statistics-metric-grid">
+      <view wx:for="{{overviewCards}}" wx:key="key" class="statistics-metric-card">
+        <view class="statistics-metric-card__label">{{item.label}}</view>
+        <view class="statistics-metric-card__value">{{item.valueText}}</view>
+        <view class="statistics-metric-card__desc">{{item.metaText}}</view>
+      </view>
     </view>
-    <view class="backup-text" wx:else>当前空间还没有备份记录</view>
+
+    <view class="statistics-progress-card">
+      <view class="statistics-progress-card__head">
+        <view>
+          <view class="statistics-progress-card__label">{{shoppingProgressTitle}}</view>
+          <view class="statistics-progress-card__meta">{{shoppingProgressMetaText}}</view>
+        </view>
+        <view class="statistics-progress-card__percent">{{shoppingProgressPercentText}}</view>
+      </view>
+      <view class="statistics-progress-card__track">
+        <view class="statistics-progress-card__fill" style="{{shoppingProgressWidthStyle}}"></view>
+      </view>
+    </view>
+
+    <view class="statistics-section-head">
+      <view class="statistics-section-head__eyebrow">运营洞察</view>
+      <view class="statistics-section-head__title">重点提醒</view>
+    </view>
+
+    <view class="statistics-insight-list">
+      <view wx:for="{{insightItems}}" wx:key="key" class="statistics-insight-card">
+        <view class="statistics-insight-card__label">{{item.label}}</view>
+        <view class="statistics-insight-card__value">{{item.valueText}}</view>
+        <view class="statistics-insight-card__desc">{{item.descText}}</view>
+      </view>
+    </view>
+
+    <view class="statistics-section-head">
+      <view class="statistics-section-head__eyebrow">快捷操作</view>
+      <view class="statistics-section-head__title">下一步</view>
+    </view>
+
+    <view class="statistics-action-list">
+      <view class="statistics-action-row" bindtap="openMembers">
+        <view class="statistics-action-row__icon">👥</view>
+        <view class="statistics-action-row__body">
+          <view class="statistics-action-row__title">成员管理</view>
+          <view class="statistics-action-row__desc">查看空间协作成员并继续维护分工。</view>
+        </view>
+        <view class="statistics-action-row__arrow">›</view>
+      </view>
+
+      <view class="statistics-action-row" bindtap="openBackup">
+        <view class="statistics-action-row__icon">💾</view>
+        <view class="statistics-action-row__body">
+          <view class="statistics-action-row__title">备份中心</view>
+          <view class="statistics-action-row__desc">继续导出备份或检查最近备份记录。</view>
+        </view>
+        <view class="statistics-action-row__arrow">›</view>
+      </view>
+    </view>
   </view>
 </view>

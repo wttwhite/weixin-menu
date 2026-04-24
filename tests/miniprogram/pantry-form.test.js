@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  PANTRY_UNIT_OPTIONS,
+  buildUnitOptionItems,
   createEmptyPantryForm,
+  formatStepperValue,
+  normalizeDecimalStepperValue,
   resolveExpirationDate,
   buildManagerOptionLabels,
   getPickerIndex,
@@ -13,7 +17,7 @@ describe('pantry form helpers', () => {
       name: '',
       category: '',
       quantity: '1',
-      unit: '',
+      unit: '袋',
       location: '',
       productionDate: '',
       shelfLifeMonths: '',
@@ -43,5 +47,19 @@ describe('pantry form helpers', () => {
     expect(getPickerIndex(options, '冷冻')).toBe(2)
     expect(getPickerValue(options, 2)).toBe('冷冻')
     expect(getPickerValue(options, 0)).toBe('')
+  })
+
+  it('supports pantry unit quick options and decimal quantity normalization', () => {
+    expect(PANTRY_UNIT_OPTIONS).toEqual(['盒', '瓶', '袋', '包'])
+    expect(buildUnitOptionItems('公斤')).toEqual([
+      expect.objectContaining({ label: '公斤', active: true }),
+      expect.objectContaining({ label: '盒' }),
+      expect.objectContaining({ label: '瓶' }),
+      expect.objectContaining({ label: '袋' }),
+      expect.objectContaining({ label: '包' })
+    ])
+    expect(normalizeDecimalStepperValue('1.5', 0.5, 0.5, 1)).toBe(1.5)
+    expect(formatStepperValue(1.5, 1)).toBe('1.5')
+    expect(formatStepperValue(1, 1)).toBe('1')
   })
 })

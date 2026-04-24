@@ -1,9 +1,10 @@
+page {
+  background: transparent;
+}
+
 .shopping-page {
   min-height: 100vh;
   padding: 20rpx 16rpx calc(env(safe-area-inset-bottom) + 127rpx);
-  background:
-    radial-gradient(circle at top right, var(--surface-muted, #efe3cf), transparent 24%),
-    linear-gradient(180deg, var(--page-bg, #f5f1e8) 0%, var(--surface-muted, #efe3cf) 100%);
 }
 
 .shopping-hero {

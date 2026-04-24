@@ -11,6 +11,7 @@ describe('theme utilities', () => {
     expect(resolveThemeKey('')).toBe('default')
     expect(resolveThemeKey('not-exists')).toBe('default')
     expect(resolveThemeKey('fresh-green')).toBe('fresh-green')
+    expect(resolveThemeKey('tech-blue')).toBe('tech-blue')
   })
 
   it('serializes theme css variables for runtime page styling', () => {
@@ -21,13 +22,21 @@ describe('theme utilities', () => {
     expect(style).toContain('#56a36c')
   })
 
-  it('exposes three selectable theme options and persists the chosen key in storage', () => {
+  it('exposes all selectable theme options and persists the chosen key in storage', () => {
     const options = getThemeOptions()
     const storage = createStorage()
 
-    storage.setThemeKey('amber')
+    storage.setThemeKey('tech-blue')
 
-    expect(options.map((item) => item.key)).toEqual(['default', 'fresh-green', 'amber'])
-    expect(storage.getThemeKey()).toBe('amber')
+    expect(options.map((item) => item.key)).toEqual([
+      'default',
+      'fresh-green',
+      'amber',
+      'tech-blue',
+      'sea-salt-blue',
+      'sakura-pink',
+      'muted-gray-purple'
+    ])
+    expect(storage.getThemeKey()).toBe('tech-blue')
   })
 })

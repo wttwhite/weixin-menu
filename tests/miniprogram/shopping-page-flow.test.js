@@ -160,6 +160,45 @@ describe('shopping page flow', () => {
     expect(page.data.visibleShoppingLists.map((item) => item._id)).toEqual(['list-open'])
   })
 
+  it('reuses loaded shopping data on repeated onShow when active space is unchanged', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'list-open',
+              name: '周末采购',
+              listDate: '2026-04-16',
+              status: 'open',
+              updatedAt: '2026-04-16T10:00:00.000Z',
+              items: []
+            }
+          ]
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+    page.onShow()
+    await flushAsyncWork()
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+  })
+
   it('opens the custom create-list modal with original shopping draft fields', async () => {
     global.wx = {
       cloud: {

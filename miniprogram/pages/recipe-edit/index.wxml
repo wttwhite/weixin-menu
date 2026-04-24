@@ -8,7 +8,7 @@
     <view class="state-title">{{loadingTitle}}</view>
   </view>
 
-  <view wx:elif="{{loadErrorMessage}}" class="state-card">
+  <view wx:elif="{{isEdit && loadErrorMessage}}" class="state-card">
     <view class="state-title">菜谱加载失败</view>
     <view class="state-text">{{loadErrorMessage}}</view>
     <button class="state-button" bindtap="goBack">返回列表</button>
@@ -189,8 +189,8 @@
     </view>
   </view>
 
-  <view wx:if="{{showCategorySelector}}" class="category-selector__overlay" catchtap="closeCategorySelector">
-    <view class="category-selector" catchtap="noop">
+  <view wx:if="{{showCategorySelector}}" class="category-selector__overlay" catchtap="closeCategorySelector" catchtouchmove="noop">
+    <view class="category-selector" catchtap="noop" catchtouchmove="noop">
       <view class="category-selector__title">选择菜谱分类</view>
       <view class="category-selector__list">
         <view

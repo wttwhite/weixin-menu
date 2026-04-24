@@ -29,6 +29,20 @@ function normalizePositiveIntegerText(value, fallback = '1') {
   return String(Math.floor(parsed))
 }
 
+function normalizePositiveQuantityText(value, fallback = '1') {
+  const text = normalizeText(value)
+  const parsed = Number(text)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback
+  }
+
+  const rounded = Number(parsed.toFixed(2))
+  if (Number.isInteger(rounded)) {
+    return String(rounded)
+  }
+  return String(rounded).replace(/\.?0+$/, '')
+}
+
 function normalizeOptionalPositiveIntegerText(value) {
   const text = normalizeText(value)
   const parsed = Number(text)
@@ -114,7 +128,7 @@ function derivePantryStatus(input = {}) {
 function normalizePantryItemWrite(input = {}) {
   const name = normalizeText(input.name)
   const category = normalizeText(input.category)
-  const quantity = normalizePositiveIntegerText(input.quantity, '1')
+  const quantity = normalizePositiveQuantityText(input.quantity, '1')
   const unit = normalizeText(input.unit)
   const location = normalizeText(input.location)
   const notes = normalizeText(input.notes)

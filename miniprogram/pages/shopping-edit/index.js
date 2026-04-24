@@ -2,6 +2,39 @@ const { createShoppingService } = require('../../services/shopping')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 
+function findPreviousPageByRoute(route = '') {
+  if (typeof getCurrentPages !== 'function') {
+    return null
+  }
+
+  const pages = getCurrentPages()
+  if (!Array.isArray(pages) || pages.length < 2) {
+    return null
+  }
+
+  for (let index = pages.length - 2; index >= 0; index -= 1) {
+    const page = pages[index] || null
+    if (!page) {
+      continue
+    }
+    if ((page.route || '') === route) {
+      return page
+    }
+  }
+
+  return null
+}
+
+function markShoppingPageForRefresh() {
+  const shoppingPage = findPreviousPageByRoute('pages/shopping/index')
+  if (!shoppingPage || typeof shoppingPage.markNeedsRefreshOnNextShow !== 'function') {
+    return false
+  }
+
+  shoppingPage.markNeedsRefreshOnNextShow()
+  return true
+}
+
 Page({
   data: {
     loading: false,
@@ -79,6 +112,7 @@ Page({
         },
         this.data.shoppingListUpdatedAt || ''
       )
+      markShoppingPageForRefresh()
       wx.showToast({
         title: this.data.isEdit ? '已更新采购项' : '已添加采购项',
         icon: 'success'

@@ -603,9 +603,14 @@ Page({
   },
 
   onShow() {
-    this.recipeDetailCache = new Map()
+    if (!this.recipeDetailCache) {
+      this.recipeDetailCache = new Map()
+    }
     syncPageTheme(this)
     syncCurrentTabBar(this, '/pages/meal-plans/index')
+    if (this.shouldReuseLoadedState()) {
+      return
+    }
     this.loadMealPlans()
   },
 
@@ -657,6 +662,21 @@ Page({
     })
   },
 
+  markNeedsRefreshOnNextShow() {
+    this.forceRefreshOnNextShow = true
+  },
+
+  shouldReuseLoadedState() {
+    if (this.forceRefreshOnNextShow) {
+      this.forceRefreshOnNextShow = false
+      return false
+    }
+
+    return Boolean(this.hasLoadedMealPlansOnce) &&
+      !this.data.errorMessage &&
+      this.data.activeSpaceId === getActiveSpaceId()
+  },
+
   async loadMealPlans() {
     if (!this.recipeDetailCache) {
       this.recipeDetailCache = new Map()
@@ -684,6 +704,7 @@ Page({
         selectedDate: '',
         monthPlanCount: '0'
       })
+      this.hasLoadedMealPlansOnce = true
       return
     }
 
@@ -705,6 +726,7 @@ Page({
       this.syncCalendarView({
         items
       })
+      this.hasLoadedMealPlansOnce = true
     } catch (error) {
       this.setData({
         loading: false,
@@ -718,6 +740,7 @@ Page({
       this.syncCalendarView({
         items: []
       })
+      this.hasLoadedMealPlansOnce = false
     }
   },
 

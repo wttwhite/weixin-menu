@@ -611,6 +611,9 @@ Page({
     syncPageTheme(this)
     this.initializeFloatingCreatePosition()
     syncCurrentTabBar(this, '/pages/pantry/index')
+    if (this.shouldReuseLoadedState()) {
+      return
+    }
     this.loadPantry()
   },
 
@@ -721,6 +724,7 @@ Page({
         categoryManagerMetaText: '0 类',
         floatingCreateInitialized: false
       })
+      this.hasLoadedPantryOnce = true
       return
     }
 
@@ -742,6 +746,7 @@ Page({
         truncationMessage: hasMore ? `当前仅显示前 ${limit} 条库存，请继续筛选以缩小范围。` : '',
         summary: buildSummary(items, total, limit, hasMore)
       })
+      this.hasLoadedPantryOnce = true
     } catch (error) {
       this.syncDerivedState({
         loading: false,
@@ -751,6 +756,7 @@ Page({
         truncationMessage: '',
         summary: '库存加载失败，请稍后重试。'
       })
+      this.hasLoadedPantryOnce = false
     }
   },
 
@@ -802,12 +808,31 @@ Page({
     })
   },
 
+  markNeedsRefreshOnNextShow() {
+    this.forceRefreshOnNextShow = true
+  },
+
+  shouldReuseLoadedState() {
+    if (this.forceRefreshOnNextShow) {
+      this.forceRefreshOnNextShow = false
+      return false
+    }
+
+    return Boolean(this.hasLoadedPantryOnce) &&
+      !this.data.errorMessage &&
+      this.data.activeSpaceId === getActiveSpaceId()
+  },
+
   async goCreate() {
     if (!this.data.activeSpaceId) {
       return
     }
 
     const service = createPantryService()
+    const initialCategory =
+      this.data.activeCategoryKey !== 'all' && this.data.activeCategoryKey !== UNCATEGORIZED_KEY
+        ? getCategoryOptionLabel(this.data.categoryOptions || [], this.data.activeCategoryKey)
+        : ''
 
     try {
       const [categoryResult, locationResult] = await Promise.all([
@@ -828,8 +853,11 @@ Page({
       this.setData({
         showCreateModal: true,
         submittingCreate: false,
-        createForm: createEmptyPantryForm(),
-        createCategoryOptions: buildManagerOptionLabels(categoryResult.items || []),
+        createForm: {
+          ...createEmptyPantryForm(),
+          category: initialCategory
+        },
+        createCategoryOptions: buildManagerOptionLabels(categoryResult.items || [], initialCategory),
         createLocationOptions: buildManagerOptionLabels(locationResult.items || [])
       })
     } catch (error) {

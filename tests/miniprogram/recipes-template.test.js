@@ -56,6 +56,7 @@ describe('recipes page template styles', () => {
     expect(styles.includes('.rail-item')).toBe(true)
     expect(styles.includes('width: 100%;')).toBe(true)
     expect(styles.includes('box-sizing: border-box;')).toBe(true)
+    expect(styles.includes('min-height: 80rpx;')).toBe(true)
     expect(styles.includes('white-space: normal;')).toBe(true)
     expect(styles.includes('height: 720rpx;')).toBe(false)
   })
@@ -100,5 +101,11 @@ describe('recipes page template styles', () => {
 
     expect(styles).toMatch(/\.hero-banner__date\s*\{[\s\S]*background:\s*rgba\(0,\s*0,\s*0,\s*0\.\d+\)/)
     expect(styles.includes('border-radius: 999rpx;')).toBe(true)
+  })
+
+  it('uses larger selected recipe tags in the add-to-plan modal', () => {
+    const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.plan-modal__tag\s*\{[\s\S]*font-size:\s*28rpx;/)
   })
 })

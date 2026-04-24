@@ -152,6 +152,43 @@ describe('meal-plans page flow', () => {
     expect(page.data.truncationMessage).toBe('当前仅显示部分计划，请继续缩小范围或等待分页支持。')
   })
 
+  it('reuses loaded meal plan data on repeated onShow when active space is unchanged', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'meal-1',
+              planDate: '2026-04-10',
+              mealType: 'dinner',
+              recipes: [{ recipeId: 'recipe-1', recipeNameSnapshot: 'A', recipe: { _id: 'recipe-1', name: 'A' } }]
+            }
+          ]
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    await page.onShow()
+    await flushAsyncWork()
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+  })
+
   it('builds a month calendar and filters plans by selected day', async () => {
     const callFunction = vi.fn().mockResolvedValue({
       result: {
@@ -1142,6 +1179,67 @@ describe('meal-plan edit page flow', () => {
       },
       config: undefined
     })
+  })
+
+  it('marks the previous meal plans page for refresh after a successful save', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ _id: 'recipe-1', name: 'A' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: { _id: 'meal-1' }
+          }
+        }
+      })
+    const markNeedsRefreshOnNextShow = vi.fn()
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+    global.getCurrentPages = () => ([
+      {
+        route: 'pages/meal-plans/index',
+        markNeedsRefreshOnNextShow
+      },
+      {
+        route: 'pages/meal-plan-edit/index'
+      }
+    ])
+
+    const page = await loadPage('../../miniprogram/pages/meal-plan-edit/index.js')
+    page.onLoad({})
+    page.setData({
+      activeSpaceId: 'space-1',
+      loading: false,
+      recipes: [{ _id: 'recipe-1', name: 'A' }],
+      form: {
+        planDate: '2026-04-10',
+        mealType: 'dinner',
+        status: 'planned',
+        notes: '',
+        recipes: [{ recipeId: 'recipe-1', servingsOverride: '', notes: '' }]
+      }
+    })
+
+    await page.submit()
+
+    expect(markNeedsRefreshOnNextShow).toHaveBeenCalledTimes(1)
   })
 
   it('shows a fallback option for a recipe snapshot that no longer exists in the current library', async () => {

@@ -103,6 +103,39 @@ function buildRecipeRowViewItems(recipes = [], recipeOptions = [], selectedRecip
   })
 }
 
+function findPreviousPageByRoute(route = '') {
+  if (typeof getCurrentPages !== 'function') {
+    return null
+  }
+
+  const pages = getCurrentPages()
+  if (!Array.isArray(pages) || pages.length < 2) {
+    return null
+  }
+
+  for (let index = pages.length - 2; index >= 0; index -= 1) {
+    const page = pages[index] || null
+    if (!page) {
+      continue
+    }
+    if ((page.route || '') === route) {
+      return page
+    }
+  }
+
+  return null
+}
+
+function markMealPlansPageForRefresh() {
+  const mealPlansPage = findPreviousPageByRoute('pages/meal-plans/index')
+  if (!mealPlansPage || typeof mealPlansPage.markNeedsRefreshOnNextShow !== 'function') {
+    return false
+  }
+
+  mealPlansPage.markNeedsRefreshOnNextShow()
+  return true
+}
+
 Page({
   data: {
     loading: true,
@@ -398,6 +431,7 @@ Page({
       } else {
         await service.createMealPlan(this.data.activeSpaceId, this.data.form)
       }
+      markMealPlansPageForRefresh()
       wx.showToast({
         title: this.data.isEdit ? '已更新计划' : '已创建计划',
         icon: 'success'
@@ -440,6 +474,7 @@ Page({
     })
     try {
       await createMealPlanService().deleteMealPlan(this.data.activeSpaceId, this.data.mealPlanId)
+      markMealPlansPageForRefresh()
       wx.showToast({
         title: '已删除计划',
         icon: 'success'

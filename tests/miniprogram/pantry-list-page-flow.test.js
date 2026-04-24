@@ -74,6 +74,49 @@ describe('pantry list page flow', () => {
     expect(page.data.visibleItems).toEqual([])
   })
 
+  it('reuses loaded pantry data on repeated onShow when active space is unchanged', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'pantry-1',
+              name: 'Milk',
+              category: 'dairy',
+              location: 'fridge',
+              quantity: '1',
+              unit: '盒',
+              status: 'active'
+            }
+          ],
+          filterOptions: {
+            categories: ['dairy'],
+            locations: ['fridge']
+          }
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+  })
+
   it('builds pantry rail categories and filters visible items by category, keyword, and processed toggle', async () => {
     const callFunction = vi
       .fn()
@@ -460,6 +503,7 @@ describe('pantry list page flow', () => {
       expect.objectContaining({
         name: '',
         quantity: '1',
+        unit: '袋',
         status: 'active'
       })
     )
@@ -515,6 +559,80 @@ describe('pantry list page flow', () => {
         name: 'Milk'
       })
     ])
+  })
+
+  it('prefills the create pantry form category from the active rail filter', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'pantry-1',
+                name: 'Milk',
+                category: 'dairy',
+                location: 'fridge',
+                quantity: '1',
+                unit: '盒',
+                status: 'active'
+              }
+            ],
+            filterOptions: {
+              categories: ['dairy'],
+              locations: ['fridge']
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'dairy' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'fridge' }]
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    page.handleCategoryChange({
+      currentTarget: {
+        dataset: {
+          key: 'dairy'
+        }
+      }
+    })
+    await page.goCreate()
+
+    expect(page.data.createForm).toEqual(
+      expect.objectContaining({
+        category: 'dairy'
+      })
+    )
   })
 
   it('positions the floating create button higher than the custom tab bar by default', async () => {

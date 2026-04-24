@@ -206,18 +206,6 @@ function createCallFunctionMock() {
       })
     }
 
-    if (name === 'api' && data.action === 'generateSampleRecipes') {
-      return Promise.resolve({
-        result: {
-          code: 0,
-          data: {
-            count: data.count || 30,
-            items: [{ _id: 'recipe-seed-1', name: '蒜香黄油虾' }]
-          }
-        }
-      })
-    }
-
     return Promise.resolve({
       result: {
         code: 0,
@@ -267,6 +255,35 @@ describe('profile page flow', () => {
     expect(page.data.memberCountText).toBe('2')
     expect(page.data.recipeCountText).toBe('12')
     expect(page.data.canRenameSpace).toBe(true)
+  })
+
+  it('reuses loaded profile data on repeated onShow when active space is unchanged', async () => {
+    const callFunction = createCallFunctionMock()
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      setClipboardData: vi.fn(),
+      showToast: vi.fn(),
+      showModal: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1',
+        themeKey: 'default',
+        themeStyle: '--page-bg: #f5f1e8;'
+      },
+      setActiveSpaceId: vi.fn(),
+      setTheme: vi.fn()
+    })
+
+    const page = await loadPage('../../miniprogram/pages/profile/index.js')
+    await page.onShow()
+    await flushAsyncWork()
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(3)
   })
 
   it('updates the current member display name through memberOps', async () => {
@@ -503,58 +520,4 @@ describe('profile page flow', () => {
     expect(page.data.pantryManagerItems.map((item) => item.name)).toEqual(['橱柜', '冷藏室'])
   })
 
-  it('generates 30 sample recipes from the owner action and reloads profile metrics', async () => {
-    const callFunction = createCallFunctionMock()
-    const showToast = vi.fn()
-    const showModal = vi.fn().mockResolvedValue({
-      confirm: true
-    })
-    global.wx = {
-      cloud: { callFunction },
-      navigateTo: vi.fn(),
-      setClipboardData: vi.fn(),
-      showToast,
-      showModal,
-      stopPullDownRefresh: vi.fn()
-    }
-    global.getApp = () => ({
-      globalData: {
-        activeSpaceId: 'space-1',
-        themeKey: 'default',
-        themeStyle: '--page-bg: #f5f1e8;'
-      },
-      setActiveSpaceId: vi.fn(),
-      setTheme: vi.fn()
-    })
-
-    const page = await loadPage('../../miniprogram/pages/profile/index.js')
-    page.setData({
-      activeSpaceId: 'space-1',
-      canRenameSpace: true
-    })
-    page.loadProfile = vi.fn().mockResolvedValue(undefined)
-
-    await page.handleGenerateRecipeSamples()
-
-    expect(showModal).toHaveBeenCalledWith({
-      title: '生成示例菜谱',
-      content: '将为当前空间随机生成 30 个菜谱数据，确认继续？',
-      confirmText: '开始生成',
-      confirmColor: '#4d7f5b'
-    })
-    expect(callFunction).toHaveBeenCalledWith({
-      name: 'api',
-      data: {
-        action: 'generateSampleRecipes',
-        spaceId: 'space-1',
-        count: 30
-      },
-      config: undefined
-    })
-    expect(page.loadProfile).toHaveBeenCalledTimes(1)
-    expect(showToast).toHaveBeenCalledWith({
-      title: '已生成30个菜谱',
-      icon: 'success'
-    })
-  })
 })

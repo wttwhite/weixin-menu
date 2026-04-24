@@ -156,6 +156,9 @@ Page({
   onShow() {
     syncCurrentTabBar(this, '/pages/profile/index')
     this.applyTheme()
+    if (this.shouldReuseLoadedState()) {
+      return
+    }
     return this.loadProfile()
   },
 
@@ -173,6 +176,21 @@ Page({
     if (tabBar && typeof tabBar.refreshTheme === 'function') {
       tabBar.refreshTheme()
     }
+  },
+
+  markNeedsRefreshOnNextShow() {
+    this.forceRefreshOnNextShow = true
+  },
+
+  shouldReuseLoadedState() {
+    if (this.forceRefreshOnNextShow) {
+      this.forceRefreshOnNextShow = false
+      return false
+    }
+
+    return Boolean(this.hasLoadedProfileOnce) &&
+      !this.data.errorMessage &&
+      this.data.activeSpaceId === getActiveSpaceId()
   },
 
   async loadProfile() {
@@ -204,6 +222,7 @@ Page({
           canRenameSpace: false,
           showEmptyState: true
         })
+        this.hasLoadedProfileOnce = true
         return
       }
 
@@ -232,12 +251,14 @@ Page({
         canRenameSpace: session.role === 'owner',
         showEmptyState: false
       })
+      this.hasLoadedProfileOnce = true
     } catch (error) {
       this.setData({
         loading: false,
         errorMessage: getErrorMessage(error),
         showEmptyState: false
       })
+      this.hasLoadedProfileOnce = false
     }
   },
 
@@ -360,42 +381,6 @@ Page({
     wx.navigateTo({
       url: '/pages/statistics/index'
     })
-  },
-
-  async handleGenerateRecipeSamples() {
-    if (!this.data.canRenameSpace || !this.data.activeSpaceId || typeof wx.showModal !== 'function') {
-      return
-    }
-
-    const modal = await wx.showModal({
-      title: '生成示例菜谱',
-      content: '将为当前空间随机生成 30 个菜谱数据，确认继续？',
-      confirmText: '开始生成',
-      confirmColor: '#4d7f5b'
-    })
-    if (!modal.confirm) {
-      return
-    }
-
-    try {
-      if (typeof wx.showLoading === 'function') {
-        wx.showLoading({
-          title: '正在生成'
-        })
-      }
-      const result = await createRecipeService().generateSampleRecipes(this.data.activeSpaceId, 30)
-      await this.loadProfile()
-      wx.showToast({
-        title: `已生成${result.count || 30}个菜谱`,
-        icon: 'success'
-      })
-    } catch (error) {
-      showOperationError(error)
-    } finally {
-      if (typeof wx.hideLoading === 'function') {
-        wx.hideLoading()
-      }
-    }
   },
 
   openThemeModal() {

@@ -46,7 +46,7 @@
         <view class="editor-section__title">计划菜谱</view>
       </view>
       <view class="editor-section__divider"></view>
-      <view class="section-hint">支持按名称搜索后选择菜谱，每一行都可以单独配置份数。</view>
+      <view class="section-hint">支持按名称搜索后选择菜谱。</view>
 
       <view wx:for="{{recipeRowViewItems}}" wx:key="rowIndex" class="recipe-card">
         <view class="recipe-card__head">
@@ -60,15 +60,6 @@
           <view class="recipe-search__icon">⌕</view>
         </view>
 
-        <view class="field-label field-label--compact">份数（可覆盖）</view>
-        <input
-          class="field-input field-input--compact"
-          value="{{form.recipes[index].servingsOverride}}"
-          placeholder="例如：2"
-          data-index="{{index}}"
-          data-field="servingsOverride"
-          bindinput="handleRecipeFieldInput"
-        />
       </view>
 
       <view class="section-button-wrap">
@@ -109,8 +100,8 @@
     </view>
   </view>
 
-  <view wx:if="{{showRecipeSelector}}" class="recipe-selector__overlay" catchtap="closeRecipeSelector">
-    <view class="recipe-selector" catchtap="noop">
+  <view wx:if="{{showRecipeSelector}}" class="recipe-selector__overlay" catchtap="closeRecipeSelector" catchtouchmove="noop">
+    <view class="recipe-selector" catchtap="noop" catchtouchmove="noop">
       <view class="recipe-selector__title">搜索并选择菜谱</view>
       <input
         class="recipe-selector__search-input"

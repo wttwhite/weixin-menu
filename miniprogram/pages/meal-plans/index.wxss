@@ -1,12 +1,13 @@
+page {
+  background: transparent;
+}
+
 .meal-plans-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 18rpx 18rpx calc(env(safe-area-inset-bottom) + 26rpx);
   box-sizing: border-box;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 18%),
-    var(--page-bg, #f5f1e8);
 }
 
 .plans-hero {

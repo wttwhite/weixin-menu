@@ -129,8 +129,8 @@
     <view class="cart-secondary" bindtap="clearSelectedRecipes">清空</view>
   </view>
 
-  <view wx:if="{{showPlanModal}}" class="plan-modal__overlay" catchtap="closePlanModal">
-    <view class="plan-modal" catchtap="noop">
+  <view wx:if="{{showPlanModal}}" class="plan-modal__overlay" catchtap="closePlanModal" catchtouchmove="noop">
+    <view class="plan-modal" catchtap="noop" catchtouchmove="noop">
       <view class="plan-modal__header">
         <view class="plan-modal__title">加入计划</view>
         <view class="plan-modal__close" bindtap="closePlanModal">×</view>

@@ -104,6 +104,39 @@ function getPageCount() {
   return getCurrentPages().length
 }
 
+function findPreviousPageByRoute(route = '') {
+  if (typeof getCurrentPages !== 'function') {
+    return null
+  }
+
+  const pages = getCurrentPages()
+  if (!Array.isArray(pages) || pages.length < 2) {
+    return null
+  }
+
+  for (let index = pages.length - 2; index >= 0; index -= 1) {
+    const page = pages[index] || null
+    if (!page) {
+      continue
+    }
+    if ((page.route || '') === route) {
+      return page
+    }
+  }
+
+  return null
+}
+
+function markRecipesPageForRefresh() {
+  const recipesPage = findPreviousPageByRoute('pages/recipes/index')
+  if (!recipesPage || typeof recipesPage.markNeedsRefreshOnNextShow !== 'function') {
+    return false
+  }
+
+  recipesPage.markNeedsRefreshOnNextShow()
+  return true
+}
+
 Page({
   data: {
     loading: true,
@@ -269,6 +302,7 @@ Page({
 
     try {
       await createRecipeService().deleteRecipe(this.data.activeSpaceId, this.data.recipeId)
+      markRecipesPageForRefresh()
       wx.showToast({
         title: '已删除菜谱',
         icon: 'success'

@@ -1,9 +1,11 @@
+const PANTRY_UNIT_OPTIONS = Object.freeze(['盒', '瓶', '袋', '包'])
+
 function createEmptyPantryForm() {
   return {
     name: '',
     category: '',
     quantity: '1',
-    unit: '',
+    unit: '袋',
     location: '',
     productionDate: '',
     shelfLifeMonths: '',
@@ -26,6 +28,28 @@ function normalizeStepperValue(value, minimum = 0, fallback = 0) {
     return fallback
   }
   return Math.max(minimum, Math.floor(parsed))
+}
+
+function normalizeDecimalStepperValue(value, minimum = 0, fallback = 0, precision = 1) {
+  const parsed = Number(normalizeText(value))
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+
+  const clamped = Math.max(minimum, parsed)
+  return Number(clamped.toFixed(precision))
+}
+
+function formatStepperValue(value, precision = 0) {
+  if (!Number.isFinite(value)) {
+    return ''
+  }
+
+  const normalized = precision > 0 ? Number(value.toFixed(precision)) : Math.round(value)
+  if (Number.isInteger(normalized)) {
+    return String(normalized)
+  }
+  return normalized.toFixed(precision).replace(/\.?0+$/, '')
 }
 
 function addMonthsToIsoDate(date, monthsText) {
@@ -77,6 +101,20 @@ function buildManagerOptionLabels(items = [], currentValue = '') {
   return labels
 }
 
+function buildUnitOptionItems(currentValue = '') {
+  const values = PANTRY_UNIT_OPTIONS.slice()
+  const normalizedCurrent = normalizeText(currentValue)
+  if (normalizedCurrent && !values.includes(normalizedCurrent)) {
+    values.unshift(normalizedCurrent)
+  }
+
+  return values.map((label) => ({
+    label,
+    active: label === normalizedCurrent,
+    itemClass: label === normalizedCurrent ? 'unit-selector__option unit-selector__option--active' : 'unit-selector__option'
+  }))
+}
+
 function getPickerIndex(options = [], value = '') {
   const normalizedValue = normalizeText(value)
   if (!normalizedValue) {
@@ -100,12 +138,16 @@ function buildPickerUpdates(options = [], value = '', indexKey = '') {
 }
 
 module.exports = {
+  PANTRY_UNIT_OPTIONS,
   addMonthsToIsoDate,
   buildManagerOptionLabels,
   buildPickerUpdates,
+  buildUnitOptionItems,
   createEmptyPantryForm,
+  formatStepperValue,
   getPickerIndex,
   getPickerValue,
+  normalizeDecimalStepperValue,
   normalizeStepperValue,
   normalizeText,
   resolveExpirationDate

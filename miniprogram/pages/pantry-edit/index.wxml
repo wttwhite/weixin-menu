@@ -189,13 +189,15 @@
 
         <view class="detail-grid__item">
           <view class="field-label">单位</view>
-          <input
-            class="field-input"
-            data-field="unit"
-            value="{{form.unit}}"
-            placeholder="盒 / 瓶 / 袋"
-            bindinput="handleInput"
-          />
+          <view class="field-picker-row">
+            <view class="category-picker" bindtap="openUnitSelector">
+              <view class="category-picker__value {{!form.unit ? 'category-picker__value--placeholder' : ''}} {{form.unit ? 'field-input--with-clear' : ''}}">
+                <text>{{form.unit || '选择或输入单位'}}</text>
+                <view class="category-picker__arrow"></view>
+              </view>
+            </view>
+            <view wx:if="{{form.unit}}" class="field-clear" bindtap="clearUnit">×</view>
+          </view>
         </view>
       </view>
 
@@ -263,6 +265,42 @@
     <view class="bottom-actions">
       <t-button class="footer-close-btn footer-close-button" theme="default" bindtap="goBack">关闭</t-button>
       <t-button class="footer-submit-btn footer-submit-button" theme="primary" loading="{{submitting}}" bindtap="submit">{{submitButtonLabel}}</t-button>
+    </view>
+  </view>
+
+  <view wx:if="{{showUnitSelector}}" class="unit-selector__overlay" catchtap="closeUnitSelector" catchtouchmove="noop">
+    <view class="unit-selector" catchtap="noop" catchtouchmove="noop">
+      <view class="unit-selector__header">
+        <view class="unit-selector__title">选择单位</view>
+      </view>
+
+      <input
+        class="unit-selector__input"
+        value="{{unitDraft}}"
+        placeholder="输入自定义单位"
+        bindinput="handleUnitDraftInput"
+      />
+
+      <scroll-view wx:if="{{unitOptionItems.length}}" scroll-y="true" class="unit-selector__list" show-scrollbar="{{false}}">
+        <view class="unit-selector__list-inner">
+          <view
+            wx:for="{{unitOptionItems}}"
+            wx:key="label"
+            class="{{item.itemClass}}"
+            data-unit="{{item.label}}"
+            bindtap="handleUnitOptionTap"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </scroll-view>
+
+      <view wx:else class="unit-selector__empty">暂无快捷单位</view>
+
+      <view class="unit-selector__footer">
+        <view class="unit-selector__cancel" bindtap="closeUnitSelector">取消</view>
+        <view class="unit-selector__confirm" bindtap="confirmUnitSelector">确定</view>
+      </view>
     </view>
   </view>
 </view>

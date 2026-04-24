@@ -102,6 +102,74 @@ describe('recipes page flow', () => {
     })
   })
 
+  it('skips one full reload when returning directly from create mode without creating a recipe', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            { _id: 'recipe-1', name: 'Mapo', category: '川菜' }
+          ]
+        }
+      }
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      switchTab: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    page.suppressNextOnShowReload()
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+  })
+
+  it('reuses loaded recipe data on repeated onShow when active space is unchanged', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            { _id: 'recipe-1', name: 'Mapo', category: '川菜' }
+          ]
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      switchTab: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+  })
+
   it('shows truncation summary when server indicates capped recipe list has more items', async () => {
     global.wx = {
       cloud: {

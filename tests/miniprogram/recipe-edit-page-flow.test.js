@@ -38,7 +38,7 @@ async function flushAsyncWork() {
 
 async function waitUntilLoaded(page) {
   for (let i = 0; i < 20; i += 1) {
-    if (!page.data.loading) {
+    if (!page.data.loading && !page.data.isBootstrapping) {
       return
     }
     await flushAsyncWork()
@@ -87,6 +87,38 @@ describe('recipe edit page flow', () => {
     })
   })
 
+  it('marks the previous recipes page to skip one onShow reload when entering create mode', async () => {
+    const suppressNextOnShowReload = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      setNavigationBarTitle: vi.fn(),
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+    global.getCurrentPages = () => ([
+      {
+        route: 'pages/recipes/index',
+        suppressNextOnShowReload
+      },
+      {
+        route: 'pages/recipe-edit/index'
+      }
+    ])
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({})
+
+    expect(suppressNextOnShowReload).toHaveBeenCalledTimes(1)
+  })
+
   it('syncs theme state on show so the editor can use runtime theme variables', async () => {
     global.wx = {
       cloud: {
@@ -112,6 +144,63 @@ describe('recipe edit page flow', () => {
     expect(page.data.themeKey).toBe('fresh-green')
     expect(page.data.themeStyle).toContain('--page-bg')
     expect(page.data.themeStyle).toContain('#56a36c')
+  })
+
+  it('opens create mode without blocking on the loading card while metadata bootstraps in background', async () => {
+    let resolveTags
+    let resolveCategories
+    const callFunction = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveTags = resolve
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveCategories = resolve
+      }))
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({})
+    const onShowPromise = page.onShow()
+
+    expect(page.data.loading).toBe(false)
+    expect(page.data.activeSpaceId).toBe('space-1')
+    expect(page.data.isBootstrapping).toBe(true)
+
+    resolveTags({
+      result: {
+        code: 0,
+        data: {
+          items: []
+        }
+      }
+    })
+    resolveCategories({
+      result: {
+        code: 0,
+        data: {
+          items: []
+        }
+      }
+    })
+
+    await onShowPromise
+    await waitUntilLoaded(page)
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.loading).toBe(false)
   })
 
   it('keeps recommendationScore in editor state by default', async () => {
@@ -694,6 +783,52 @@ describe('recipe edit page flow', () => {
     expect(callFunction).not.toHaveBeenCalled()
   })
 
+  it('does not block create-mode submit when background metadata loading has failed', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          item: {
+            _id: 'recipe-new',
+            name: '番茄炒蛋'
+          }
+        }
+      }
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      loading: false,
+      loadErrorMessage: 'metadata failed',
+      isEdit: false,
+      form: {
+        ...page.data.form,
+        name: '番茄炒蛋',
+        ingredients: [{ name: '番茄' }],
+        steps: [{ content: '翻炒' }],
+        images: []
+      }
+    })
+
+    await page.submit()
+
+    expect(callFunction).toHaveBeenCalled()
+  })
+
   it('queues created recipe onto the previous recipes page before navigating back', async () => {
     const callFunction = vi.fn().mockResolvedValue({
       result: {
@@ -771,6 +906,63 @@ describe('recipe edit page flow', () => {
       icon: 'success'
     })
     expect(navigateBack).toHaveBeenCalled()
+  })
+
+  it('marks the recipes page for refresh after updating an existing recipe', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          item: {
+            _id: 'recipe-1',
+            name: '更新后的菜谱'
+          }
+        }
+      }
+    })
+    const markNeedsRefreshOnNextShow = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+    global.getCurrentPages = () => ([
+      {
+        route: 'pages/recipes/index',
+        markNeedsRefreshOnNextShow
+      },
+      {
+        route: 'pages/recipe-edit/index'
+      }
+    ])
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      recipeId: 'recipe-1',
+      isEdit: true,
+      loading: false,
+      loadErrorMessage: '',
+      form: {
+        ...page.data.form,
+        name: '更新后的菜谱',
+        images: [],
+        ingredients: [{ name: '番茄' }],
+        steps: [{ content: '翻炒' }]
+      }
+    })
+
+    await page.submit()
+
+    expect(markNeedsRefreshOnNextShow).toHaveBeenCalledTimes(1)
   })
 
   it('create-mode back discards confirmed draft images before navigating away', async () => {

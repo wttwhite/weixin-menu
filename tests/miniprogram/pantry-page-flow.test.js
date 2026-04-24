@@ -365,6 +365,14 @@ describe('pantry edit page flow', () => {
     page.handleLocationSelect({ detail: { value: 2 } })
     page.handleUsageStatusSelect({ detail: { value: 2 } })
     page.incrementQuantity()
+    page.openUnitSelector()
+    page.handleUnitOptionTap({
+      currentTarget: {
+        dataset: {
+          unit: '瓶'
+        }
+      }
+    })
     page.incrementShelfLifeMonths()
     page.handleProductionDateChange({ detail: { value: '2026-01-10' } })
     page.handleExpirationDateChange({ detail: { value: '2026-02-14' } })
@@ -373,7 +381,8 @@ describe('pantry edit page flow', () => {
     expect(page.data.form.category).toBe('produce')
     expect(page.data.form.location).toBe('freezer')
     expect(page.data.form.status).toBe('empty')
-    expect(page.data.form.quantity).toBe('2')
+    expect(page.data.form.quantity).toBe('1.5')
+    expect(page.data.form.unit).toBe('瓶')
     expect(page.data.form.shelfLifeMonths).toBe('1')
     expect(page.data.form.productionDate).toBe('2026-01-10')
     expect(page.data.form.expirationDate).toBe('2026-02-14')

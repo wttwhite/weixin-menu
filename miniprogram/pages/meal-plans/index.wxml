@@ -117,8 +117,8 @@
     </view>
   </view>
 
-  <view wx:if="{{showMealPlanStatusModal}}" class="meal-plan-status-modal__overlay" catchtap="closeMealPlanStatusModal">
-    <view class="meal-plan-status-modal" catchtap="noop">
+  <view wx:if="{{showMealPlanStatusModal}}" class="meal-plan-status-modal__overlay" catchtap="closeMealPlanStatusModal" catchtouchmove="noop">
+    <view class="meal-plan-status-modal" catchtap="noop" catchtouchmove="noop">
       <view class="meal-plan-status-modal__header">
         <view>
           <view class="meal-plan-status-modal__title">{{mealPlanStatusModalTitle}}</view>
@@ -169,9 +169,9 @@
     </view>
   </view>
 
-  <view wx:if="{{showInventoryModal}}" class="inventory-modal__overlay" catchtap="closeInventoryModal">
-    <view class="inventory-modal" catchtap="closeInventoryModal">
-      <view class="inventory-modal__panel" catchtap="noop">
+  <view wx:if="{{showInventoryModal}}" class="inventory-modal__overlay" catchtap="closeInventoryModal" catchtouchmove="noop">
+    <view class="inventory-modal" catchtap="closeInventoryModal" catchtouchmove="noop">
+      <view class="inventory-modal__panel" catchtap="noop" catchtouchmove="noop">
         <view class="inventory-modal__header">
           <view>
             <view class="inventory-modal__title">食材库存检查</view>

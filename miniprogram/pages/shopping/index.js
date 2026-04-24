@@ -328,6 +328,9 @@ Page({
   onShow() {
     syncPageTheme(this)
     syncCurrentTabBar(this, '/pages/shopping/index')
+    if (this.shouldReuseLoadedState()) {
+      return
+    }
     this.loadShoppingLists()
   },
 
@@ -365,6 +368,21 @@ Page({
     })
   },
 
+  markNeedsRefreshOnNextShow() {
+    this.forceRefreshOnNextShow = true
+  },
+
+  shouldReuseLoadedState() {
+    if (this.forceRefreshOnNextShow) {
+      this.forceRefreshOnNextShow = false
+      return false
+    }
+
+    return Boolean(this.hasLoadedShoppingOnce) &&
+      !this.data.errorMessage &&
+      this.data.activeSpaceId === getActiveSpaceId()
+  },
+
   async loadShoppingLists() {
     const activeSpaceId = getActiveSpaceId()
     this.setData({
@@ -385,6 +403,7 @@ Page({
         errorMessage: '',
         emptyMessage: '当前没有可用空间。'
       })
+      this.hasLoadedShoppingOnce = true
       return
     }
 
@@ -394,6 +413,7 @@ Page({
         loading: false,
         shoppingLists: result.items || []
       })
+      this.hasLoadedShoppingOnce = true
     } catch (error) {
       this.syncShoppingView({
         loading: false,
@@ -401,6 +421,7 @@ Page({
         errorMessage: getErrorMessage(error),
         summary: '采购清单加载失败。'
       })
+      this.hasLoadedShoppingOnce = false
     }
   },
 

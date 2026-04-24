@@ -76,6 +76,21 @@ describe('normalizePantryItemWrite', () => {
     )
   })
 
+  it('keeps half-step quantity values instead of forcing integers', () => {
+    expect(
+      normalizePantryItemWrite({
+        name: 'Milk',
+        quantity: '0.5',
+        unit: '盒'
+      })
+    ).toEqual(
+      expect.objectContaining({
+        quantity: '0.5',
+        unit: '盒'
+      })
+    )
+  })
+
   it('keeps supported manual status values and falls back to active on unknown values', () => {
     expect(
       normalizePantryItemWrite({
