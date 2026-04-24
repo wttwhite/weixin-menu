@@ -1,6 +1,6 @@
 <view class="meal-plans-page" style="{{themeStyle}}">
   <view class="plans-hero">
-    <image class="plans-hero__background" src="/images/meal-plans-hero.jpg" mode="aspectFill" />
+    <image class="plans-hero__background" src="/images/meal-plans-hero.svg" mode="aspectFill" />
     <view class="plans-hero__overlay">
       <view class="plans-hero__topbar">
         <view class="plans-hero__date-pill">{{currentDateLabel}}</view>

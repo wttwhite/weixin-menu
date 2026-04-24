@@ -6,6 +6,8 @@ describe('meal-plans page template', () => {
     const template = readFileSync('miniprogram/pages/meal-plans/index.wxml', 'utf8')
 
     expect(template).toContain('plans-hero')
+    expect(template).toContain('/images/meal-plans-hero.svg')
+    expect(template.includes('/images/meal-plans-hero.jpg')).toBe(false)
     expect(template).toContain('plans-hero__topbar')
     expect(template).toContain('plans-hero__date-pill')
     expect(template).toContain('plans-hero__stat-pill')
