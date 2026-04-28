@@ -116,6 +116,14 @@ function buildRecommendationStarItems(score = '') {
   }))
 }
 
+function buildIngredientInputText(item = {}) {
+  const name = item && item.name ? String(item.name).trim() : ''
+  const quantity = item && item.quantity ? String(item.quantity).trim() : ''
+  const unit = item && item.unit ? String(item.unit).trim() : ''
+  const amountText = quantity || unit ? `${quantity}${unit}`.trim() : ''
+  return [name, amountText].filter(Boolean).join(' ')
+}
+
 function buildCategorySelectorItems(categoryOptions = [], selectedCategoryIndex = 0) {
   return (categoryOptions || [])
     .map((label, index) => ({
@@ -133,7 +141,8 @@ function buildCategorySelectorItems(categoryOptions = [], selectedCategoryIndex 
 function buildIngredientViewItems(ingredients = []) {
   return normalizeRows(ingredients, createEmptyIngredient).map((item, index) => ({
     ...item,
-    displayIndex: index + 1
+    displayIndex: index + 1,
+    inputText: buildIngredientInputText(item)
   }))
 }
 
@@ -569,14 +578,24 @@ Page({
     const field = event.currentTarget.dataset.field
     const ingredients = (this.data.form.ingredients || []).map((item, currentIndex) =>
       currentIndex === index
-        ? {
-            ...item,
-            [field]: event.detail.value
-          }
+        ? field === 'name'
+          ? {
+              ...item,
+              name: event.detail.value,
+              quantity: '',
+              unit: ''
+            }
+          : {
+              ...item,
+              [field]: event.detail.value
+            }
         : item
     )
     this.setData({
-      'form.ingredients': ingredients,
+      form: {
+        ...this.data.form,
+        ingredients
+      },
       ingredientViewItems: buildIngredientViewItems(ingredients)
     })
   },

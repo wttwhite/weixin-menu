@@ -47,4 +47,13 @@ describe('getErrorMessage', () => {
       })
     ).toBe('云函数未更新，请重新部署 api 云函数')
   })
+
+  it('uses specific validation messages before the generic invalid-input copy', () => {
+    expect(
+      getErrorMessage({
+        code: 400,
+        message: 'Invalid recipe images'
+      })
+    ).toBe('菜谱图片数据异常，请重新选择封面后再保存')
+  })
 })

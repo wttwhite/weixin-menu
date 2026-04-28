@@ -16,6 +16,10 @@ const MESSAGE_BY_CODE = {
 const MESSAGE_BY_TEXT = {
   SPACE_FORBIDDEN: '你没有权限访问这个空间',
   'Unsupported action': '云函数未更新，请重新部署 api 云函数',
+  'Invalid recipe images': '菜谱图片数据异常，请重新选择封面后再保存',
+  'coverImageId is invalid': '菜谱封面数据异常，请重新选择封面后再保存',
+  'Invalid recipe tagIds': '菜谱标签数据异常，请重新选择标签后再保存',
+  'Recipe name is required': '请输入菜谱名称',
   'Invite code is required': '请输入空间邀请码',
   'Space name is required': '请输入空间名称',
   'Space not found': '未找到对应空间',

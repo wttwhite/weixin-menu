@@ -121,9 +121,17 @@ describe('recipes page template styles', () => {
 
     expect(managementCardStyles).toMatch(/margin-top:\s*-90rpx;/)
     expect(surfaceHeadStyles).toMatch(/margin-top:\s*10rpx;/)
+    expect(surfaceHeadStyles).toMatch(/align-items:\s*center;/)
     expect(cartCountStyles).toMatch(/font-size:\s*26rpx;/)
     expect(styles.includes('margin-top: -20rpx;')).toBe(false)
     expect(styles.includes('margin-top: -82rpx;')).toBe(false)
+  })
+
+  it('uses the requested translucent channel rail background', () => {
+    const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+    const channelRailStyles = getStyleBlock(styles, '.channel-rail')
+
+    expect(channelRailStyles).toMatch(/background:\s*rgba\(230,\s*236,\s*244,\s*0\.8\);/)
   })
 
   it('keeps the date readable against the hero background with a contrasting pill', () => {

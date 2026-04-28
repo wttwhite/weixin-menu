@@ -471,6 +471,81 @@ describe('recipe edit page flow', () => {
     ])
   })
 
+  it('shows quantity and unit in the edit ingredient input and reparses after user edits it', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: []
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: []
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'recipe-1',
+              name: '土豆泥',
+              ingredients: [{ name: '土豆', quantity: '500', unit: 'g' }],
+              steps: [{ content: '蒸熟压泥' }]
+            }
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    page.onShow()
+    await waitUntilLoaded(page)
+
+    expect(page.data.ingredientViewItems[0].inputText).toBe('土豆 500g')
+
+    page.handleIngredientInput({
+      currentTarget: {
+        dataset: {
+          index: 0,
+          field: 'name'
+        }
+      },
+      detail: {
+        value: '土豆 600g'
+      }
+    })
+
+    expect(page.data.form.ingredients[0]).toEqual(
+      expect.objectContaining({
+        name: '土豆 600g',
+        quantity: '',
+        unit: ''
+      })
+    )
+    expect(page.data.ingredientViewItems[0].inputText).toBe('土豆 600g')
+  })
+
   it('retries bootstrap on next onShow after initial load failure', async () => {
     const callFunction = vi
       .fn()
@@ -963,6 +1038,77 @@ describe('recipe edit page flow', () => {
     await page.submit()
 
     expect(markNeedsRefreshOnNextShow).toHaveBeenCalledTimes(1)
+  })
+
+  it('submits existing confirmed recipe images when saving an edit form without changes', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          item: {
+            _id: 'recipe-1',
+            name: '原菜谱'
+          }
+        }
+      }
+    })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      recipeId: 'recipe-1',
+      isEdit: true,
+      loading: false,
+      loadErrorMessage: '',
+      form: {
+        ...page.data.form,
+        name: '原菜谱',
+        coverImageId: 'legacy-img-1',
+        images: [
+          {
+            _id: 'legacy-img-1',
+            imageRole: 'cover',
+            fileId: 'cloud://legacy-img-1',
+            uploadStatus: 'confirmed'
+          }
+        ],
+        ingredients: [{ name: '土豆', quantity: '500', unit: 'g' }],
+        steps: [{ content: '蒸熟' }]
+      }
+    })
+
+    await page.submit()
+
+    expect(callFunction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api',
+        data: expect.objectContaining({
+          action: 'updateRecipe',
+          recipeId: 'recipe-1',
+          recipe: expect.objectContaining({
+            coverImageId: 'legacy-img-1',
+            images: [
+              expect.objectContaining({
+                _id: 'legacy-img-1'
+              })
+            ]
+          })
+        })
+      })
+    )
   })
 
   it('updates coverImageId when selecting a recipe image as cover', async () => {

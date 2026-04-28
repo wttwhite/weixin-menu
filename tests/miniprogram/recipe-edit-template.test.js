@@ -150,4 +150,21 @@ describe('recipe edit template', () => {
     expect(uploaderStyles).toMatch(/\.uploader__entry\s*\{[\s\S]*aspect-ratio:\s*4\s*\/\s*3;[\s\S]*min-height:\s*1\d\drpx;/)
     expect(uploaderStyles).toMatch(/\.uploader__actions-overlay\s*\{[\s\S]*position:\s*absolute;[\s\S]*bottom:\s*0;/)
   })
+
+  it('uses requested recipe form label font sizes', () => {
+    const styles = readFileSync('miniprogram/pages/recipe-edit/index.wxss', 'utf8')
+    const formRowLabelStyles = getStyleBlock(styles, '.form-row__label')
+    const ratingLabelStyles = getStyleBlock(styles, '.rating-row__label')
+
+    expect(formRowLabelStyles).toMatch(/font-size:\s*28rpx;/)
+    expect(ratingLabelStyles).toMatch(/font-size:\s*32rpx;/)
+  })
+
+  it('uses a combined ingredient input value and a single concise placeholder example', () => {
+    const template = readFileSync('miniprogram/pages/recipe-edit/index.wxml', 'utf8')
+
+    expect(template).toContain('value="{{item.inputText}}"')
+    expect(template).toContain('placeholder="如：土豆 500g"')
+    expect(template).not.toContain('五花肉 500g')
+  })
 })

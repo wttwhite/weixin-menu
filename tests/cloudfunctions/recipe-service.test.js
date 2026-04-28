@@ -1036,6 +1036,103 @@ describe('recipe service', () => {
     expect(updated.item.recommendationScore).toBe('')
   })
 
+  it('keeps legacy embedded recipe images when updating an existing recipe', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+    const existing = await repository.createRecipe({
+      spaceId: 'space-1',
+      name: 'Legacy Image Recipe',
+      deletedAt: '',
+      images: [
+        {
+          _id: 'legacy-img-1',
+          imageRole: 'cover',
+          fileId: 'cloud://legacy-img-1',
+          uploadStatus: 'confirmed'
+        }
+      ],
+      coverImageId: 'legacy-img-1'
+    })
+
+    const updated = await updateRecipe(
+      {
+        spaceId: 'space-1',
+        recipeId: existing._id,
+        recipe: {
+          name: 'Legacy Image Recipe Updated',
+          images: [
+            {
+              _id: 'legacy-img-1',
+              imageRole: 'cover',
+              fileId: 'cloud://legacy-img-1',
+              uploadStatus: 'confirmed'
+            }
+          ],
+          coverImageId: 'legacy-img-1'
+        }
+      },
+      context,
+      repository
+    )
+
+    expect(updated.item.images).toEqual([
+      expect.objectContaining({
+        _id: 'legacy-img-1',
+        imageRole: 'cover',
+        fileId: 'cloud://legacy-img-1',
+        uploadStatus: 'confirmed'
+      })
+    ])
+    expect(updated.item.coverImageId).toBe('legacy-img-1')
+  })
+
+  it('treats legacy embedded recipe images without uploadStatus as confirmed on update', async () => {
+    const repository = createRepository()
+    const context = { openid: 'user-1' }
+    const existing = await repository.createRecipe({
+      spaceId: 'space-1',
+      name: 'Old Embedded Image Recipe',
+      deletedAt: '',
+      images: [
+        {
+          _id: 'legacy-img-without-status',
+          imageRole: 'cover',
+          fileId: 'cloud://legacy-img-without-status'
+        }
+      ],
+      coverImageId: 'legacy-img-without-status'
+    })
+
+    const updated = await updateRecipe(
+      {
+        spaceId: 'space-1',
+        recipeId: existing._id,
+        recipe: {
+          name: 'Old Embedded Image Recipe Updated',
+          images: [
+            {
+              _id: 'legacy-img-without-status',
+              imageRole: 'cover',
+              fileId: 'cloud://legacy-img-without-status',
+              uploadStatus: 'confirmed'
+            }
+          ],
+          coverImageId: 'legacy-img-without-status'
+        }
+      },
+      context,
+      repository
+    )
+
+    expect(updated.item.images[0]).toEqual(
+      expect.objectContaining({
+        _id: 'legacy-img-without-status',
+        uploadStatus: 'confirmed'
+      })
+    )
+    expect(updated.item.coverImageId).toBe('legacy-img-without-status')
+  })
+
   it('rejects create with stale/unconfirmed/foreign image refs', async () => {
     const repository = createRepository()
     const context = { openid: 'user-1' }

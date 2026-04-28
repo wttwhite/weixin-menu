@@ -75,8 +75,8 @@
           class="field-input field-input--plain"
           data-index="{{index}}"
           data-field="name"
-          value="{{item.name}}"
-          placeholder="如：土豆 2个、五花肉 500g"
+          value="{{item.inputText}}"
+          placeholder="如：土豆 500g"
           placeholder-class="field-placeholder"
           bindinput="handleIngredientInput"
         />

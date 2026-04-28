@@ -360,8 +360,27 @@ async function resolveCanonicalRecipeImages(spaceId, targetRecipeId = '', recipe
 
   const fetched = await repository.listRecipeImagesByIds(spaceId, requestedImageIds)
   const fetchedMap = new Map((fetched || []).map((item) => [item._id, item]))
+  let existingRecipeImageMap = new Map()
+  if (
+    targetRecipeId &&
+    fetchedMap.size < requestedImageIds.length &&
+    typeof repository.getRecipe === 'function'
+  ) {
+    const existingRecipe = await repository.getRecipe(spaceId, targetRecipeId)
+    existingRecipeImageMap = new Map(
+      ((existingRecipe && existingRecipe.images) || [])
+        .filter((item) => item && item._id)
+        .map((item) => [
+          item._id,
+          {
+            ...item,
+            uploadStatus: item.uploadStatus || 'confirmed'
+          }
+        ])
+    )
+  }
   const canonical = requestedImageIds.map((imageId, index) => {
-    const matched = fetchedMap.get(imageId)
+    const matched = fetchedMap.get(imageId) || existingRecipeImageMap.get(imageId)
     if (!matched) {
       return null
     }
