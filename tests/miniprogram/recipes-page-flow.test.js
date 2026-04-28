@@ -47,6 +47,51 @@ beforeEach(() => {
 })
 
 describe('recipes page flow', () => {
+  it('shows newest recipes first even when the list response is unordered', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+          .mockResolvedValueOnce({
+            result: {
+              code: 0,
+              data: {
+                items: [
+                  { _id: 'recipe-old', name: '旧菜谱', category: '家常', createdAt: '2026-04-20T08:00:00.000Z' },
+                  { _id: 'recipe-new', name: '新菜谱', category: '家常', createdAt: '2026-04-28T08:00:00.000Z' },
+                  { _id: 'recipe-mid', name: '中间菜谱', category: '家常', updatedAt: '2026-04-24T08:00:00.000Z' }
+                ]
+              }
+            }
+          })
+          .mockResolvedValueOnce({
+            result: {
+              code: 0,
+              data: {
+                items: [
+                  { name: '家常', recipeCount: 3 }
+                ]
+              }
+            }
+          })
+      },
+      navigateTo: vi.fn(),
+      switchTab: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.items.map((item) => item.name)).toEqual(['新菜谱', '中间菜谱', '旧菜谱'])
+    expect(page.data.visibleItems.map((item) => item.name)).toEqual(['新菜谱', '中间菜谱', '旧菜谱'])
+  })
+
   it('passes active category to create page and omits it for all-section', async () => {
     const navigateTo = vi.fn()
     global.wx = {
@@ -887,6 +932,7 @@ describe('recipes page flow', () => {
       .mockResolvedValueOnce({
         confirm: true
       })
+    const showToast = vi.fn()
     global.wx = {
       cloud: {
         callFunction
@@ -894,7 +940,7 @@ describe('recipes page flow', () => {
       navigateTo: vi.fn(),
       switchTab: vi.fn(),
       showModal,
-      showToast: vi.fn(),
+      showToast,
       stopPullDownRefresh: vi.fn()
     }
     global.getApp = () => ({
@@ -927,12 +973,17 @@ describe('recipes page flow', () => {
     })
     expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['健康时蔬', '饮品酒水', '家常热菜'])
     expect(page.data.categoryManagerInput).toBe('')
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已添加分类',
+      icon: 'success'
+    })
 
     await page.renameCategory({
       currentTarget: {
-        dataset: {
-          name: '健康时蔬'
-        }
+        dataset: {}
+      },
+      detail: {
+        name: '健康时蔬'
       }
     })
 
@@ -955,13 +1006,18 @@ describe('recipes page flow', () => {
       })
     )
     expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['四季时蔬', '饮品酒水', '家常热菜'])
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已更新分类',
+      icon: 'success'
+    })
 
     await page.deleteCategory({
       currentTarget: {
-        dataset: {
-          name: '家常热菜',
-          deletable: true
-        }
+        dataset: {}
+      },
+      detail: {
+        name: '家常热菜',
+        deletable: true
       }
     })
 
@@ -976,6 +1032,10 @@ describe('recipes page flow', () => {
       config: undefined
     })
     expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['四季时蔬', '饮品酒水'])
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已删除分类',
+      icon: 'success'
+    })
   })
 
   it('reorders recipe categories from the category manager and syncs rail order', async () => {

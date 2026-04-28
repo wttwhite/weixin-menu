@@ -30,4 +30,18 @@ describe('recipe category manager modal', () => {
     expect(styles).toMatch(/\.category-modal__item--dragging\s*\{/)
     expect(styles).toMatch(/\.category-modal__drag--active\s*\{/)
   })
+
+  it('uses a neutral input surface and shared compact modal title treatment', () => {
+    const styles = readFileSync('miniprogram/components/recipe-category-manager-modal/index.wxss', 'utf8')
+    const inputBlock = styles.match(/\.category-modal__input\s*\{[^}]*\}/)
+    const closeBlock = styles.match(/\.category-modal__close\s*\{[^}]*\}/)
+    const itemBlock = styles.match(/\.category-modal__item\s*\{[^}]*\}/)
+
+    expect(styles).toMatch(/\.category-modal__title\s*\{[\s\S]*font-size:\s*34rpx;/)
+    expect(closeBlock ? closeBlock[0] : '').toContain('background: #f2f4f8;')
+    expect(closeBlock ? closeBlock[0] : '').not.toContain('var(--surface-muted')
+    expect(itemBlock ? itemBlock[0] : '').toContain('background: #f7f8fa;')
+    expect(inputBlock ? inputBlock[0] : '').toContain('background: #fff;')
+    expect(inputBlock ? inputBlock[0] : '').not.toContain('background: var(--surface-bg')
+  })
 })

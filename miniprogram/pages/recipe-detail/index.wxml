@@ -1,4 +1,4 @@
-<view class="detail-page">
+<view class="detail-page" style="{{themeStyle}}">
   <view wx:if="{{loading}}" class="card">正在加载菜谱详情...</view>
 
   <view wx:elif="{{errorMessage}}" class="card card--error">
@@ -26,6 +26,22 @@
     <view class="action-row">
       <t-button wx:if="{{canManageRecipe}}" t-class="action-btn action-btn--edit action-button action-button--edit" theme="primary" bindtap="goEdit">🖊 编辑</t-button>
       <t-button wx:if="{{canManageRecipe}}" t-class="action-btn action-btn--delete action-button action-button--delete" theme="danger" variant="outline" bindtap="removeRecipe">🗑 删除</t-button>
+    </view>
+
+    <view wx:if="{{hasIngredients}}" class="card">
+      <view class="card-head">
+        <view class="card-head__left">
+          <view class="card-head__icon">🥬</view>
+          <view class="card-title">食材列表</view>
+        </view>
+        <view class="card-head__meta">{{ingredientViewItems.length}} 项</view>
+      </view>
+      <view class="card-divider"></view>
+      <view wx:for="{{ingredientViewItems}}" wx:key="displayIndex" class="ingredient-row">
+        <view class="ingredient-row__num">{{item.displayIndex}}</view>
+        <view class="ingredient-row__name">{{item.name}}</view>
+        <view wx:if="{{item.hasAmountText}}" class="ingredient-row__amount">{{item.amountText}}</view>
+      </view>
     </view>
 
     <view class="card">
@@ -66,21 +82,6 @@
           />
           <view wx:if="{{item.isCover}}" class="gallery-badge">封面</view>
         </view>
-      </view>
-    </view>
-
-    <view wx:if="{{hasIngredients}}" class="card">
-      <view class="card-head">
-        <view class="card-head__left">
-          <view class="card-head__icon">🥬</view>
-          <view class="card-title">食材列表</view>
-        </view>
-        <view class="card-head__meta">{{ingredientViewItems.length}} 项</view>
-      </view>
-      <view class="card-divider"></view>
-      <view wx:for="{{ingredientViewItems}}" wx:key="displayIndex" class="ingredient-row">
-        <view class="ingredient-row__name">{{item.displayIndex}}. {{item.name}}</view>
-        <view class="ingredient-row__meta">{{item.quantityText}}</view>
       </view>
     </view>
   </view>

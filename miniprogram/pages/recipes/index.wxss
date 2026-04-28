@@ -10,7 +10,7 @@ page {
   padding: 14rpx 18rpx calc(env(safe-area-inset-bottom) + 128rpx);
   overflow: hidden;
   background:
-    radial-gradient(circle at top, rgba(197, 106, 61, 0.1), transparent 30%),
+    radial-gradient(circle at top, var(--surface-muted, #efe3cf), transparent 30%),
     linear-gradient(180deg, var(--page-bg, #f5f1e8) 0%, #ede8dc 100%);
 }
 
@@ -67,7 +67,7 @@ page {
 }
 
 .management-card {
-  margin-top: -96rpx;
+  margin-top: -90rpx;
   position: relative;
   z-index: 2;
   border-radius: 36rpx;
@@ -161,15 +161,15 @@ page {
 }
 
 .action-pill--random {
-  background: linear-gradient(135deg, #ffe0b7, #ffb457);
-  color: #6f4519;
-  box-shadow: 0 14rpx 24rpx rgba(255, 180, 87, 0.22);
+  background: linear-gradient(135deg, #fed7aa 0%, #fb923c 55%, #fdba74 100%);
+  color: #7c2d12;
+  box-shadow: none;
 }
 
 .action-pill--create {
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  background: var(--brand, #c56a3d);
   color: #fff;
-  box-shadow: 0 14rpx 24rpx rgba(197, 106, 61, 0.22);
+  box-shadow: none;
 }
 
 .feedback-card,
@@ -320,6 +320,7 @@ page {
   justify-content: space-between;
   gap: 18rpx;
   padding: 0 4rpx;
+  margin-top: 10rpx;
   margin-bottom: 10rpx;
 }
 
@@ -398,7 +399,7 @@ page {
 
 .dish-servings {
   margin-top: 2rpx;
-  font-size: 44rpx;
+  font-size: 37rpx;
   line-height: 1;
   font-weight: 700;
   color: var(--brand);
@@ -434,15 +435,16 @@ page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  background: var(--brand, #c56a3d);
   color: #fff;
   font-size: 34rpx;
   font-weight: 700;
-  box-shadow: 0 18rpx 28rpx rgba(197, 106, 61, 0.28);
+  box-shadow: none;
 }
 
 .dish-add--selected {
-  background: linear-gradient(135deg, var(--brand-strong), #8a3e1a);
+  background: var(--brand, #c56a3d);
+  color: #fff;
 }
 
 .dish-add__symbol {
@@ -481,7 +483,7 @@ page {
 
 .cart-count {
   margin-top: 6rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 700;
   color: #27323f;
 }
@@ -503,7 +505,7 @@ page {
 }
 
 .cart-primary {
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  background: var(--brand, #c56a3d);
   color: #fff;
 }
 
@@ -538,7 +540,7 @@ page {
 }
 
 .plan-modal__title {
-  font-size: 40rpx;
+  font-size: 34rpx;
   font-weight: 800;
   color: #182234;
 }
@@ -573,8 +575,8 @@ page {
 .plan-modal__tag {
   padding: 12rpx 18rpx;
   border-radius: 999rpx;
-  background: #fff3ec;
-  color: var(--brand-strong);
+  background: var(--surface-muted, #f3f4f7);
+  color: var(--text-primary, #27323f);
   font-size: 28rpx;
   font-weight: 700;
 }
@@ -609,8 +611,8 @@ page {
 }
 
 .plan-modal__date-chip--active {
-  color: #fff;
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: var(--brand, #c56a3d);
+  background: var(--surface-muted, #f3f4f7);
 }
 
 .plan-modal__meal-types {
@@ -632,8 +634,8 @@ page {
 }
 
 .plan-modal__meal-chip--active {
-  color: #fff;
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: var(--brand, #c56a3d);
+  background: var(--surface-muted, #f3f4f7);
 }
 
 .plan-modal__actions {
@@ -655,8 +657,8 @@ page {
 }
 
 .plan-modal__primary {
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-  color: #fff;
+  background: var(--surface-muted, #f3f4f7);
+  color: var(--brand, #c56a3d);
 }
 
 .plan-modal__secondary {

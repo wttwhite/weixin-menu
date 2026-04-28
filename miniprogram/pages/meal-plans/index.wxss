@@ -252,7 +252,7 @@ page {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--surface-bg, rgba(255, 255, 255, 0.96));
+  background: rgba(31, 42, 54, 0.055);
   border: 2rpx solid transparent;
   color: var(--text-primary, #384454);
 }
@@ -263,20 +263,20 @@ page {
 
 .calendar-cell--has-plans {
   background: var(--surface-muted, #f7f8fb);
-  color: var(--brand-strong, #35754a);
+  color: var(--brand-strong, #1b5e20);
 }
 
 .calendar-cell--outside-month {
-  background: var(--surface-muted, #f3f4f7);
+  background: rgba(31, 42, 54, 0.028);
   color: var(--text-tertiary, #bcc2cd);
 }
 
 .calendar-cell--outside-month.calendar-cell--has-plans {
-  background: var(--surface-muted, #f3f4f7);
+  background: var(--surface-muted, #f7f8fb);
 }
 
 .calendar-cell--today {
-  background: var(--surface-muted, rgba(86, 163, 108, 0.14));
+  background: var(--surface-muted, rgba(46, 125, 50, 0.14));
 }
 
 .calendar-cell--selected {
@@ -376,7 +376,7 @@ page {
   color: #fff;
   font-size: 24rpx;
   font-weight: 700;
-  box-shadow: 0 14rpx 24rpx rgba(53, 117, 74, 0.18);
+  box-shadow: 0 14rpx 24rpx rgba(27, 94, 32, 0.18);
   white-space: nowrap;
 }
 
@@ -519,7 +519,7 @@ page {
   border-radius: 999rpx;
   border: 1px solid var(--border-soft, rgba(39, 65, 49, 0.12));
   background: rgba(255, 255, 255, 0.96);
-  color: var(--brand-strong, #35754a);
+  color: var(--brand-strong, #1b5e20);
   font-size: 22rpx;
   font-weight: 700;
 }
@@ -625,7 +625,7 @@ page {
   border-color: rgba(255, 255, 255, 0.22);
   background: linear-gradient(135deg, var(--brand), var(--brand-strong));
   color: #ffffff;
-  box-shadow: 0 12rpx 24rpx rgba(53, 117, 74, 0.2);
+  box-shadow: 0 12rpx 24rpx rgba(27, 94, 32, 0.2);
 }
 
 .meal-plan-status-modal__recipe-list {
@@ -761,7 +761,7 @@ page {
 }
 
 .inventory-stat--ok {
-  background: rgba(86, 163, 108, 0.12);
+  background: rgba(46, 125, 50, 0.12);
 }
 
 .inventory-stat--missing {

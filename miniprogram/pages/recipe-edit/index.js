@@ -948,6 +948,25 @@ Page({
     })
   },
 
+  handleImageCoverSelect(event) {
+    const imageId = event.detail && event.detail.imageId ? event.detail.imageId : ''
+    if (!imageId) {
+      return
+    }
+
+    const exists = (this.data.form.images || []).some((item) => item && item._id === imageId)
+    if (!exists) {
+      return
+    }
+
+    this.setData({
+      form: {
+        ...this.data.form,
+        coverImageId: imageId
+      }
+    })
+  },
+
   async handleImageRemove(event) {
     const imageId = event.detail && event.detail.imageId ? event.detail.imageId : ''
     if (!imageId) {

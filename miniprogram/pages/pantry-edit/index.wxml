@@ -271,6 +271,7 @@
     <view class="unit-selector" catchtap="noop" catchtouchmove="noop">
       <view class="unit-selector__header">
         <view class="unit-selector__title">选择单位</view>
+        <view class="unit-selector__close" bindtap="closeUnitSelector">×</view>
       </view>
 
       <input

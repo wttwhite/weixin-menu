@@ -53,7 +53,7 @@
   <view wx:else class="pantry-body">
     <view class="channel-layout">
       <view class="channel-rail">
-        <scroll-view class="channel-rail__scroll" scroll-y="true" show-scrollbar="{{false}}" style="height:{{railScrollHeight}}px">
+        <scroll-view class="channel-rail__scroll" scroll-y="{{!floatingCreateScrollLocked}}" show-scrollbar="{{false}}" style="height:{{railScrollHeight}}px">
           <view class="channel-rail__inner">
             <view
               wx:for="{{categoryViewItems}}"
@@ -83,7 +83,7 @@
         <view class="surface-subtitle">{{summary}}</view>
 
         <view class="channel-surface">
-          <scroll-view class="channel-surface__scroll" scroll-y="{{showVisibleItems}}" show-scrollbar="{{false}}" bindscroll="handleSurfaceScroll" style="height:{{surfaceScrollHeight}}px">
+          <scroll-view class="channel-surface__scroll" scroll-y="{{showVisibleItems && !floatingCreateScrollLocked}}" show-scrollbar="{{false}}" bindscroll="handleSurfaceScroll" style="height:{{surfaceScrollHeight}}px">
           <view wx:if="{{!errorMessage && loading}}" class="feedback-card feedback-card--inline">正在加载库存...</view>
 
           <view wx:elif="{{showVisibleItems}}" class="pantry-list">

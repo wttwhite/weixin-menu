@@ -132,7 +132,7 @@ describe('recipe edit page flow', () => {
       globalData: {
         activeSpaceId: 'space-1',
         themeKey: 'fresh-green',
-        themeStyle: '--page-bg: #eef7ef; --brand: #56a36c;'
+        themeStyle: '--page-bg: #eef7ef; --brand: #2e7d32;'
       }
     })
 
@@ -143,7 +143,7 @@ describe('recipe edit page flow', () => {
 
     expect(page.data.themeKey).toBe('fresh-green')
     expect(page.data.themeStyle).toContain('--page-bg')
-    expect(page.data.themeStyle).toContain('#56a36c')
+    expect(page.data.themeStyle).toContain('#2e7d32')
   })
 
   it('opens create mode without blocking on the loading card while metadata bootstraps in background', async () => {
@@ -963,6 +963,42 @@ describe('recipe edit page flow', () => {
     await page.submit()
 
     expect(markNeedsRefreshOnNextShow).toHaveBeenCalledTimes(1)
+  })
+
+  it('updates coverImageId when selecting a recipe image as cover', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      form: {
+        ...page.data.form,
+        coverImageId: 'img-1',
+        images: [
+          { _id: 'img-1', uploadStatus: 'confirmed', imageRole: 'cover' },
+          { _id: 'img-2', uploadStatus: 'confirmed', imageRole: 'gallery' }
+        ]
+      }
+    })
+
+    page.handleImageCoverSelect({
+      detail: {
+        imageId: 'img-2'
+      }
+    })
+
+    expect(page.data.form.coverImageId).toBe('img-2')
   })
 
   it('create-mode back discards confirmed draft images before navigating away', async () => {

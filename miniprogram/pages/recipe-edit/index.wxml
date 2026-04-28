@@ -148,12 +148,14 @@
       <image-uploader
         label=""
         items="{{form.images}}"
+        coverImageId="{{form.coverImageId}}"
         spaceId="{{activeSpaceId}}"
         recipeId="{{recipeId}}"
         imageRole="cover"
         bindpendingadd="handleImagePendingAdd"
         binduploaded="handleImageUploaded"
         binduploaderror="handleImageUploadError"
+        bindcover="handleImageCoverSelect"
         bindremove="handleImageRemove"
       />
 
@@ -191,18 +193,23 @@
 
   <view wx:if="{{showCategorySelector}}" class="category-selector__overlay" catchtap="closeCategorySelector" catchtouchmove="noop">
     <view class="category-selector" catchtap="noop" catchtouchmove="noop">
-      <view class="category-selector__title">选择菜谱分类</view>
-      <view class="category-selector__list">
-        <view
-          wx:for="{{categorySelectorItems}}"
-          wx:key="label"
-          class="{{item.itemClass}}"
-          data-name="{{item.label}}"
-          bindtap="handleCategoryOptionTap"
-        >
-          {{item.label}}
-        </view>
+      <view class="category-selector__header">
+        <view class="category-selector__title">选择菜谱分类</view>
+        <view class="category-selector__close" bindtap="closeCategorySelector">×</view>
       </view>
+      <scroll-view scroll-y="true" class="category-selector__list">
+        <view class="category-selector__list-inner">
+          <view
+            wx:for="{{categorySelectorItems}}"
+            wx:key="label"
+            class="{{item.itemClass}}"
+            data-name="{{item.label}}"
+            bindtap="handleCategoryOptionTap"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </scroll-view>
     </view>
   </view>
 </view>

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+function getStyleBlock(styles, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))
+  return match ? match[1] : ''
+}
+
 describe('recipes page template styles', () => {
   it('lets the content region stretch above the plan bar instead of being overlapped by it', () => {
     const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
@@ -47,7 +53,8 @@ describe('recipes page template styles', () => {
     expect(styles.includes('flex: none;')).toBe(true)
     expect(styles.includes('width: auto;')).toBe(true)
     expect(styles).toMatch(/\.action-pill\s*\{[\s\S]*font-size:\s*24rpx;/)
-    expect(styles).toMatch(/\.action-pill--random\s*\{[\s\S]*background:/)
+    expect(styles).toMatch(/\.action-pill--random\s*\{[\s\S]*background:\s*linear-gradient\(135deg,\s*#fed7aa 0%,\s*#fb923c 55%,\s*#fdba74 100%\);/)
+    expect(styles).toMatch(/\.action-pill--random\s*\{[\s\S]*color:\s*#7c2d12;/)
   })
 
   it('keeps left rail buttons inside the channel rail width', () => {
@@ -88,10 +95,33 @@ describe('recipes page template styles', () => {
     expect(styles).toMatch(/\.dish-add__symbol\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*justify-content:\s*center;[\s\S]*line-height:\s*1;/)
   })
 
-  it('pulls the management card upward instead of leaving a large empty banner gap', () => {
+  it('uses the theme color recipe selection button with white add and check symbols', () => {
     const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+    const addButtonStyles = getStyleBlock(styles, '.dish-add')
+    const selectedButtonStyles = getStyleBlock(styles, '.dish-add--selected')
 
-    expect(styles).toMatch(/\.management-card\s*\{[\s\S]*margin-top:\s*-\d+rpx;/)
+    expect(addButtonStyles).toMatch(/background:\s*var\(--brand,\s*#c56a3d\);/)
+    expect(addButtonStyles).toMatch(/color:\s*#fff;/)
+    expect(selectedButtonStyles).toMatch(/background:\s*var\(--brand,\s*#c56a3d\);/)
+    expect(selectedButtonStyles).toMatch(/color:\s*#fff;/)
+  })
+
+  it('uses a 37rpx servings count on recipe cards', () => {
+    const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+    const servingsStyles = getStyleBlock(styles, '.dish-servings')
+
+    expect(servingsStyles).toMatch(/font-size:\s*37rpx;/)
+  })
+
+  it('uses the requested vertical spacing around the recipe surface and cart summary', () => {
+    const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+    const managementCardStyles = getStyleBlock(styles, '.management-card')
+    const surfaceHeadStyles = getStyleBlock(styles, '.surface-head')
+    const cartCountStyles = getStyleBlock(styles, '.cart-count')
+
+    expect(managementCardStyles).toMatch(/margin-top:\s*-90rpx;/)
+    expect(surfaceHeadStyles).toMatch(/margin-top:\s*10rpx;/)
+    expect(cartCountStyles).toMatch(/font-size:\s*26rpx;/)
     expect(styles.includes('margin-top: -20rpx;')).toBe(false)
     expect(styles.includes('margin-top: -82rpx;')).toBe(false)
   })
@@ -107,5 +137,19 @@ describe('recipes page template styles', () => {
     const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
 
     expect(styles).toMatch(/\.plan-modal__tag\s*\{[\s\S]*font-size:\s*28rpx;/)
+  })
+
+  it('removes orange button shadows and uses a pale neutral selected-recipe tag', () => {
+    const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+
+    expect(styles).not.toContain('rgba(197, 106, 61')
+    expect(styles).not.toContain('rgba(255, 180, 87')
+    expect(styles).toMatch(/\.action-pill--create\s*\{[\s\S]*background:\s*var\(--brand,\s*#c56a3d\);/)
+    expect(styles).toMatch(/\.action-pill--create\s*\{[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.cart-primary\s*\{[\s\S]*background:\s*var\(--brand,\s*#c56a3d\);/)
+    expect(styles).toMatch(/\.cart-primary\s*\{[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.action-pill--create\s*\{[\s\S]*box-shadow:\s*none;/)
+    expect(styles).toMatch(/\.dish-add\s*\{[\s\S]*box-shadow:\s*none;/)
+    expect(styles).toMatch(/\.plan-modal__tag\s*\{[\s\S]*background:\s*var\(--surface-muted,\s*#f3f4f7\);/)
   })
 })

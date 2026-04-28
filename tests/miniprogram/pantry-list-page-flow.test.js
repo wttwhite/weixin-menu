@@ -635,6 +635,66 @@ describe('pantry list page flow', () => {
     )
   })
 
+  it('opens the create modal immediately while manager options are still loading', async () => {
+    let resolveCategories
+    let resolveLocations
+    const callFunction = vi
+      .fn()
+      .mockReturnValueOnce(new Promise((resolve) => {
+        resolveCategories = resolve
+      }))
+      .mockReturnValueOnce(new Promise((resolve) => {
+        resolveLocations = resolve
+      }))
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.setData({
+      activeSpaceId: 'space-1'
+    })
+
+    const pending = page.handleFloatingCreateTap()
+
+    expect(page.data.showCreateModal).toBe(true)
+    expect(page.data.createForm).toEqual(expect.objectContaining({
+      quantity: '1',
+      unit: '袋',
+      status: 'active'
+    }))
+
+    resolveCategories({
+      result: {
+        code: 0,
+        data: {
+          items: [{ name: 'dairy' }]
+        }
+      }
+    })
+    resolveLocations({
+      result: {
+        code: 0,
+        data: {
+          items: [{ name: 'fridge' }]
+        }
+      }
+    })
+    await pending
+
+    expect(page.data.createCategoryOptions).toEqual(['未设置', 'dairy'])
+    expect(page.data.createLocationOptions).toEqual(['未设置', 'fridge'])
+  })
+
   it('positions the floating create button higher than the custom tab bar by default', async () => {
     global.wx = {
       cloud: {
@@ -707,6 +767,96 @@ describe('pantry list page flow', () => {
 
     await page.handleFloatingCreateTap()
     expect(page.goCreate).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens create from the floating button touch end when the finger only jitters slightly', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      getWindowInfo: vi.fn().mockReturnValue({
+        windowWidth: 375,
+        windowHeight: 812,
+        safeArea: {
+          bottom: 780
+        }
+      }),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      floatingCreateLeft: 260,
+      floatingCreateTop: 520
+    })
+    page.goCreate = vi.fn()
+
+    page.handleFloatingCreateTouchStart({
+      touches: [{ pageX: 260, pageY: 520 }]
+    })
+    page.handleFloatingCreateTouchMove({
+      touches: [{ pageX: 270, pageY: 527 }]
+    })
+    await page.handleFloatingCreateTouchEnd()
+
+    expect(page.goCreate).toHaveBeenCalledTimes(1)
+
+    await page.handleFloatingCreateTap()
+
+    expect(page.goCreate).toHaveBeenCalledTimes(1)
+  })
+
+  it('locks pantry scroll while the floating button is being dragged and restores it on release', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      getWindowInfo: vi.fn().mockReturnValue({
+        windowWidth: 375,
+        windowHeight: 812,
+        safeArea: {
+          bottom: 780
+        }
+      }),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      floatingCreateLeft: 260,
+      floatingCreateTop: 520
+    })
+    page.goCreate = vi.fn()
+
+    expect(page.data.floatingCreateScrollLocked).toBe(false)
+
+    page.handleFloatingCreateTouchStart({
+      touches: [{ pageX: 260, pageY: 520 }]
+    })
+
+    expect(page.data.floatingCreateScrollLocked).toBe(true)
+
+    page.handleFloatingCreateTouchMove({
+      touches: [{ pageX: 80, pageY: 420 }]
+    })
+    page.handleFloatingCreateTouchEnd()
+
+    expect(page.data.floatingCreateScrollLocked).toBe(false)
+    expect(page.goCreate).not.toHaveBeenCalled()
   })
 
   it('reorders category manager items by dragging the handle and persists the new order', async () => {
@@ -879,13 +1029,14 @@ describe('pantry list page flow', () => {
       .mockResolvedValueOnce({
         confirm: true
       })
+    const showToast = vi.fn()
     global.wx = {
       cloud: {
         callFunction
       },
       navigateTo: vi.fn(),
       showModal,
-      showToast: vi.fn(),
+      showToast,
       stopPullDownRefresh: vi.fn()
     }
     global.getApp = () => ({
@@ -918,6 +1069,10 @@ describe('pantry list page flow', () => {
     expect(callFunction).toHaveBeenCalledTimes(3)
     expect(page.data.categoryManagerInput).toBe('')
     expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['dairy', 'dry'])
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已添加分类',
+      icon: 'success'
+    })
 
     await page.renameCategoryManagerItem({
       currentTarget: {
@@ -945,6 +1100,10 @@ describe('pantry list page flow', () => {
       })
     )
     expect(page.data.categoryManagerItems.map((item) => item.name)).toEqual(['冷藏乳品', 'dry'])
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已更新分类',
+      icon: 'success'
+    })
 
     await page.deleteCategoryManagerItem({
       currentTarget: {
@@ -971,6 +1130,10 @@ describe('pantry list page flow', () => {
         deletable: false
       })
     ])
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已删除分类',
+      icon: 'success'
+    })
   })
 
   it('opens pantry status actions and updates local list state with selected handled status', async () => {

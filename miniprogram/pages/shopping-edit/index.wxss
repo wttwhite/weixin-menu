@@ -21,7 +21,7 @@
   margin-top: 16rpx;
   --td-input-label-color: var(--text-secondary);
   --td-input-placeholder-color: #c0aba0;
-  --td-input-border-bottom-color: rgba(197, 106, 61, 0.18);
+  --td-input-border-bottom-color: var(--border-soft);
 }
 
 .inline-fields {

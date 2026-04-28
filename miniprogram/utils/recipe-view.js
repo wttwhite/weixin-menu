@@ -1,9 +1,17 @@
+const COOK_DURATION_LABELS_BY_VALUE = Object.freeze({
+  15: '15分钟内',
+  30: '15-30分钟',
+  45: '30-45分钟',
+  60: '45-60分钟',
+  61: '1小时以上'
+})
+
 function getRecipeImageSrc(image = {}) {
   if (!image || typeof image !== 'object') {
     return ''
   }
 
-  return image.fileId || image.localPath || ''
+  return image.displayUrl || image.tempFileURL || image.localPath || image.fileId || ''
 }
 
 function getRecipeCoverImage(recipe = {}) {
@@ -37,6 +45,19 @@ function formatRecommendationStars(score) {
   return stars || ''
 }
 
+function formatCookDurationText(duration) {
+  if (duration === null || duration === undefined || duration === '') {
+    return ''
+  }
+
+  const normalized = String(duration).trim()
+  if (!normalized) {
+    return ''
+  }
+
+  return COOK_DURATION_LABELS_BY_VALUE[normalized] || `${normalized} 分钟`
+}
+
 function buildRecipeSectionOptions(items = []) {
   const seen = new Set()
   const options = [{ key: 'all', label: '全部' }]
@@ -67,6 +88,7 @@ function filterRecipesBySection(items = [], activeSectionKey = 'all') {
 module.exports = {
   buildRecipeSectionOptions,
   filterRecipesBySection,
+  formatCookDurationText,
   formatRecommendationStars,
   getRecipeCoverImage,
   getRecipeCoverImageSrc,

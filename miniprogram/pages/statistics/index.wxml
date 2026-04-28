@@ -1,7 +1,7 @@
 <view class="statistics-page" style="{{themeStyle}}">
   <view class="statistics-hero">
     <view class="statistics-hero__kicker">Kitchen Analytics</view>
-    <view class="statistics-hero__title">{{activeSpaceId || '尚未选择空间'}}</view>
+    <view class="statistics-hero__title">统计看板</view>
     <view class="statistics-hero__summary">{{heroSummaryText}}</view>
 
     <view class="statistics-hero__chips">

@@ -289,8 +289,8 @@ describe('meal-plans page flow', () => {
 
     expect(page.data.isCalendarExpanded).toBe(false)
     expect(page.data.calendarRowCount).toBe(6)
-    expect(page.data.calendarViewportStyle).toContain('height: 45px')
-    expect(page.data.calendarGridStyle).toContain('translateY(-292rpx)')
+    expect(page.data.calendarViewportStyle).toContain('height: 98rpx')
+    expect(page.data.calendarGridStyle).toContain('translateY(-289rpx)')
 
     page.toggleCalendarExpanded()
 

@@ -102,7 +102,10 @@
 
   <view wx:if="{{showRecipeSelector}}" class="recipe-selector__overlay" catchtap="closeRecipeSelector" catchtouchmove="noop">
     <view class="recipe-selector" catchtap="noop" catchtouchmove="noop">
-      <view class="recipe-selector__title">搜索并选择菜谱</view>
+      <view class="recipe-selector__header">
+        <view class="recipe-selector__title">搜索并选择菜谱</view>
+        <view class="recipe-selector__close" bindtap="closeRecipeSelector">×</view>
+      </view>
       <input
         class="recipe-selector__search-input"
         value="{{recipeSearchKeyword}}"

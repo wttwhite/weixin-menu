@@ -16,4 +16,15 @@ describe('pantry manager modal', () => {
     expect(styles).toMatch(/\.pantry-manager-modal__confirm\s*\{[\s\S]*height:\s*84rpx;/)
     expect(styles).toMatch(/\.pantry-manager-modal__confirm\s*\{[\s\S]*font-size:\s*30rpx;/)
   })
+
+  it('uses neutral input and category item backgrounds like the recipe category modal', () => {
+    const styles = readFileSync('miniprogram/components/pantry-manager-modal/index.wxss', 'utf8')
+    const inputBlock = styles.match(/\.pantry-manager-modal__input\s*\{[^}]*\}/)
+    const itemBlock = styles.match(/\.pantry-manager-modal__item\s*\{[^}]*\}/)
+
+    expect(inputBlock ? inputBlock[0] : '').toMatch(/background:\s*#fff;/)
+    expect(inputBlock ? inputBlock[0] : '').not.toMatch(/background:\s*var\(--surface/)
+    expect(itemBlock ? itemBlock[0] : '').toMatch(/background:\s*#f7f8fa;/)
+    expect(itemBlock ? itemBlock[0] : '').not.toMatch(/background:\s*var\(--brand|background:\s*var\(--surface-bg/)
+  })
 })

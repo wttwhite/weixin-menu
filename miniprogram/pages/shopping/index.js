@@ -111,6 +111,17 @@ function decorateShoppingItem(item = {}) {
   }
 }
 
+function buildPrefilledShoppingParts(item = {}) {
+  const parsed = splitShoppingItemText(item.name || '')
+  const hasEmbeddedQuantity = Boolean(parsed.name && (parsed.quantity || parsed.unit))
+
+  return {
+    name: hasEmbeddedQuantity ? parsed.name : (item.name || ''),
+    quantity: hasEmbeddedQuantity ? (parsed.quantity || item.quantity || '1') : (item.quantity || parsed.quantity || '1'),
+    unit: hasEmbeddedQuantity ? (parsed.unit || item.unit || '') : (item.unit || parsed.unit || '')
+  }
+}
+
 function sortShoppingLists(items = []) {
   return [...(items || [])].sort((left, right) => {
     const leftDate = normalizeText(left.listDate)
@@ -181,17 +192,15 @@ function buildHeroMetrics(items = []) {
 }
 
 function buildDraftFromShoppingItem(item = {}) {
-  const parsed = splitShoppingItemText(item.name || '')
-  const quantity = item.quantity || parsed.quantity || '1'
-  const unit = item.unit || parsed.unit || ''
+  const prefilled = buildPrefilledShoppingParts(item)
 
   return {
     shoppingItemId: item._id || '',
     expectedUpdatedAt: item.updatedAt || '',
-    name: item.quantity || item.unit ? (item.name || '') : (parsed.name || item.name || ''),
+    name: prefilled.name,
     category: item.category || '',
-    quantity,
-    unit,
+    quantity: prefilled.quantity,
+    unit: prefilled.unit,
     notes: item.notes || ''
   }
 }
@@ -913,13 +922,13 @@ Page({
       pantryService.listPantryLocations(this.data.activeSpaceId)
     ])
 
-    const parsed = splitShoppingItemText(shoppingItem.name || '')
+    const prefilled = buildPrefilledShoppingParts(shoppingItem)
     const pantryEntryForm = {
       ...createEmptyPantryForm(),
-      name: shoppingItem.quantity || shoppingItem.unit ? (shoppingItem.name || '') : (parsed.name || shoppingItem.name || ''),
+      name: prefilled.name,
       category: shoppingItem.category || '',
-      quantity: shoppingItem.quantity || parsed.quantity || '1',
-      unit: shoppingItem.unit || parsed.unit || ''
+      quantity: prefilled.quantity,
+      unit: prefilled.unit
     }
     const pantryCategoryOptions = buildManagerOptionLabels(categoryResult.items || [], pantryEntryForm.category)
     const pantryLocationOptions = buildManagerOptionLabels(locationResult.items || [], pantryEntryForm.location)

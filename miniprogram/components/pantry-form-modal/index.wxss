@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 72rpx 20rpx calc(env(safe-area-inset-bottom) + 24rpx);
+  padding: 72rpx 20rpx calc(env(safe-area-inset-bottom) + 150rpx);
   background: rgba(12, 24, 18, 0.3);
   backdrop-filter: blur(6rpx);
   box-sizing: border-box;
@@ -27,18 +27,39 @@
 
 .pantry-form-modal__header {
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
   padding-bottom: 18rpx;
 }
 
 .pantry-form-modal__title {
-  font-size: 64rpx;
+  font-size: 34rpx;
   font-weight: 900;
   color: #12213a;
+}
+
+.pantry-form-modal__close-icon,
+.category-selector__close,
+.unit-selector__close {
+  width: 56rpx;
+  min-width: 56rpx;
+  height: 56rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-muted, #f2f4f8);
+  color: var(--text-secondary, #667084);
+  font-size: 26rpx;
+  font-weight: 700;
 }
 
 .pantry-form-modal__body {
   flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .pantry-form-modal__body-content {
@@ -95,6 +116,28 @@
   padding: 0 24rpx;
 }
 
+.field-picker-row {
+  margin-top: 10rpx;
+}
+
+.field-picker-row .field-input,
+.field-picker-row .date-row__picker,
+.field-picker-row .category-picker__value {
+  margin-top: 0;
+}
+
+.category-picker__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.category-picker__actions {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
 .category-picker__value--placeholder {
   color: #b6bdc8;
 }
@@ -135,11 +178,16 @@
 
 .category-selector__header {
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
   padding-bottom: 8rpx;
 }
 
-.category-selector__title {
-  font-size: 38rpx;
+.category-selector__title,
+.unit-selector__title {
+  font-size: 34rpx;
   font-weight: 800;
   color: #182234;
 }
@@ -166,8 +214,17 @@
 }
 
 .category-selector__item--active {
-  background: rgba(197, 106, 61, 0.1);
+  background: var(--surface-muted, #f3f4f7);
   color: var(--brand);
+}
+
+.field-clear--inline {
+  position: static;
+  right: auto;
+  top: auto;
+  transform: none;
+  z-index: 1;
+  flex: none;
 }
 
 .category-selector__empty {

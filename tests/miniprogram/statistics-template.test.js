@@ -9,6 +9,8 @@ describe('statistics page template', () => {
     expect(template).toContain('statistics-hero')
     expect(template).toContain('statistics-hero__kicker')
     expect(template).toContain('statistics-hero__title')
+    expect(template).toContain('统计看板')
+    expect(template.includes('{{activeSpaceId')).toBe(false)
     expect(template).toContain('statistics-hero__summary')
     expect(template).toContain('statistics-hero__chips')
     expect(template).toContain('statistics-metric-grid')

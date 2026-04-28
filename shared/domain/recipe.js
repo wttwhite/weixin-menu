@@ -53,16 +53,65 @@ function sortBySortOrder(items) {
     .map((entry) => entry.item)
 }
 
+function splitIngredientText(value) {
+  const text = normalizeText(value)
+  if (!text) {
+    return {
+      name: '',
+      quantity: '',
+      unit: ''
+    }
+  }
+
+  const amountWordMatch = text.match(/^(.+?)\s+(少许|适量|若干|一小撮|一把)$/)
+  if (amountWordMatch) {
+    return {
+      name: normalizeText(amountWordMatch[1]),
+      quantity: amountWordMatch[2],
+      unit: ''
+    }
+  }
+
+  const spacedAmountMatch = text.match(/^(.+?)\s+(\d+(?:\.\d+)?|[零一二两三四五六七八九十半]+)([^\d\s]*)$/)
+  if (spacedAmountMatch) {
+    return {
+      name: normalizeText(spacedAmountMatch[1]),
+      quantity: spacedAmountMatch[2],
+      unit: normalizeText(spacedAmountMatch[3])
+    }
+  }
+
+  const compactAmountMatch = text.match(/^(.+?)(\d+(?:\.\d+)?)([^\d\s]+)$/)
+  if (compactAmountMatch) {
+    return {
+      name: normalizeText(compactAmountMatch[1]),
+      quantity: compactAmountMatch[2],
+      unit: normalizeText(compactAmountMatch[3])
+    }
+  }
+
+  return {
+    name: text,
+    quantity: '',
+    unit: ''
+  }
+}
+
 function normalizeRecipeIngredients(ingredients = []) {
   const normalized = (ingredients || [])
-    .map((item, index) => ({
-      name: normalizeText(item && item.name),
-      quantity: normalizeText(item && item.quantity),
-      unit: normalizeText(item && item.unit),
-      preparation: normalizeText(item && item.preparation),
-      notes: normalizeText(item && item.notes),
-      sortOrder: normalizeSortOrder(item && item.sortOrder, index + 1)
-    }))
+    .map((item, index) => {
+      const parsed = splitIngredientText(item && item.name)
+      const quantity = normalizeText(item && item.quantity)
+      const unit = normalizeText(item && item.unit)
+      return {
+        name: quantity || unit ? normalizeText(item && item.name) : parsed.name,
+        quantity: quantity || parsed.quantity,
+        unit: unit || parsed.unit,
+        preparation: normalizeText(item && item.preparation),
+        notes: normalizeText(item && item.notes),
+        sortOrder: normalizeSortOrder(item && item.sortOrder, index + 1)
+      }
+    })
     .filter((item) => item.name)
 
   return sortBySortOrder(normalized).map((item, index) => ({

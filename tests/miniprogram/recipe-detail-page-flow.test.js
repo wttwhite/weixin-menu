@@ -45,6 +45,43 @@ beforeEach(() => {
 })
 
 describe('recipe detail page flow', () => {
+  it('syncs theme state on show so detail styles can use runtime theme variables', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn().mockResolvedValue({
+          result: {
+            code: 0,
+            data: {
+              item: {
+                _id: 'recipe-1',
+                name: 'Mapo',
+                images: []
+              }
+            }
+          }
+        })
+      },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1',
+        themeKey: 'tech-blue'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.themeKey).toBe('tech-blue')
+    expect(page.data.themeStyle).toContain('--page-bg')
+    expect(page.data.themeStyle).toContain('#5c86b1')
+  })
+
   it('maps cover image and previews the gallery in wx.previewImage', async () => {
     const previewImage = vi.fn()
     global.wx = {
@@ -103,6 +140,64 @@ describe('recipe detail page flow', () => {
     })
   })
 
+  it('resolves cloud image file ids to temporary urls for detail rendering', async () => {
+    const getTempFileURL = vi.fn().mockResolvedValue({
+      fileList: [
+        {
+          fileID: 'cloud://gallery-1',
+          tempFileURL: 'https://tmp.example/gallery-1.jpg'
+        },
+        {
+          fileID: 'cloud://cover',
+          tempFileURL: 'https://tmp.example/cover.jpg'
+        }
+      ]
+    })
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn().mockResolvedValue({
+          result: {
+            code: 0,
+            data: {
+              item: {
+                _id: 'recipe-1',
+                name: 'Mapo',
+                coverImageId: 'img-2',
+                images: [
+                  { _id: 'img-1', fileId: 'cloud://gallery-1', imageRole: 'gallery' },
+                  { _id: 'img-2', fileId: 'cloud://cover', imageRole: 'cover' }
+                ]
+              }
+            }
+          }
+        }),
+        getTempFileURL
+      },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(getTempFileURL).toHaveBeenCalledWith({
+      fileList: ['cloud://gallery-1', 'cloud://cover']
+    })
+    expect(page.data.coverImageUrl).toBe('https://tmp.example/cover.jpg')
+    expect(page.data.galleryImageUrls).toEqual([
+      'https://tmp.example/gallery-1.jpg',
+      'https://tmp.example/cover.jpg'
+    ])
+  })
+
   it('falls back to a default hero food image when the recipe has no uploaded images', async () => {
     global.wx = {
       cloud: {
@@ -137,6 +232,83 @@ describe('recipe detail page flow', () => {
     expect(page.data.coverImageUrl).toBe('/images/food-hero-table.svg')
     expect(page.data.galleryImageUrls).toEqual([])
     expect(page.data.hasGalleryItems).toBe(false)
+  })
+
+  it('formats the one-hour-plus cook duration in detail metrics', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn().mockResolvedValue({
+          result: {
+            code: 0,
+            data: {
+              item: {
+                _id: 'recipe-1',
+                name: 'Long simmer soup',
+                cookTimeMinutes: '61',
+                images: []
+              }
+            }
+          }
+        })
+      },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.heroMetricTexts).toContain('⏱ 1小时以上')
+    expect(page.data.metricTexts).toContain('烹饪 1小时以上')
+  })
+
+  it('does not show a dash for ingredients without quantity details', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn().mockResolvedValue({
+          result: {
+            code: 0,
+            data: {
+              item: {
+                _id: 'recipe-1',
+                name: 'Simple soup',
+                images: [],
+                ingredients: [
+                  { name: '番茄' },
+                  { name: '盐', quantity: '1', unit: '勺' }
+                ]
+              }
+            }
+          }
+        })
+      },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.ingredientViewItems[0].amountText).toBe('')
+    expect(page.data.ingredientViewItems[0].hasAmountText).toBe(false)
+    expect(page.data.ingredientViewItems[1].amountText).toBe('1 勺')
+    expect(page.data.ingredientViewItems[1].hasAmountText).toBe(true)
   })
 
   it('closes back to meal plans when opened from plans without relying on stack history', async () => {
@@ -241,6 +413,67 @@ describe('recipe detail page flow', () => {
     await flushAsyncWork()
 
     expect(callFunction).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes cached detail image temporary urls without refetching recipe detail', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          item: {
+            _id: 'recipe-1',
+            name: 'Mapo',
+            coverImageId: 'img-1',
+            images: [{ _id: 'img-1', fileId: 'cloud://cover', imageRole: 'cover' }]
+          }
+        }
+      }
+    })
+    const getTempFileURL = vi
+      .fn()
+      .mockResolvedValueOnce({
+        fileList: [
+          {
+            fileID: 'cloud://cover',
+            tempFileURL: 'https://tmp.example/cover-first.jpg'
+          }
+        ]
+      })
+      .mockResolvedValueOnce({
+        fileList: [
+          {
+            fileID: 'cloud://cover',
+            tempFileURL: 'https://tmp.example/cover-second.jpg'
+          }
+        ]
+      })
+    global.wx = {
+      cloud: {
+        callFunction,
+        getTempFileURL
+      },
+      previewImage: vi.fn(),
+      navigateBack: vi.fn(),
+      navigateTo: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-detail/index.js')
+    page.onLoad({ recipeId: 'recipe-1' })
+    await page.onShow()
+    await flushAsyncWork()
+    expect(page.data.coverImageUrl).toBe('https://tmp.example/cover-first.jpg')
+
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(1)
+    expect(getTempFileURL).toHaveBeenCalledTimes(2)
+    expect(page.data.coverImageUrl).toBe('https://tmp.example/cover-second.jpg')
   })
 
   it('refreshes detail after navigating to edit and returning to the page', async () => {

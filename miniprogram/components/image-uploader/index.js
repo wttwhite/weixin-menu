@@ -26,6 +26,10 @@ Component({
       type: String,
       value: 'gallery'
     },
+    coverImageId: {
+      type: String,
+      value: ''
+    },
     maxCount: {
       type: Number,
       value: 10
@@ -183,6 +187,16 @@ Component({
         return
       }
       this.triggerEvent('remove', {
+        imageId
+      })
+    },
+
+    handleCover(event) {
+      const imageId = event.currentTarget.dataset.imageId
+      if (!imageId) {
+        return
+      }
+      this.triggerEvent('cover', {
         imageId
       })
     }

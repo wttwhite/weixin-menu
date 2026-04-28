@@ -112,6 +112,15 @@ function showOperationError(error) {
   }
 }
 
+function showPantryManagerSuccessToast(action = '', config = {}) {
+  if (typeof wx !== 'undefined' && typeof wx.showToast === 'function') {
+    wx.showToast({
+      title: `已${action}${config.deleteLabel || '分类'}`,
+      icon: 'success'
+    })
+  }
+}
+
 Page({
   data: {
     loading: true,
@@ -583,6 +592,10 @@ Page({
           }
         })
       })
+      wx.showToast({
+        title: '已更新分类',
+        icon: 'success'
+      })
     } catch (error) {
       wx.showToast({
         title: getErrorMessage(error),
@@ -611,6 +624,10 @@ Page({
       await createRecipeService().deleteRecipeCategory(this.data.activeSpaceId, name)
       this.setData({
         recipeCategoryManagerItems: (this.data.recipeCategoryManagerItems || []).filter((item) => item && item.name !== name)
+      })
+      wx.showToast({
+        title: '已删除分类',
+        icon: 'success'
       })
     } catch (error) {
       wx.showToast({
@@ -643,6 +660,7 @@ Page({
         pantryManagerItems: nextItems,
         pantryManagerMetaText: buildPantryManagerMetaText(type, nextItems)
       })
+      showPantryManagerSuccessToast('添加', config)
     } catch (error) {
       showOperationError(error)
     }
@@ -690,6 +708,7 @@ Page({
         pantryManagerItems: nextItems,
         pantryManagerMetaText: buildPantryManagerMetaText(type, nextItems)
       })
+      showPantryManagerSuccessToast('更新', config)
     } catch (error) {
       showOperationError(error)
     }
@@ -723,6 +742,7 @@ Page({
         pantryManagerItems: nextItems,
         pantryManagerMetaText: buildPantryManagerMetaText(type, nextItems)
       })
+      showPantryManagerSuccessToast('删除', config)
     } catch (error) {
       showOperationError(error)
     }

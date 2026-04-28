@@ -20,7 +20,7 @@ describe('shopping page template', () => {
     expect(template).toContain('shopping-list-card')
     expect(template).toContain('录入库存')
     expect(template).toContain('计划生成')
-    expect(template).toContain('生成计划项')
+    expect(template).not.toContain('生成计划项')
     expect(template).toContain('toggleShoppingListItems')
     expect(template).toMatch(/shopping-list-card__subhead[\s\S]*bindtap="toggleShoppingListItems"/)
     expect(template).toContain('showDraftCategorySelector')
@@ -31,6 +31,9 @@ describe('shopping page template', () => {
     expect(template).toContain('showPantryEntryModal')
     expect(template).toContain('pantry-form-modal')
     expect(template).toContain('shopping-modal__body')
+    expect(template).toContain('shopping-modal__header')
+    expect(template).toContain('shopping-modal__close-icon')
+    expect(template).toContain('category-selector__close')
     expect(template).toContain('submit-label="保存"')
     expect(template).toContain('bindtap="openCreateListModal"')
     expect(template.includes('handleListItemDraftCategoryChange')).toBe(false)
@@ -69,5 +72,11 @@ describe('shopping page template', () => {
     expect(styles).toContain('var(--border-soft')
     expect(styles).toMatch(/\.shopping-modal\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;[\s\S]*overflow:\s*hidden;/)
     expect(styles).toMatch(/\.shopping-modal__body\s*\{[\s\S]*flex:\s*1;[\s\S]*min-height:\s*0;/)
+  })
+
+  it('uses pale gray shopping item rows instead of themed item backgrounds', () => {
+    const styles = readFileSync('miniprogram/pages/shopping/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.shopping-item-row\s*\{[\s\S]*background:\s*#f7f8fa;/)
   })
 })

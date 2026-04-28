@@ -95,10 +95,32 @@ describe('pantry form modal', () => {
     expect(styles).toMatch(/\.pantry-form-modal__overlay\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*justify-content:\s*center;/)
     expect(styles).toMatch(/\.pantry-form-modal\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;/)
     expect(styles).toMatch(/\.pantry-form-modal\s*\{[\s\S]*overflow:\s*hidden;/)
-    expect(styles).toMatch(/\.pantry-form-modal__title\s*\{[\s\S]*font-size:\s*64rpx;/)
+    expect(styles).toMatch(/\.pantry-form-modal__title\s*\{[\s\S]*font-size:\s*34rpx;/)
     expect(styles).toMatch(/\.pantry-form-modal__body\s*\{[\s\S]*flex:\s*1;[\s\S]*min-height:\s*0;/)
     expect(styles).toMatch(/\.pantry-form-modal__footer\s*\{[\s\S]*position:\s*relative;[\s\S]*left:\s*auto;[\s\S]*right:\s*auto;[\s\S]*bottom:\s*auto;/)
-    expect(styles).toMatch(/\.category-selector__title\s*\{[\s\S]*font-size:\s*38rpx;/)
+    expect(styles).toMatch(/\.category-selector__title,\s*\.unit-selector__title\s*\{[\s\S]*font-size:\s*34rpx;/)
+  })
+
+  it('keeps modal actions above the tab bar and gives nested selectors close buttons', () => {
+    const template = readFileSync('miniprogram/components/pantry-form-modal/index.wxml', 'utf8')
+    const styles = readFileSync('miniprogram/components/pantry-form-modal/index.wxss', 'utf8')
+
+    expect(template).toContain('pantry-form-modal__close-icon')
+    expect(template).toContain('class="category-selector__close" bindtap="closeCategorySelector"')
+    expect(template).toContain('class="unit-selector__close" bindtap="closeUnitSelector"')
+    expect(template).toMatch(/field-clear field-clear--inline[\s\S]*category-picker__arrow/)
+    expect(styles).toMatch(/\.pantry-form-modal__overlay\s*\{[\s\S]*padding:\s*72rpx 20rpx calc\(env\(safe-area-inset-bottom\) \+ 150rpx\);/)
+    expect(styles).toMatch(/\.pantry-form-modal__body\s*\{[\s\S]*height:\s*100%;/)
+    expect(styles).toMatch(/\.pantry-form-modal__title\s*\{[\s\S]*font-size:\s*34rpx;/)
+    expect(styles).toMatch(/\.category-selector__title,\s*\.unit-selector__title\s*\{[\s\S]*font-size:\s*34rpx;/)
+    expect(styles).toMatch(/\.category-selector__item--active\s*\{[\s\S]*background:\s*var\(--surface-muted,\s*#f3f4f7\);/)
+  })
+
+  it('uses one consistent 10rpx top gap for pantry form controls', () => {
+    const styles = readFileSync('miniprogram/components/pantry-form-modal/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.field-picker-row\s*\{[\s\S]*margin-top:\s*10rpx;/)
+    expect(styles).toMatch(/\.field-picker-row\s+\.field-input,\s*\.field-picker-row\s+\.date-row__picker,\s*\.field-picker-row\s+\.category-picker__value\s*\{[\s\S]*margin-top:\s*0;/)
   })
 
   it('opens category selector from the field and emits selected category back to the page', async () => {

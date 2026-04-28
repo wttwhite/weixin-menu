@@ -1,7 +1,7 @@
 const CALENDAR_ROW_HEIGHT_RPX = 88
 const CALENDAR_ROW_GAP_RPX = 10
 const CALENDAR_TOTAL_ROWS = 6
-const CALENDAR_COLLAPSED_OFFSET_COMPENSATION_RPX = 2
+const CALENDAR_COLLAPSED_ROW_CENTER_OFFSET_RPX = CALENDAR_ROW_GAP_RPX / 2
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -153,9 +153,13 @@ function buildCalendarPresentation(items = [], selectedDate = '', isExpanded = f
   const visibleRowCount = isExpanded ? rowCount : 1
   const translateYRpx = isExpanded
     ? 0
-    : Math.max(0, rowIndex * (CALENDAR_ROW_HEIGHT_RPX + CALENDAR_ROW_GAP_RPX) - CALENDAR_COLLAPSED_OFFSET_COMPENSATION_RPX)
-  const viewportHeightRpx =
-    visibleRowCount * CALENDAR_ROW_HEIGHT_RPX + Math.max(visibleRowCount - 1, 0) * CALENDAR_ROW_GAP_RPX
+    : Math.max(
+      0,
+      rowIndex * (CALENDAR_ROW_HEIGHT_RPX + CALENDAR_ROW_GAP_RPX) - CALENDAR_COLLAPSED_ROW_CENTER_OFFSET_RPX
+    )
+  const viewportHeightRpx = isExpanded
+    ? visibleRowCount * CALENDAR_ROW_HEIGHT_RPX + Math.max(visibleRowCount - 1, 0) * CALENDAR_ROW_GAP_RPX
+    : CALENDAR_ROW_HEIGHT_RPX + CALENDAR_ROW_GAP_RPX
 
   return {
     rowCount,
@@ -170,6 +174,7 @@ module.exports = {
   CALENDAR_ROW_HEIGHT_RPX,
   CALENDAR_ROW_GAP_RPX,
   CALENDAR_TOTAL_ROWS,
+  CALENDAR_COLLAPSED_ROW_CENTER_OFFSET_RPX,
   shiftMonthKey,
   formatMonthLabel,
   resolveSelectedDate,

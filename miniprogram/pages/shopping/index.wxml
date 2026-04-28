@@ -103,7 +103,7 @@
             data-shopping-list-id="{{item._id}}"
             catchtap="generateFromMealPlans"
           >
-            生成计划项
+            同步计划
           </view>
         </view>
 
@@ -149,7 +149,10 @@
 
   <view wx:if="{{showListModal}}" class="shopping-modal__overlay" catchtap="closeListModal" catchtouchmove="noop">
     <view class="shopping-modal" catchtap="noop">
-      <view class="shopping-modal__title">{{listModalTitle}}</view>
+      <view class="shopping-modal__header">
+        <view class="shopping-modal__title">{{listModalTitle}}</view>
+        <view class="shopping-modal__close-icon" bindtap="closeListModal">×</view>
+      </view>
 
       <scroll-view class="shopping-modal__body" scroll-y="true" show-scrollbar="{{false}}">
         <view class="shopping-modal__body-content">
@@ -239,6 +242,7 @@
     <view class="category-selector" catchtap="noop" catchtouchmove="noop">
       <view class="category-selector__header">
         <view class="category-selector__title">选择食材分类</view>
+        <view class="category-selector__close" bindtap="closeDraftCategorySelector">×</view>
       </view>
 
       <scroll-view wx:if="{{draftCategorySelectorItems.length}}" scroll-y="true" class="category-selector__list" show-scrollbar="{{false}}">

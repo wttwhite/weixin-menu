@@ -423,11 +423,13 @@ function createRepository(options = {}) {
       deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
     }
     const limit = typeof query.limit === 'number' && query.limit > 0 ? query.limit : 100
-    const result = await db
+    let request = db
       .collection(COLLECTIONS.RECIPES)
       .where(where)
-      .limit(limit)
-      .get()
+    if (typeof request.orderBy === 'function') {
+      request = request.orderBy('createdAt', 'desc').orderBy('_id', 'desc')
+    }
+    const result = await request.limit(limit).get()
 
     return result.data || []
   }

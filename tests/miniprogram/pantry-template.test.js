@@ -81,6 +81,13 @@ describe('pantry page settings modal', () => {
     expect(template).toMatch(/channel-surface__scroll[\s\S]*scroll-y/)
   })
 
+  it('disables internal pantry scrolling while the floating create button is being dragged', () => {
+    const template = readFileSync('miniprogram/pages/pantry/index.wxml', 'utf8')
+
+    expect(template).toMatch(/channel-rail__scroll[\s\S]*scroll-y="\{\{!floatingCreateScrollLocked\}\}"/)
+    expect(template).toMatch(/channel-surface__scroll[\s\S]*scroll-y="\{\{showVisibleItems && !floatingCreateScrollLocked\}\}"/)
+  })
+
   it('widens the category rail and keeps category stats inline without pantry thumbnails', () => {
     const styles = readFileSync('miniprogram/pages/pantry/index.wxss', 'utf8')
 

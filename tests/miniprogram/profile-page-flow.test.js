@@ -444,6 +444,176 @@ describe('profile page flow', () => {
     })
   })
 
+  it('shows success toasts after recipe category rename and delete from profile manager', async () => {
+    const callFunction = createCallFunctionMock()
+    const showToast = vi.fn()
+    const showModal = vi
+      .fn()
+      .mockResolvedValueOnce({
+        confirm: true,
+        content: '家常热菜'
+      })
+      .mockResolvedValueOnce({
+        confirm: true
+      })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      setClipboardData: vi.fn(),
+      showToast,
+      showModal,
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1',
+        themeKey: 'default',
+        themeStyle: '--page-bg: #f5f1e8;'
+      },
+      setActiveSpaceId: vi.fn(),
+      setTheme: vi.fn()
+    })
+
+    const page = await loadPage('../../miniprogram/pages/profile/index.js')
+    page.setData({ activeSpaceId: 'space-1' })
+    await page.openRecipeCategoryManager()
+
+    await page.renameRecipeCategoryManagerItem({
+      detail: {
+        name: '家常菜'
+      }
+    })
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'api',
+      data: {
+        action: 'updateRecipeCategory',
+        spaceId: 'space-1',
+        previousName: '家常菜',
+        name: '家常热菜'
+      },
+      config: undefined
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已更新分类',
+      icon: 'success'
+    })
+
+    await page.deleteRecipeCategoryManagerItem({
+      detail: {
+        name: '饮品',
+        deletable: true
+      }
+    })
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'api',
+      data: {
+        action: 'deleteRecipeCategory',
+        spaceId: 'space-1',
+        name: '饮品'
+      },
+      config: undefined
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已删除分类',
+      icon: 'success'
+    })
+  })
+
+  it('shows success toasts after pantry category create, rename, and delete from profile manager', async () => {
+    const callFunction = createCallFunctionMock()
+    const showToast = vi.fn()
+    const showModal = vi
+      .fn()
+      .mockResolvedValueOnce({
+        confirm: true,
+        content: '冷藏蔬菜'
+      })
+      .mockResolvedValueOnce({
+        confirm: true
+      })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      setClipboardData: vi.fn(),
+      showToast,
+      showModal,
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1',
+        themeKey: 'default',
+        themeStyle: '--page-bg: #f5f1e8;'
+      },
+      setActiveSpaceId: vi.fn(),
+      setTheme: vi.fn()
+    })
+
+    const page = await loadPage('../../miniprogram/pages/profile/index.js')
+    page.setData({ activeSpaceId: 'space-1' })
+    await page.openPantryCategoryManager()
+
+    page.handlePantryManagerInput({
+      detail: {
+        value: '调味'
+      }
+    })
+    await page.submitPantryManagerCreate()
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'api',
+      data: {
+        action: 'createPantryCategory',
+        spaceId: 'space-1',
+        name: '调味'
+      },
+      config: undefined
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已添加分类',
+      icon: 'success'
+    })
+
+    await page.renamePantryManagerItem({
+      detail: {
+        name: '蔬菜'
+      }
+    })
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'api',
+      data: {
+        action: 'updatePantryCategory',
+        spaceId: 'space-1',
+        previousName: '蔬菜',
+        name: '冷藏蔬菜'
+      },
+      config: undefined
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已更新分类',
+      icon: 'success'
+    })
+
+    await page.deletePantryManagerItem({
+      detail: {
+        name: '零食',
+        deletable: true
+      }
+    })
+    expect(callFunction).toHaveBeenCalledWith({
+      name: 'api',
+      data: {
+        action: 'deletePantryCategory',
+        spaceId: 'space-1',
+        name: '零食'
+      },
+      config: undefined
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已删除分类',
+      icon: 'success'
+    })
+  })
+
   it('renames and reorders pantry locations through the shared pantry manager modal', async () => {
     const callFunction = createCallFunctionMock()
     const showModal = vi.fn().mockResolvedValue({

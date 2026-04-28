@@ -50,6 +50,35 @@ describe('normalizeRecipeDraft', () => {
       })
     )
   })
+
+  it('splits ingredient name input with trailing quantity and unit', () => {
+    const result = normalizeRecipeDraft({
+      name: '土豆炖肉',
+      ingredients: [
+        { name: '土豆 2个' },
+        { name: '五花肉 500g' },
+        { name: '盐 少许' }
+      ]
+    })
+
+    expect(result.ingredients).toEqual([
+      expect.objectContaining({
+        name: '土豆',
+        quantity: '2',
+        unit: '个'
+      }),
+      expect.objectContaining({
+        name: '五花肉',
+        quantity: '500',
+        unit: 'g'
+      }),
+      expect.objectContaining({
+        name: '盐',
+        quantity: '少许',
+        unit: ''
+      })
+    ])
+  })
 })
 
 describe('normalizeRecipeTagDraft', () => {

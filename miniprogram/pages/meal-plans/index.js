@@ -319,9 +319,6 @@ function buildSelectedPlanItems(items = [], todayIso = '') {
 }
 
 function buildCalendarViewportStyle(presentation = {}) {
-  if ((presentation.visibleRowCount || 1) === 1) {
-    return 'height: 45px;'
-  }
   return `height: ${presentation.viewportHeightRpx || calendarHelper.CALENDAR_ROW_HEIGHT_RPX}rpx;`
 }
 
@@ -574,7 +571,7 @@ Page({
     isCalendarExpanded: false,
     calendarItems: [],
     calendarRowCount: 0,
-    calendarViewportStyle: 'height: 45px;',
+    calendarViewportStyle: 'height: 88rpx;',
     calendarGridStyle: 'transform: translateY(0rpx);',
     selectedDate: '',
     selectedDateTitle: '',

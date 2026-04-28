@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+function getStyleBlock(styles, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))
+  return match ? match[1] : ''
+}
+
 describe('recipe edit template', () => {
   it('includes recommendationScore field in form controls', () => {
     const template = readFileSync('miniprogram/pages/recipe-edit/index.wxml', 'utf8')
@@ -28,11 +34,25 @@ describe('recipe edit template', () => {
     const template = readFileSync('miniprogram/pages/recipe-edit/index.wxml', 'utf8')
     expect(template.includes('bindtap="openCategorySelector"')).toBe(true)
     expect(template.includes('class="category-selector__overlay"')).toBe(true)
+    expect(template.includes('<scroll-view scroll-y="true" class="category-selector__list">')).toBe(true)
+    expect(template.includes('class="category-selector__list-inner"')).toBe(true)
     expect(template.includes('duration-chip')).toBe(true)
     expect(template.includes('bindtap="handleCookTimeOptionTap"')).toBe(true)
     expect(template.includes('recommendationStarItems')).toBe(true)
     expect(template.includes('bindtap="handleRecommendationTap"')).toBe(true)
     expect(template).toContain('>★</text>')
+  })
+
+  it('constrains the recipe category selector height and scrolls long category lists', () => {
+    const styles = readFileSync('miniprogram/pages/recipe-edit/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.category-selector\s*\{[\s\S]*max-height:\s*calc\(100vh - 160rpx\);/)
+    expect(styles).toMatch(/\.category-selector\s*\{[\s\S]*display:\s*flex;/)
+    expect(styles).toMatch(/\.category-selector\s*\{[\s\S]*flex-direction:\s*column;/)
+    expect(styles).toMatch(/\.category-selector__list\s*\{[\s\S]*max-height:\s*56vh;/)
+    expect(styles).toMatch(/\.category-selector__list\s*\{[\s\S]*overflow:\s*hidden;/)
+    expect(styles).toMatch(/\.category-selector__list-inner\s*\{[\s\S]*display:\s*grid;/)
+    expect(styles).toMatch(/\.category-selector__list-inner\s*\{[\s\S]*gap:\s*12rpx;/)
   })
 
   it('removes the notes-and-source section from the editor form', () => {
@@ -82,6 +102,15 @@ describe('recipe edit template', () => {
     expect(uploaderStyles).toMatch(/\.uploader__entry--camera\s+\.uploader__entry-icon\s*\{[\s\S]*transform:\s*translateY\(-\d+rpx\);/)
   })
 
+  it('uses pale gray backgrounds for section title icons and add row buttons', () => {
+    const styles = readFileSync('miniprogram/pages/recipe-edit/index.wxss', 'utf8')
+    const sectionIconStyles = getStyleBlock(styles, '.editor-section__icon')
+    const addButtonStyles = getStyleBlock(styles, '.section-button--soft')
+
+    expect(sectionIconStyles).toMatch(/background:\s*#f4f5f8;/)
+    expect(addButtonStyles).toMatch(/--td-button-default-bg-color:\s*#f4f5f8;/)
+  })
+
   it('uses a left-right layout for description and removes extra step tips input', () => {
     const template = readFileSync('miniprogram/pages/recipe-edit/index.wxml', 'utf8')
 
@@ -103,5 +132,22 @@ describe('recipe edit template', () => {
   it('uses a fallback navigation title for the recipe form page config', () => {
     const pageConfig = readFileSync('miniprogram/pages/recipe-edit/index.json', 'utf8')
     expect(pageConfig.includes('"navigationBarTitleText": "菜谱表单"')).toBe(true)
+  })
+
+  it('shows cover and delete controls on recipe image cards and smaller upload entries', () => {
+    const template = readFileSync('miniprogram/pages/recipe-edit/index.wxml', 'utf8')
+    const uploaderTemplate = readFileSync('miniprogram/components/image-uploader/index.wxml', 'utf8')
+    const uploaderStyles = readFileSync('miniprogram/components/image-uploader/index.wxss', 'utf8')
+
+    expect(template).toContain('coverImageId="{{form.coverImageId}}"')
+    expect(template).toContain('bindcover="handleImageCoverSelect"')
+    expect(uploaderTemplate).toContain('class="{{item._id === coverImageId ?')
+    expect(uploaderTemplate).toContain('bindtap="handleCover"')
+    expect(uploaderTemplate).toContain('>封面<')
+    expect(uploaderTemplate).toContain('bindtap="handleRemove"')
+    expect(uploaderTemplate).toContain('>删除<')
+    expect(uploaderStyles).toMatch(/\.uploader__list\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);/)
+    expect(uploaderStyles).toMatch(/\.uploader__entry\s*\{[\s\S]*aspect-ratio:\s*4\s*\/\s*3;[\s\S]*min-height:\s*1\d\drpx;/)
+    expect(uploaderStyles).toMatch(/\.uploader__actions-overlay\s*\{[\s\S]*position:\s*absolute;[\s\S]*bottom:\s*0;/)
   })
 })

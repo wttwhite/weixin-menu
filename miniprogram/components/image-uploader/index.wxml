@@ -1,7 +1,20 @@
 <view class="uploader">
   <view wx:if="{{label}}" class="uploader__label">{{label}}</view>
 
-  <view class="uploader__action-row">
+  <view class="uploader__list">
+    <view
+      wx:for="{{items}}"
+      wx:key="_id"
+      class="{{item._id === coverImageId ? 'uploader__item uploader__item--cover' : 'uploader__item'}}"
+    >
+      <image class="uploader__image" src="{{item.localPath || item.displayUrl || item.tempFileURL || item.fileId || item.cloudPath}}" mode="aspectFill" />
+      <view wx:if="{{item._id === coverImageId}}" class="uploader__cover-badge">封面</view>
+      <view class="uploader__actions-overlay">
+        <view class="uploader__overlay-btn" data-image-id="{{item._id}}" bindtap="handleCover">封面</view>
+        <view class="uploader__overlay-btn uploader__overlay-btn--delete" data-image-id="{{item._id}}" bindtap="handleRemove">删除</view>
+      </view>
+    </view>
+
     <view
       class="uploader__entry uploader__entry--camera"
       bindtap="handleCameraTap"
@@ -21,20 +34,4 @@
   </view>
 
   <view wx:if="{{uploading}}" class="uploader__hint">图片上传中...</view>
-
-  <view wx:if="{{items.length}}" class="uploader__list">
-    <view wx:for="{{items}}" wx:key="_id" class="uploader__item">
-      <image class="uploader__image" src="{{item.localPath || item.fileId}}" mode="aspectFill" />
-      <view class="uploader__meta">
-        <view class="uploader__status">{{item.uploadStatus || 'confirmed'}}</view>
-        <view
-          class="uploader__remove"
-          data-image-id="{{item._id}}"
-          bindtap="handleRemove"
-        >
-          删除
-        </view>
-      </view>
-    </view>
-  </view>
 </view>

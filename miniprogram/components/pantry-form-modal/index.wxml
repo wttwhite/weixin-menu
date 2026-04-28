@@ -2,6 +2,7 @@
   <view class="pantry-form-modal" catchtap="noop" catchtouchmove="noop">
     <view class="pantry-form-modal__header">
       <view class="pantry-form-modal__title">{{title}}</view>
+      <view class="pantry-form-modal__close-icon" bindtap="close">×</view>
     </view>
 
     <scroll-view class="pantry-form-modal__body" scroll-y="true" show-scrollbar="{{false}}">
@@ -29,12 +30,14 @@
                 <view class="field-label field-label--tight">分类</view>
                 <view class="field-picker-row">
                   <view class="category-picker" bindtap="openCategorySelector">
-                    <view class="category-picker__value {{!form.category ? 'category-picker__value--placeholder' : ''}} {{form.category ? 'field-input--with-clear' : ''}}">
-                      <text>{{categoryOptions[categoryIndex] || '未设置'}}</text>
-                      <view class="category-picker__arrow"></view>
+                    <view class="category-picker__value {{!form.category ? 'category-picker__value--placeholder' : ''}}">
+                      <text class="category-picker__text">{{categoryOptions[categoryIndex] || '未设置'}}</text>
+                      <view class="category-picker__actions">
+                        <view wx:if="{{form.category}}" class="field-clear field-clear--inline" catchtap="clearCategory">×</view>
+                        <view class="category-picker__arrow"></view>
+                      </view>
                     </view>
                   </view>
-                  <view wx:if="{{form.category}}" class="field-clear" bindtap="clearCategory">×</view>
                 </view>
               </view>
             </view>
@@ -153,6 +156,7 @@
     <view class="category-selector" catchtap="noop" catchtouchmove="noop">
       <view class="category-selector__header">
         <view class="category-selector__title">选择食材分类</view>
+        <view class="category-selector__close" bindtap="closeCategorySelector">×</view>
       </view>
 
       <scroll-view wx:if="{{categorySelectorItems.length}}" scroll-y="true" class="category-selector__list" show-scrollbar="{{false}}">
@@ -177,6 +181,7 @@
     <view class="unit-selector" catchtap="noop" catchtouchmove="noop">
       <view class="unit-selector__header">
         <view class="unit-selector__title">选择单位</view>
+        <view class="unit-selector__close" bindtap="closeUnitSelector">×</view>
       </view>
 
       <input

@@ -21,6 +21,35 @@ describe('recipe detail template', () => {
     expect(template.includes('open-type="share"')).toBe(true)
   })
 
+  it('injects runtime theme variables on the detail page root', () => {
+    const template = readFileSync('miniprogram/pages/recipe-detail/index.wxml', 'utf8')
+
+    expect(template).toMatch(/<view class="detail-page" style="\{\{themeStyle\}\}">/)
+  })
+
+  it('renders ingredients before cooking steps', () => {
+    const template = readFileSync('miniprogram/pages/recipe-detail/index.wxml', 'utf8')
+    const ingredientsIndex = template.indexOf('class="card-title">食材列表')
+    const stepsIndex = template.indexOf('class="card-title">制作步骤')
+
+    expect(ingredientsIndex).toBeGreaterThan(-1)
+    expect(stepsIndex).toBeGreaterThan(-1)
+    expect(ingredientsIndex).toBeLessThan(stepsIndex)
+  })
+
+  it('uses separate ingredient name and amount styling like the reference detail page', () => {
+    const template = readFileSync('miniprogram/pages/recipe-detail/index.wxml', 'utf8')
+    const styles = readFileSync('miniprogram/pages/recipe-detail/index.wxss', 'utf8')
+
+    expect(template).toMatch(/<view class="ingredient-row__num">\{\{item\.displayIndex\}\}<\/view>/)
+    expect(template).toMatch(/<view class="ingredient-row__name">\{\{item\.name\}\}<\/view>/)
+    expect(template).toMatch(/<view wx:if="\{\{item\.hasAmountText\}\}" class="ingredient-row__amount">\{\{item\.amountText\}\}<\/view>/)
+    expect(styles).toMatch(/\.ingredient-row\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;[\s\S]*gap:\s*12rpx;/)
+    expect(styles).toMatch(/\.ingredient-row__name\s*\{[\s\S]*flex:\s*1;[\s\S]*font-weight:\s*700;/)
+    expect(styles).toMatch(/\.ingredient-row__amount\s*\{[\s\S]*font-size:\s*2\d+rpx;[\s\S]*color:\s*#7a808d;/)
+    expect(styles).toMatch(/\.step-panel\s*\+\s*\.step-panel\s*\{[\s\S]*margin-top:\s*1\d+rpx;/)
+  })
+
   it('uses per-text contrast backgrounds instead of one large dark hero copy block', () => {
     const styles = readFileSync('miniprogram/pages/recipe-detail/index.wxss', 'utf8')
     const heroCopyPanelBlock = styles.match(/\.hero-copy-panel\s*\{[^}]*\}/)
@@ -53,5 +82,21 @@ describe('recipe detail template', () => {
     expect(styles).toMatch(/\.card-head__meta\s*\{[\s\S]*flex:\s*none;/)
     expect(styles).toMatch(/\.card-title\s*\{[\s\S]*min-width:\s*0;/)
     expect(styles).toMatch(/\.card-head__meta\s*\{[\s\S]*text-align:\s*right;/)
+  })
+
+  it('wraps long alphanumeric step content instead of overflowing horizontally', () => {
+    const styles = readFileSync('miniprogram/pages/recipe-detail/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.step-panel__content\s*\{[\s\S]*overflow-wrap:\s*anywhere;/)
+    expect(styles).toMatch(/\.step-panel__content\s*\{[\s\S]*word-break:\s*break-word;/)
+  })
+
+  it('uses theme variables instead of fixed orange detail-page styling', () => {
+    const styles = readFileSync('miniprogram/pages/recipe-detail/index.wxss', 'utf8')
+
+    expect(styles).not.toContain('rgba(197, 106, 61')
+    expect(styles).toMatch(/\.detail-page\s*\{[\s\S]*linear-gradient\(180deg,\s*var\(--page-bg/)
+    expect(styles).toMatch(/button\.hero-share\s*\{[\s\S]*box-shadow:\s*none;/)
+    expect(styles).toMatch(/\.card-head__icon\s*\{[\s\S]*background:\s*var\(--surface-muted/)
   })
 })

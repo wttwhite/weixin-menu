@@ -15,7 +15,7 @@ const FLOATING_CREATE_SIZE_RPX = 112
 const FLOATING_CREATE_MARGIN_RPX = 24
 const FLOATING_CREATE_TOP_MARGIN_RPX = 120
 const FLOATING_CREATE_BOTTOM_CLEARANCE_RPX = 256
-const FLOATING_CREATE_DRAG_THRESHOLD_PX = 6
+const FLOATING_CREATE_DRAG_THRESHOLD_PX = 16
 
 const FRESHNESS_META = {
   expiring: {
@@ -527,6 +527,15 @@ function showOperationError(error) {
   }
 }
 
+function showManagerSuccessToast(action = '', config = {}) {
+  if (typeof wx !== 'undefined' && typeof wx.showToast === 'function') {
+    wx.showToast({
+      title: `已${action}${config.deleteLabel || '分类'}`,
+      icon: 'success'
+    })
+  }
+}
+
 function isNotFoundError(error) {
   return error && typeof error.code === 'number' && error.code === ERROR_CODES.NOT_FOUND
 }
@@ -585,6 +594,7 @@ Page({
     floatingCreateLeft: 0,
     floatingCreateTop: 0,
     floatingCreateInitialized: false,
+    floatingCreateScrollLocked: false,
     railScrollHeight: 400,
     surfaceScrollHeight: 400,
     customScrollbarVisible: false,
@@ -608,6 +618,9 @@ Page({
   onShow() {
     this.managerDragState = null
     this.floatingCreateDragState = null
+    if (this.data.floatingCreateScrollLocked) {
+      this.setData({ floatingCreateScrollLocked: false })
+    }
     syncPageTheme(this)
     this.initializeFloatingCreatePosition()
     syncCurrentTabBar(this, '/pages/pantry/index')
@@ -833,6 +846,18 @@ Page({
       this.data.activeCategoryKey !== 'all' && this.data.activeCategoryKey !== UNCATEGORIZED_KEY
         ? getCategoryOptionLabel(this.data.categoryOptions || [], this.data.activeCategoryKey)
         : ''
+    const initialForm = {
+      ...createEmptyPantryForm(),
+      category: initialCategory
+    }
+
+    this.setData({
+      showCreateModal: true,
+      submittingCreate: false,
+      createForm: initialForm,
+      createCategoryOptions: buildManagerOptionLabels([], initialCategory),
+      createLocationOptions: ['未设置']
+    })
 
     try {
       const [categoryResult, locationResult] = await Promise.all([
@@ -853,10 +878,7 @@ Page({
       this.setData({
         showCreateModal: true,
         submittingCreate: false,
-        createForm: {
-          ...createEmptyPantryForm(),
-          category: initialCategory
-        },
+        createForm: this.data.createForm || initialForm,
         createCategoryOptions: buildManagerOptionLabels(categoryResult.items || [], initialCategory),
         createLocationOptions: buildManagerOptionLabels(locationResult.items || [])
       })
@@ -889,6 +911,9 @@ Page({
       startLeft: this.data.floatingCreateLeft,
       startTop: this.data.floatingCreateTop,
       dirty: false
+    }
+    if (!this.data.floatingCreateScrollLocked) {
+      this.setData({ floatingCreateScrollLocked: true })
     }
   },
 
@@ -929,21 +954,32 @@ Page({
 
   handleFloatingCreateTouchEnd() {
     if (!this.floatingCreateDragState) {
+      if (this.data.floatingCreateScrollLocked) {
+        this.setData({ floatingCreateScrollLocked: false })
+      }
       return
     }
     const dragState = this.floatingCreateDragState
     this.floatingCreateDragState = null
+    this.setData({ floatingCreateScrollLocked: false })
     if (dragState.dirty) {
       this.ignoreNextFloatingCreateTap = true
+      return
     }
+    this.ignoreNextFloatingCreateTap = true
+    return this.goCreate()
   },
 
   handleFloatingCreateTouchCancel() {
     if (!this.floatingCreateDragState) {
+      if (this.data.floatingCreateScrollLocked) {
+        this.setData({ floatingCreateScrollLocked: false })
+      }
       return
     }
     const dragState = this.floatingCreateDragState
     this.floatingCreateDragState = null
+    this.setData({ floatingCreateScrollLocked: false })
     if (dragState.dirty) {
       this.ignoreNextFloatingCreateTap = true
     }
@@ -1117,6 +1153,7 @@ Page({
         [keys.inputKey]: ''
       })
       )
+      showManagerSuccessToast('添加', config)
     } catch (error) {
       showOperationError(error)
     }
@@ -1303,6 +1340,7 @@ Page({
       }
 
       this.syncDerivedState(updates)
+      showManagerSuccessToast('更新', config)
     } catch (error) {
       showOperationError(error)
     }
@@ -1339,6 +1377,7 @@ Page({
         type
       )
       this.syncDerivedState(buildManagerUpdates(this, type, nextManagerItems))
+      showManagerSuccessToast('删除', config)
     } catch (error) {
       showOperationError(error)
     }

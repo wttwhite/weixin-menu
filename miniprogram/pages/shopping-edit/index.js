@@ -42,11 +42,12 @@ function buildShoppingEditForm(options = {}) {
   const unit = decodeURIComponent((options && options.unit) || '')
   const notes = decodeURIComponent((options && options.notes) || '')
   const parsed = splitShoppingItemText(name)
+  const hasEmbeddedQuantity = Boolean(parsed.name && (parsed.quantity || parsed.unit))
 
   return {
-    name: quantity || unit ? name : (parsed.name || name),
-    quantity: quantity || parsed.quantity,
-    unit: unit || parsed.unit,
+    name: hasEmbeddedQuantity ? parsed.name : (parsed.name || name),
+    quantity: hasEmbeddedQuantity ? (parsed.quantity || quantity) : (quantity || parsed.quantity),
+    unit: hasEmbeddedQuantity ? (parsed.unit || unit) : (unit || parsed.unit),
     notes
   }
 }

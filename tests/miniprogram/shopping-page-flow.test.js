@@ -356,6 +356,78 @@ describe('shopping page flow', () => {
     )
   })
 
+  it('prefers trailing quantity-unit text over stale draft quantity defaults', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'list-open',
+                name: '周末采购',
+                listDate: '2026-04-16',
+                status: 'open',
+                items: [
+                  {
+                    _id: 'item-1',
+                    name: '土豆 2个',
+                    category: '蔬菜',
+                    quantity: '1',
+                    unit: '',
+                    isChecked: false,
+                    sourceType: 'manual',
+                    updatedAt: '2026-04-16T10:00:00.000Z'
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '蔬菜' }]
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.openEditListModal({
+      currentTarget: {
+        dataset: {
+          shoppingListId: 'list-open'
+        }
+      }
+    })
+    await flushAsyncWork()
+
+    expect(page.data.listItemDrafts[0]).toEqual(
+      expect.objectContaining({
+        name: '土豆',
+        quantity: '2',
+        unit: '个',
+        category: '蔬菜'
+      })
+    )
+  })
+
   it('collapses and expands shopping items from the subhead row without reloading the page', async () => {
     const callFunction = vi.fn().mockResolvedValue({
       result: {
@@ -849,6 +921,87 @@ describe('shopping page flow', () => {
         }
       }
     })
+
+    expect(page.data.pantryEntryForm).toEqual(
+      expect.objectContaining({
+        name: '土豆',
+        quantity: '2',
+        unit: '个',
+        category: '蔬菜'
+      })
+    )
+  })
+
+  it('prefers trailing quantity-unit text when prefilling pantry entry over stale quantity defaults', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'list-open',
+                name: '周末采购',
+                listDate: '2026-04-16',
+                status: 'open',
+                items: [
+                  {
+                    _id: 'item-1',
+                    name: '土豆 2个',
+                    category: '蔬菜',
+                    quantity: '1',
+                    unit: '',
+                    isChecked: false,
+                    sourceType: 'manual',
+                    updatedAt: '2026-04-16T10:00:00.000Z'
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: '蔬菜' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: []
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.openPantryEntryModal({
+      currentTarget: {
+        dataset: {
+          shoppingListId: 'list-open',
+          shoppingItemId: 'item-1'
+        }
+      }
+    })
+    await flushAsyncWork()
 
     expect(page.data.pantryEntryForm).toEqual(
       expect.objectContaining({

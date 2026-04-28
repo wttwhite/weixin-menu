@@ -257,6 +257,28 @@ function decorateRecipeItem(item = {}) {
   }
 }
 
+function getRecipeCreatedTimestamp(item = {}) {
+  const value = item.createdAt || item.updatedAt || ''
+  const timestamp = Date.parse(value)
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+function sortRecipesByCreatedTime(items = []) {
+  return (items || [])
+    .map((item, index) => ({
+      item,
+      index,
+      timestamp: getRecipeCreatedTimestamp(item)
+    }))
+    .sort((left, right) => {
+      if (right.timestamp !== left.timestamp) {
+        return right.timestamp - left.timestamp
+      }
+      return left.index - right.index
+    })
+    .map(({ item }) => item)
+}
+
 function appendRecipeCategoryManagerItem(items = [], nextItem = {}) {
   if (!nextItem || !nextItem.name) {
     return items || []
@@ -476,7 +498,7 @@ Page({
       ...this.data,
       ...overrides
     }
-    const items = (nextState.items || []).map((item) => decorateRecipeItem(item))
+    const items = sortRecipesByCreatedTime(nextState.items || []).map((item) => decorateRecipeItem(item))
     const categoryManagerItems = Array.isArray(nextState.categoryManagerItems)
       ? nextState.categoryManagerItems.filter(
           (item) => item && typeof item.name === 'string' && typeof item.recipeCount === 'number'
@@ -1046,6 +1068,12 @@ Page({
         categoryManagerInput: '',
         categoryManagerItems: nextCategoryManagerItems
       })
+      if (typeof wx.showToast === 'function') {
+        wx.showToast({
+          title: '已添加分类',
+          icon: 'success'
+        })
+      }
     } catch (error) {
       if (typeof wx.showToast === 'function') {
         wx.showToast({
@@ -1057,9 +1085,9 @@ Page({
   },
 
   async renameCategory(event) {
-    const previousName = event && event.currentTarget && event.currentTarget.dataset
-      ? event.currentTarget.dataset.name || ''
-      : (event && event.detail ? event.detail.name || '' : '')
+    const dataset = event && event.currentTarget ? event.currentTarget.dataset || {} : {}
+    const detail = event && event.detail ? event.detail : {}
+    const previousName = dataset.name || detail.name || ''
     if (!previousName) {
       return
     }
@@ -1098,6 +1126,12 @@ Page({
         categoryManagerItems: nextCategoryManagerItems,
         items: renameRecipeItemsCategory(this.data.items || [], previousName, nextName)
       })
+      if (typeof wx.showToast === 'function') {
+        wx.showToast({
+          title: '已更新分类',
+          icon: 'success'
+        })
+      }
     } catch (error) {
       if (typeof wx.showToast === 'function') {
         wx.showToast({
@@ -1109,14 +1143,14 @@ Page({
   },
 
   async deleteCategory(event) {
-    const name = event && event.currentTarget && event.currentTarget.dataset
-      ? event.currentTarget.dataset.name || ''
-      : (event && event.detail ? event.detail.name || '' : '')
+    const dataset = event && event.currentTarget ? event.currentTarget.dataset || {} : {}
+    const detail = event && event.detail ? event.detail : {}
+    const name = dataset.name || detail.name || ''
     const deletable =
-      (event && event.currentTarget && event.currentTarget.dataset
-        ? event.currentTarget.dataset.deletable === true || event.currentTarget.dataset.deletable === 'true'
-        : false) ||
-      Boolean(event && event.detail && event.detail.deletable)
+      dataset.deletable === true ||
+      dataset.deletable === 'true' ||
+      detail.deletable === true ||
+      detail.deletable === 'true'
     if (!name || !deletable) {
       return
     }
@@ -1135,6 +1169,12 @@ Page({
       this.syncRecipeView({
         categoryManagerItems: removeRecipeCategoryManagerItem(this.data.categoryManagerItems || [], name)
       })
+      if (typeof wx.showToast === 'function') {
+        wx.showToast({
+          title: '已删除分类',
+          icon: 'success'
+        })
+      }
     } catch (error) {
       if (typeof wx.showToast === 'function') {
         wx.showToast({

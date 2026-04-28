@@ -215,4 +215,28 @@ describe('image-uploader component lifecycle cleanup', () => {
     expect(global.wx.showToast).not.toHaveBeenCalled()
     expect(instance.triggered).toEqual([])
   })
+
+  it('emits cover selection for a chosen uploaded image', async () => {
+    const componentConfig = await loadComponent()
+    const instance = createComponentInstance(componentConfig, {
+      items: [{ _id: 'img-1' }]
+    })
+
+    instance.handleCover({
+      currentTarget: {
+        dataset: {
+          imageId: 'img-1'
+        }
+      }
+    })
+
+    expect(instance.triggered).toEqual([
+      {
+        name: 'cover',
+        detail: {
+          imageId: 'img-1'
+        }
+      }
+    ])
+  })
 })

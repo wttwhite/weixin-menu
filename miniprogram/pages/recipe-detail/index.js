@@ -2,7 +2,9 @@ const { createRecipeService } = require('../../services/recipe')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 const { switchToTab } = require('../../utils/tab-bar')
+const { syncPageTheme } = require('../../utils/theme')
 const {
+  formatCookDurationText,
   getRecipeCoverImageSrc,
   getRecipeImageSrc
 } = require('../../utils/recipe-view')
@@ -20,18 +22,27 @@ function buildMetricTexts(item = {}) {
   if (item.prepTimeMinutes !== null && item.prepTimeMinutes !== undefined && item.prepTimeMinutes !== '') {
     metrics.push(`准备 ${item.prepTimeMinutes} 分钟`)
   }
-  if (item.cookTimeMinutes !== null && item.cookTimeMinutes !== undefined && item.cookTimeMinutes !== '') {
-    metrics.push(`烹饪 ${item.cookTimeMinutes} 分钟`)
+  const cookDurationText = formatCookDurationText(item.cookTimeMinutes)
+  if (cookDurationText) {
+    metrics.push(`烹饪 ${cookDurationText}`)
   }
   return metrics
 }
 
 function buildIngredientViewItems(ingredients = []) {
-  return (ingredients || []).map((item, index) => ({
-    ...item,
-    displayIndex: index + 1,
-    quantityText: `${item.quantity || '-'} ${item.unit || ''} ${item.preparation || ''}`.trim()
-  }))
+  return (ingredients || []).map((item, index) => {
+    const amountText = [item.quantity, item.unit]
+      .filter((value) => Boolean(value))
+      .join(' ')
+      .trim()
+
+    return {
+      ...item,
+      displayIndex: index + 1,
+      amountText,
+      hasAmountText: Boolean(amountText)
+    }
+  })
 }
 
 function buildStepViewItems(steps = []) {
@@ -54,6 +65,65 @@ function resolveRecipeHeroCoverImage(item = {}) {
   return getRecipeCoverImageSrc(item || {}) || DEFAULT_RECIPE_HERO_IMAGE
 }
 
+function collectRecipeImageFileIds(images = []) {
+  return Array.from(
+    new Set(
+      (images || [])
+        .map((image) => (image && image.fileId ? image.fileId : ''))
+        .filter(Boolean)
+    )
+  )
+}
+
+async function resolveRecipeImageTempUrlMap(images = []) {
+  const fileIds = collectRecipeImageFileIds(images)
+  if (
+    !fileIds.length ||
+    typeof wx === 'undefined' ||
+    !wx.cloud ||
+    typeof wx.cloud.getTempFileURL !== 'function'
+  ) {
+    return {}
+  }
+
+  try {
+    const result = await wx.cloud.getTempFileURL({
+      fileList: fileIds
+    })
+    const fileList = result && Array.isArray(result.fileList) ? result.fileList : []
+    return fileList.reduce((map, item) => {
+      const fileId = (item && (item.fileID || item.fileId)) || ''
+      const tempFileURL = (item && item.tempFileURL) || ''
+      if (fileId && tempFileURL) {
+        map[fileId] = tempFileURL
+      }
+      return map
+    }, {})
+  } catch (error) {
+    return {}
+  }
+}
+
+async function resolveRecipeDetailImageUrls(item = {}) {
+  const images = item && Array.isArray(item.images) ? item.images : []
+  if (!item || !images.length) {
+    return item
+  }
+
+  const tempUrlMap = await resolveRecipeImageTempUrlMap(images)
+  if (!Object.keys(tempUrlMap).length) {
+    return item
+  }
+
+  return {
+    ...item,
+    images: images.map((image) => ({
+      ...image,
+      displayUrl: (image && tempUrlMap[image.fileId]) || (image && image.displayUrl) || ''
+    }))
+  }
+}
+
 function buildRecipeDetailViewState(item = {}, activeSpaceId = '') {
   const coverImageUrl = resolveRecipeHeroCoverImage(item || {})
   const galleryImageUrls = ((item && item.images) || [])
@@ -64,8 +134,9 @@ function buildRecipeDetailViewState(item = {}, activeSpaceId = '') {
   const galleryItems = buildGalleryItems(galleryImageUrls, coverImageUrl)
   const metricTexts = buildMetricTexts(item || {})
   const heroMetricTexts = []
-  if (item && item.cookTimeMinutes) {
-    heroMetricTexts.push(`⏱ ${item.cookTimeMinutes}`)
+  const cookDurationText = formatCookDurationText(item && item.cookTimeMinutes)
+  if (cookDurationText) {
+    heroMetricTexts.push(`⏱ ${cookDurationText}`)
   }
   if (item && item.recommendationScore !== null && item.recommendationScore !== undefined && item.recommendationScore !== '') {
     heroMetricTexts.push(`★ ${item.recommendationScore}/5`)
@@ -91,6 +162,21 @@ function buildRecipeDetailViewState(item = {}, activeSpaceId = '') {
     hasGalleryItems: galleryItems.length > 0,
     hasNotesBlock: Boolean(item && (item.notes || item.sourceName || item.sourceUrl))
   }
+}
+
+function shouldResolveRecipeDetailImageUrls(item = {}) {
+  const images = item && Array.isArray(item.images) ? item.images : []
+  return Boolean(
+    collectRecipeImageFileIds(images).length &&
+      typeof wx !== 'undefined' &&
+      wx.cloud &&
+      typeof wx.cloud.getTempFileURL === 'function'
+  )
+}
+
+async function buildResolvedRecipeDetailViewState(item = null, activeSpaceId = '') {
+  const resolvedItem = await resolveRecipeDetailImageUrls(item)
+  return buildRecipeDetailViewState(resolvedItem, activeSpaceId)
 }
 
 function buildRecipeDetailCacheKey(spaceId = '', recipeId = '') {
@@ -140,6 +226,8 @@ function markRecipesPageForRefresh() {
 Page({
   data: {
     loading: true,
+    themeKey: 'default',
+    themeStyle: '',
     activeSpaceId: '',
     recipeId: '',
     sourcePage: '',
@@ -175,6 +263,7 @@ Page({
   },
 
   onShow() {
+    syncPageTheme(this)
     return this.loadDetail({
       forceRefresh: Boolean(this.shouldRefreshOnNextShow)
     })
@@ -187,6 +276,14 @@ Page({
     const forceRefresh = Boolean(options.forceRefresh)
 
     if (!forceRefresh && this.hasLoadedDetail && this.data.item && this.data.recipeId === recipeId) {
+      const nextViewState = shouldResolveRecipeDetailImageUrls(this.data.item)
+        ? await buildResolvedRecipeDetailViewState(this.data.item, activeSpaceId)
+        : buildRecipeDetailViewState(this.data.item, activeSpaceId)
+      this.setData({
+        ...nextViewState,
+        activeSpaceId,
+        errorMessage: ''
+      })
       return
     }
 
@@ -223,8 +320,12 @@ Page({
 
     try {
       if (!forceRefresh && recipeDetailCache.has(cacheKey)) {
+        const cachedItem = recipeDetailCache.get(cacheKey)
+        const nextViewState = shouldResolveRecipeDetailImageUrls(cachedItem)
+          ? await buildResolvedRecipeDetailViewState(cachedItem, activeSpaceId)
+          : buildRecipeDetailViewState(cachedItem, activeSpaceId)
         this.setData({
-          ...recipeDetailCache.get(cacheKey),
+          ...nextViewState,
           activeSpaceId,
           errorMessage: ''
         })
@@ -235,8 +336,10 @@ Page({
 
       const result = await createRecipeService().getRecipeDetail(activeSpaceId, recipeId)
       const item = result.item || null
-      const nextViewState = buildRecipeDetailViewState(item, activeSpaceId)
-      recipeDetailCache.set(cacheKey, nextViewState)
+      recipeDetailCache.set(cacheKey, item)
+      const nextViewState = shouldResolveRecipeDetailImageUrls(item)
+        ? await buildResolvedRecipeDetailViewState(item, activeSpaceId)
+        : buildRecipeDetailViewState(item, activeSpaceId)
       this.setData(nextViewState)
       this.hasLoadedDetail = true
       this.shouldRefreshOnNextShow = false
