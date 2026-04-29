@@ -53,5 +53,5 @@
 }
 
 .tabbar-item--active .tabbar-label {
-  color: var(--brand, #c56a3d);
+  color: var(--brand, #4f7d8a);
 }

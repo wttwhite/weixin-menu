@@ -6,8 +6,8 @@
 <stop offset="1" stop-color="#6D8D63"/>
 </linearGradient>
 <linearGradient id="panel" x1="308" y1="126" x2="820" y2="497" gradientUnits="userSpaceOnUse">
-<stop stop-color="#FFF9F0" stop-opacity="0.98"/>
-<stop offset="1" stop-color="#FFF4E7" stop-opacity="0.92"/>
+<stop stop-color="#F8FAFC" stop-opacity="0.98"/>
+<stop offset="1" stop-color="#EEF3F6" stop-opacity="0.92"/>
 </linearGradient>
 <linearGradient id="accent" x1="191" y1="124" x2="462" y2="357" gradientUnits="userSpaceOnUse">
 <stop stop-color="#F6B75F"/>

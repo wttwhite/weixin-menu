@@ -10,8 +10,8 @@ page {
   padding: 14rpx 18rpx calc(env(safe-area-inset-bottom) + 127rpx);
   overflow: hidden;
   background:
-    radial-gradient(circle at top, var(--surface-muted, #efe3cf), transparent 30%),
-    linear-gradient(180deg, var(--page-bg, #f5f1e8) 0%, #ede8dc 100%);
+    radial-gradient(circle at top, var(--surface-muted, #e8edf1), transparent 30%),
+    linear-gradient(180deg, var(--page-bg, #f6f7f8) 0%, #eef2f5 100%);
 }
 
 .hero-banner {

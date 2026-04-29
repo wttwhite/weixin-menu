@@ -100,9 +100,9 @@ describe('recipes page template styles', () => {
     const addButtonStyles = getStyleBlock(styles, '.dish-add')
     const selectedButtonStyles = getStyleBlock(styles, '.dish-add--selected')
 
-    expect(addButtonStyles).toMatch(/background:\s*var\(--brand,\s*#c56a3d\);/)
+    expect(addButtonStyles).toMatch(/background:\s*var\(--brand,\s*#4f7d8a\);/)
     expect(addButtonStyles).toMatch(/color:\s*#fff;/)
-    expect(selectedButtonStyles).toMatch(/background:\s*var\(--brand,\s*#c56a3d\);/)
+    expect(selectedButtonStyles).toMatch(/background:\s*var\(--brand,\s*#4f7d8a\);/)
     expect(selectedButtonStyles).toMatch(/color:\s*#fff;/)
   })
 
@@ -152,9 +152,9 @@ describe('recipes page template styles', () => {
 
     expect(styles).not.toContain('rgba(197, 106, 61')
     expect(styles).not.toContain('rgba(255, 180, 87')
-    expect(styles).toMatch(/\.action-pill--create\s*\{[\s\S]*background:\s*var\(--brand,\s*#c56a3d\);/)
+    expect(styles).toMatch(/\.action-pill--create\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);/)
     expect(styles).toMatch(/\.action-pill--create\s*\{[\s\S]*color:\s*#fff;/)
-    expect(styles).toMatch(/\.cart-primary\s*\{[\s\S]*background:\s*var\(--brand,\s*#c56a3d\);/)
+    expect(styles).toMatch(/\.cart-primary\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);/)
     expect(styles).toMatch(/\.cart-primary\s*\{[\s\S]*color:\s*#fff;/)
     expect(styles).toMatch(/\.action-pill--create\s*\{[\s\S]*box-shadow:\s*none;/)
     expect(styles).toMatch(/\.dish-add\s*\{[\s\S]*box-shadow:\s*none;/)

@@ -3,9 +3,9 @@
   padding: 28rpx 24rpx calc(env(safe-area-inset-bottom) + 180rpx);
   box-sizing: border-box;
   background:
-    radial-gradient(circle at top, var(--surface-muted, #efe3cf), transparent 28%),
+    radial-gradient(circle at top, var(--surface-muted, #e8edf1), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, transparent 22%),
-    linear-gradient(180deg, var(--page-bg, #f5f1e8) 0%, var(--surface-muted, #efe3cf) 100%);
+    linear-gradient(180deg, var(--page-bg, #f6f7f8) 0%, var(--surface-muted, #e8edf1) 100%);
 }
 
 .meal-plan-editor,
@@ -100,7 +100,7 @@
   margin-top: 16rpx;
   font-size: 26rpx;
   font-weight: 700;
-  color: var(--text-secondary, #70594a);
+  color: var(--text-secondary, #5c6872);
 }
 
 .field-label--compact {
@@ -119,7 +119,7 @@
   background: #fff;
   padding: 18rpx 22rpx;
   font-size: 28rpx;
-  color: var(--text-primary, #2f241c);
+  color: var(--text-primary, #202a33);
 }
 
 .picker-value,

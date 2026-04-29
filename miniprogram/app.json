@@ -19,17 +19,17 @@
     "pages/profile/index"
   ],
   "window": {
-    "backgroundColor": "#F5F1E8",
+    "backgroundColor": "#F6F7F8",
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#F5F1E8",
+    "navigationBarBackgroundColor": "#F6F7F8",
     "navigationBarTitleText": "Menu Space",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
     "custom": true,
-    "color": "#8F826A",
-    "selectedColor": "#9D562E",
-    "backgroundColor": "#FFF9F0",
+    "color": "#6F7A84",
+    "selectedColor": "#4F7D8A",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {

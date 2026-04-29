@@ -1,16 +1,16 @@
 :root,
 page {
-  --page-bg: #f5f1e8;
-  --surface-bg: #fffaf0;
-  --surface-muted: #efe3cf;
-  --surface-strong: #3f3226;
-  --brand: #c56a3d;
-  --brand-strong: #a34e24;
-  --text-primary: #2f241c;
-  --text-secondary: #70594a;
-  --text-tertiary: #977d6c;
-  --border-soft: rgba(63, 50, 38, 0.12);
+  --page-bg: #f6f7f8;
+  --surface-bg: #ffffff;
+  --surface-muted: #e8edf1;
+  --surface-strong: #26323d;
+  --brand: #4f7d8a;
+  --brand-strong: #365e69;
+  --text-primary: #202a33;
+  --text-secondary: #5c6872;
+  --text-tertiary: #89949d;
+  --border-soft: rgba(38, 50, 61, 0.12);
   --success: #2f7d4a;
   --danger: #b64a3a;
-  --shadow-soft: 0 18rpx 40rpx rgba(63, 50, 38, 0.08);
+  --shadow-soft: 0 18rpx 40rpx rgba(38, 50, 61, 0.08);
 }

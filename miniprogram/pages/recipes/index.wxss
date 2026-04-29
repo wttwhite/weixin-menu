@@ -10,8 +10,8 @@ page {
   padding: 14rpx 18rpx calc(env(safe-area-inset-bottom) + 128rpx);
   overflow: hidden;
   background:
-    radial-gradient(circle at top, var(--surface-muted, #efe3cf), transparent 30%),
-    linear-gradient(180deg, var(--page-bg, #f5f1e8) 0%, #ede8dc 100%);
+    radial-gradient(circle at top, var(--surface-muted, #e8edf1), transparent 30%),
+    linear-gradient(180deg, var(--page-bg, #f6f7f8) 0%, #eef2f5 100%);
 }
 
 .hero-banner {
@@ -167,7 +167,7 @@ page {
 }
 
 .action-pill--create {
-  background: var(--brand, #c56a3d);
+  background: var(--brand, #4f7d8a);
   color: #fff;
   box-shadow: none;
 }
@@ -435,7 +435,7 @@ page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--brand, #c56a3d);
+  background: var(--brand, #4f7d8a);
   color: #fff;
   font-size: 34rpx;
   font-weight: 700;
@@ -443,7 +443,7 @@ page {
 }
 
 .dish-add--selected {
-  background: var(--brand, #c56a3d);
+  background: var(--brand, #4f7d8a);
   color: #fff;
 }
 
@@ -505,7 +505,7 @@ page {
 }
 
 .cart-primary {
-  background: var(--brand, #c56a3d);
+  background: var(--brand, #4f7d8a);
   color: #fff;
 }
 
@@ -611,7 +611,7 @@ page {
 }
 
 .plan-modal__date-chip--active {
-  color: var(--brand, #c56a3d);
+  color: var(--brand, #4f7d8a);
   background: var(--surface-muted, #f3f4f7);
 }
 
@@ -634,7 +634,7 @@ page {
 }
 
 .plan-modal__meal-chip--active {
-  color: var(--brand, #c56a3d);
+  color: var(--brand, #4f7d8a);
   background: var(--surface-muted, #f3f4f7);
 }
 
@@ -658,7 +658,7 @@ page {
 
 .plan-modal__primary {
   background: var(--surface-muted, #f3f4f7);
-  color: var(--brand, #c56a3d);
+  color: var(--brand, #4f7d8a);
 }
 
 .plan-modal__secondary {

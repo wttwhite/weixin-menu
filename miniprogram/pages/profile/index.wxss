@@ -99,7 +99,7 @@
 .profile-hero__subtitle {
   margin-top: 10rpx;
   font-size: 26rpx;
-  color: var(--text-secondary, #70594a);
+  color: var(--text-secondary, #5c6872);
 }
 
 .feedback-card,
