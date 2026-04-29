@@ -20,6 +20,7 @@ describe('shopping page template', () => {
     expect(template).toContain('shopping-list-card')
     expect(template).toContain('录入库存')
     expect(template).toContain('计划生成')
+    expect(template.includes('同步计划')).toBe(false)
     expect(template).not.toContain('生成计划项')
     expect(template).toContain('toggleShoppingListItems')
     expect(template).toMatch(/shopping-list-card__subhead[\s\S]*bindtap="toggleShoppingListItems"/)
@@ -78,5 +79,27 @@ describe('shopping page template', () => {
     const styles = readFileSync('miniprogram/pages/shopping/index.wxss', 'utf8')
 
     expect(styles).toMatch(/\.shopping-item-row\s*\{[\s\S]*background:\s*#f7f8fa;/)
+  })
+
+  it('uses a pale gray background for shopping list card icons', () => {
+    const styles = readFileSync('miniprogram/pages/shopping/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.shopping-list-card__icon\s*\{[\s\S]*background:\s*#f4f5f8;/)
+  })
+
+  it('uses pale gray progress tracks and neutral source labels', () => {
+    const styles = readFileSync('miniprogram/pages/shopping/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.shopping-list-card__progress-track\s*\{[\s\S]*background:\s*#f4f5f8;/)
+    expect(styles).toMatch(/\.shopping-item-row__source\s*\{[\s\S]*background:\s*#f4f5f8;[\s\S]*color:\s*#7a808d;/)
+  })
+
+  it('uses neutral gray backgrounds for status labels and inventory entry actions', () => {
+    const styles = readFileSync('miniprogram/pages/shopping/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.shopping-list-card__status--open\s*\{[\s\S]*background:\s*#f4f5f8;[\s\S]*color:\s*#7a808d;/)
+    expect(styles).toMatch(/\.shopping-list-card__status--completed\s*\{[\s\S]*background:\s*#f4f5f8;[\s\S]*color:\s*#7a808d;/)
+    expect(styles).toMatch(/\.shopping-list-card__status--archived\s*\{[\s\S]*background:\s*#f4f5f8;[\s\S]*color:\s*#7a808d;/)
+    expect(styles).toMatch(/\.shopping-item-row__record\s*\{[\s\S]*background:\s*#f4f5f8;[\s\S]*color:\s*#7a808d;/)
   })
 })

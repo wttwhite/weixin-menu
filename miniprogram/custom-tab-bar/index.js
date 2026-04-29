@@ -24,30 +24,40 @@ Component({
       {
         pagePath: '/pages/recipes/index',
         text: '菜谱',
+        icon: 'book-open',
+        activeIcon: 'book-open-filled',
         iconPath: '/images/icons/home.png',
         selectedIconPath: '/images/icons/home-active.png'
       },
       {
         pagePath: '/pages/pantry/index',
         text: '库存',
+        icon: 'store',
+        activeIcon: 'store-filled',
         iconPath: '/images/icons/goods.png',
         selectedIconPath: '/images/icons/goods-active.png'
       },
       {
         pagePath: '/pages/meal-plans/index',
         text: '计划',
+        icon: 'calendar',
+        activeIcon: 'calendar-filled',
         iconPath: '/images/icons/examples.png',
         selectedIconPath: '/images/icons/examples-active.png'
       },
       {
         pagePath: '/pages/shopping/index',
         text: '采购',
+        icon: 'cart',
+        activeIcon: 'cart-filled',
         iconPath: '/images/icons/business.png',
         selectedIconPath: '/images/icons/business-active.png'
       },
       {
         pagePath: '/pages/profile/index',
         text: '我的',
+        icon: 'user',
+        activeIcon: 'user-filled',
         iconPath: '/images/icons/usercenter.png',
         selectedIconPath: '/images/icons/usercenter-active.png'
       }

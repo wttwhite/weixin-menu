@@ -31,14 +31,17 @@
   justify-content: center;
   gap: 8rpx;
   padding: 8rpx 0 6rpx;
-  color: var(--text-tertiary, #7f8795);
+  color: var(--text-secondary, #6b7280);
 }
 
 .tabbar-icon {
   width: 48rpx;
   height: 48rpx;
-  opacity: 0.72;
-  transition: opacity 180ms ease;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 180ms ease;
 }
 
 .tabbar-label {
@@ -48,10 +51,10 @@
   color: inherit;
 }
 
-.tabbar-item--active .tabbar-icon {
-  opacity: 1;
+.tabbar-item--active {
+  color: var(--brand, #4f7d8a);
 }
 
 .tabbar-item--active .tabbar-label {
-  color: var(--brand, #4f7d8a);
+  font-weight: 900;
 }

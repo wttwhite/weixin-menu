@@ -97,14 +97,6 @@
             <view class="shopping-list-card__subhead-title">采购项 ({{item.items.length}})</view>
             <view class="shopping-list-card__subhead-indicator">{{item.itemsCollapsed ? '展开' : '收起'}}</view>
           </view>
-          <view
-            wx:if="{{item.status === 'open'}}"
-            class="shopping-list-card__generate"
-            data-shopping-list-id="{{item._id}}"
-            catchtap="generateFromMealPlans"
-          >
-            同步计划
-          </view>
         </view>
 
         <view wx:if="{{!item.itemsCollapsed}}" class="shopping-item-list">

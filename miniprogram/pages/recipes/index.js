@@ -149,6 +149,57 @@ function buildVisibleRecipeCards(items = []) {
   })
 }
 
+function normalizeSearchQuery(value = '') {
+  return String(value || '').trim().toLowerCase()
+}
+
+function collectRecipeSearchText(item = {}) {
+  const tagText = (Array.isArray(item.tags) ? item.tags : [])
+    .map((tag) => (tag && tag.name) || '')
+    .join(' ')
+  const ingredientText = (Array.isArray(item.ingredients) ? item.ingredients : [])
+    .map((ingredient) => (ingredient && ingredient.name) || '')
+    .join(' ')
+  return [
+    item.name,
+    item.summary,
+    item.category,
+    item.categorySummary,
+    tagText,
+    ingredientText
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+function filterRecipesBySearch(items = [], query = '') {
+  const normalizedQuery = normalizeSearchQuery(query)
+  if (!normalizedQuery) {
+    return items
+  }
+
+  return (items || []).filter((item) => collectRecipeSearchText(item).includes(normalizedQuery))
+}
+
+function buildFilteredVisibleRecipeCards(items = [], activeSectionKey = 'all', query = '') {
+  return buildVisibleRecipeCards(
+    filterRecipesBySearch(filterRecipesBySection(items, activeSectionKey), query)
+  )
+}
+
+function buildSearchToggleClass(query = '') {
+  return normalizeSearchQuery(query)
+    ? 'management-card__search management-card__search--active'
+    : 'management-card__search'
+}
+
+function buildSearchPanelClass(showSearchPanel = false) {
+  return showSearchPanel
+    ? 'management-card__search-panel management-card__search-panel--open'
+    : 'management-card__search-panel'
+}
+
 function buildCategoryManagerViewItems(items = []) {
   return (items || []).map((item) => ({
     ...item,
@@ -215,6 +266,36 @@ function mergeMealPlanRecipes(existingRecipes = [], selectedRecipes = []) {
   })
 
   return merged
+}
+
+function findPageByRoute(route = '') {
+  if (typeof getCurrentPages !== 'function') {
+    return null
+  }
+
+  const pages = getCurrentPages()
+  if (!Array.isArray(pages) || !pages.length) {
+    return null
+  }
+
+  for (let index = pages.length - 1; index >= 0; index -= 1) {
+    const page = pages[index] || null
+    if (page && (page.route || '') === route) {
+      return page
+    }
+  }
+
+  return null
+}
+
+function markMealPlansPageForRefresh(targetDate = '') {
+  const mealPlansPage = findPageByRoute('pages/meal-plans/index')
+  if (!mealPlansPage || typeof mealPlansPage.markNeedsRefreshOnNextShow !== 'function') {
+    return false
+  }
+
+  mealPlansPage.markNeedsRefreshOnNextShow(targetDate)
+  return true
 }
 
 function buildTagSummary(tags = []) {
@@ -414,6 +495,10 @@ Page({
     managementImageUrl: '',
     managementRecipeCountText: '共 0 个菜谱',
     managementCategorySummary: DEFAULT_CATEGORY_SUMMARY,
+    showSearchPanel: false,
+    recipeSearchQuery: '',
+    searchToggleClass: buildSearchToggleClass(''),
+    searchPanelClass: buildSearchPanelClass(false),
     showCategoryManager: false,
     categoryManagerLoading: false,
     categoryManagerInput: '',
@@ -511,9 +596,8 @@ Page({
       : 'all'
     const selectedRecipeIds = clampSelectedRecipeIds(items, nextState.selectedRecipeIds || [])
     const itemsWithSelection = applySelectionState(items, selectedRecipeIds)
-    const visibleItems = buildVisibleRecipeCards(
-      filterRecipesBySection(itemsWithSelection, activeSectionKey)
-    )
+    const recipeSearchQuery = nextState.recipeSearchQuery || ''
+    const visibleItems = buildFilteredVisibleRecipeCards(itemsWithSelection, activeSectionKey, recipeSearchQuery)
     const heroImages = buildHeroImages(itemsWithSelection)
 
     this.setData({
@@ -534,6 +618,9 @@ Page({
       selectedRecipeIds,
       selectedRecipesCount: selectedRecipeIds.length,
       planModalSelectedRecipes: buildSelectedRecipeItems(itemsWithSelection, selectedRecipeIds),
+      recipeSearchQuery,
+      searchToggleClass: buildSearchToggleClass(recipeSearchQuery),
+      searchPanelClass: buildSearchPanelClass(Boolean(nextState.showSearchPanel)),
       visibleItemsCountText: `${visibleItems.length} 道菜`,
       sectionViewItems: buildSectionViewItems(sectionOptions, activeSectionKey),
       showVisibleItems: visibleItems.length > 0,
@@ -672,7 +759,7 @@ Page({
 
   handleSectionChange(event) {
     const key = event.currentTarget.dataset.key || 'all'
-    const visibleItems = buildVisibleRecipeCards(filterRecipesBySection(this.data.items || [], key))
+    const visibleItems = buildFilteredVisibleRecipeCards(this.data.items || [], key, this.data.recipeSearchQuery)
     this.setData({
       activeSectionKey: key,
       activeSectionLabel: getSectionLabel(this.data.sectionOptions || [], key),
@@ -681,6 +768,45 @@ Page({
       showVisibleItems: visibleItems.length > 0,
       visibleItems,
       ...buildEmptyStateView(this.data.items || [], this.data.activeSpaceId)
+    })
+  },
+
+  toggleSearchPanel() {
+    const showSearchPanel = !this.data.showSearchPanel
+    this.setData({
+      showSearchPanel,
+      searchPanelClass: buildSearchPanelClass(showSearchPanel)
+    })
+  },
+
+  handleRecipeSearchInput(event) {
+    const recipeSearchQuery = event && event.detail ? event.detail.value || '' : ''
+    const visibleItems = buildFilteredVisibleRecipeCards(
+      this.data.items || [],
+      this.data.activeSectionKey || 'all',
+      recipeSearchQuery
+    )
+    this.setData({
+      recipeSearchQuery,
+      searchToggleClass: buildSearchToggleClass(recipeSearchQuery),
+      visibleItemsCountText: `${visibleItems.length} 道菜`,
+      showVisibleItems: visibleItems.length > 0,
+      visibleItems
+    })
+  },
+
+  clearRecipeSearch() {
+    const visibleItems = buildFilteredVisibleRecipeCards(
+      this.data.items || [],
+      this.data.activeSectionKey || 'all',
+      ''
+    )
+    this.setData({
+      recipeSearchQuery: '',
+      searchToggleClass: buildSearchToggleClass(''),
+      visibleItemsCountText: `${visibleItems.length} 道菜`,
+      showVisibleItems: visibleItems.length > 0,
+      visibleItems
     })
   },
 
@@ -806,19 +932,12 @@ Page({
     switchToTab('/pages/shopping/index')
   },
 
-  toggleRecipeSelection(event) {
-    const recipeId = event.currentTarget.dataset.recipeId || ''
-    if (!recipeId) {
-      return
-    }
-
-    const current = this.data.selectedRecipeIds || []
-    const nextSelectedRecipeIds = current.indexOf(recipeId) === -1
-      ? current.concat(recipeId)
-      : current.filter((item) => item !== recipeId)
+  syncSelectedRecipes(nextSelectedRecipeIds = []) {
     const nextItems = applySelectionState(this.data.items || [], nextSelectedRecipeIds)
-    const visibleItems = buildVisibleRecipeCards(
-      filterRecipesBySection(nextItems, this.data.activeSectionKey || 'all')
+    const visibleItems = buildFilteredVisibleRecipeCards(
+      nextItems,
+      this.data.activeSectionKey || 'all',
+      this.data.recipeSearchQuery
     )
 
     this.setData({
@@ -832,20 +951,31 @@ Page({
     })
   },
 
+  toggleRecipeSelection(event) {
+    const recipeId = event.currentTarget.dataset.recipeId || ''
+    if (!recipeId) {
+      return
+    }
+
+    const current = this.data.selectedRecipeIds || []
+    const nextSelectedRecipeIds = current.indexOf(recipeId) === -1
+      ? current.concat(recipeId)
+      : current.filter((item) => item !== recipeId)
+
+    this.syncSelectedRecipes(nextSelectedRecipeIds)
+  },
+
+  removePlanModalRecipe(event) {
+    const recipeId = event.currentTarget.dataset.recipeId || ''
+    if (!recipeId) {
+      return
+    }
+
+    this.syncSelectedRecipes((this.data.selectedRecipeIds || []).filter((item) => item !== recipeId))
+  },
+
   clearSelectedRecipes() {
-    const nextItems = applySelectionState(this.data.items || [], [])
-    const visibleItems = buildVisibleRecipeCards(
-      filterRecipesBySection(nextItems, this.data.activeSectionKey || 'all')
-    )
-    this.setData({
-      selectedRecipeIds: [],
-      selectedRecipesCount: 0,
-      planModalSelectedRecipes: [],
-      items: nextItems,
-      visibleItemsCountText: `${visibleItems.length} 道菜`,
-      showVisibleItems: visibleItems.length > 0,
-      visibleItems
-    })
+    this.syncSelectedRecipes([])
   },
 
   handleRandomPick() {
@@ -957,6 +1087,7 @@ Page({
         })
       }
 
+      markMealPlansPageForRefresh(this.data.planModalDate)
       this.clearSelectedRecipes()
       this.setData({
         showPlanModal: false,

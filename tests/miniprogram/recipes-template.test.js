@@ -26,10 +26,16 @@ describe('recipes page template styles', () => {
   it('uses non-button containers for compact utility actions and rail items', () => {
     const template = readFileSync('miniprogram/pages/recipes/index.wxml', 'utf8')
 
-    expect(template).toMatch(/<view class="management-card__more" bindtap="openSpaceManager">/)
+    expect(template).toMatch(/<view class="\{\{searchToggleClass\}\}" bindtap="toggleSearchPanel">/)
+    expect(template).not.toContain('bindtap="openSpaceManager"')
+    expect(template).toContain('class="{{searchPanelClass}}"')
+    expect(template).toContain('data-field="recipeSearchQuery"')
+    expect(template).toContain('bindinput="handleRecipeSearchInput"')
+    expect(template).toContain('bindtap="clearRecipeSearch"')
     expect(template).toMatch(/<view class="action-pill action-pill--random" bindtap="handleRandomPick">/)
     expect(template).toMatch(/<view class="action-pill action-pill--create" bindtap="goCreate">/)
-    expect(template).toMatch(/<view class="cart-primary" bindtap="handlePlanSelectedRecipes">/)
+    expect(template).toMatch(/wx:if="\{\{selectedRecipesCount > 0\}}" class="cart-primary" bindtap="handlePlanSelectedRecipes"/)
+    expect(template).toMatch(/wx:else class="cart-primary cart-primary--disabled"/)
     expect(template).toMatch(/<view class="cart-secondary" bindtap="clearSelectedRecipes">/)
     expect(template).toContain('showPlanModal')
     expect(template).toContain('plan-modal')
@@ -49,7 +55,9 @@ describe('recipes page template styles', () => {
   it('keeps utility actions content-sized instead of stretching them', () => {
     const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
 
-    expect(styles.includes('.management-card__more')).toBe(true)
+    expect(styles.includes('.management-card__search')).toBe(true)
+    expect(styles.includes('.management-card__search--active')).toBe(true)
+    expect(styles.includes('.management-card__search-panel')).toBe(true)
     expect(styles.includes('flex: none;')).toBe(true)
     expect(styles.includes('width: auto;')).toBe(true)
     expect(styles).toMatch(/\.action-pill\s*\{[\s\S]*font-size:\s*24rpx;/)
@@ -143,8 +151,26 @@ describe('recipes page template styles', () => {
 
   it('uses larger selected recipe tags in the add-to-plan modal', () => {
     const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+    const template = readFileSync('miniprogram/pages/recipes/index.wxml', 'utf8')
 
     expect(styles).toMatch(/\.plan-modal__tag\s*\{[\s\S]*font-size:\s*28rpx;/)
+    expect(template).toMatch(/class="plan-modal__tag-remove"[\s\S]*bindtap="removePlanModalRecipe"/)
+  })
+
+  it('uses themed add-to-plan buttons and keeps meal type choices on one row', () => {
+    const styles = readFileSync('miniprogram/pages/recipes/index.wxss', 'utf8')
+    const template = readFileSync('miniprogram/pages/recipes/index.wxml', 'utf8')
+
+    expect(styles).toMatch(/\.cart-primary\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.cart-primary--disabled\s*\{[\s\S]*background:\s*var\(--brand-soft,\s*#d8eef3\);[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.plan-modal__date-chip--active\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.plan-modal__meal-chip--active\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.plan-modal__primary\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.plan-modal__primary--disabled\s*\{[\s\S]*background:\s*var\(--brand-soft,\s*#d8eef3\);[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.plan-modal__meal-types\s*\{[\s\S]*flex-wrap:\s*nowrap;/)
+    expect(styles).toMatch(/\.plan-modal__meal-chip\s*\{[\s\S]*flex:\s*1;/)
+    expect(template).toMatch(/wx:if="\{\{selectedRecipesCount > 0\}}" class="plan-modal__primary" bindtap="submitPlanSelection"/)
+    expect(template).toMatch(/wx:else class="plan-modal__primary plan-modal__primary--disabled"/)
   })
 
   it('removes orange button shadows and uses a pale neutral selected-recipe tag', () => {

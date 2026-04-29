@@ -45,9 +45,12 @@ describe('meal-plans page template', () => {
   })
 
   it('uses animated calendar viewport styles and modal cards instead of a floating fab list', () => {
+    const template = readFileSync('miniprogram/pages/meal-plans/index.wxml', 'utf8')
     const styles = readFileSync('miniprogram/pages/meal-plans/index.wxss', 'utf8')
 
     expect(styles).toMatch(/\.meal-plans-page\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;/)
+    expect(styles).toMatch(/\.meal-plans-page\s*\{[\s\S]*overflow-y:\s*auto;[\s\S]*-webkit-overflow-scrolling:\s*touch;/)
+    expect(styles).toMatch(/\.meal-plans-page\s*\{[\s\S]*padding:\s*18rpx 18rpx calc\(env\(safe-area-inset-bottom\) \+ 150rpx\);/)
     expect(styles).toMatch(/\.plans-hero__overlay\s*\{[\s\S]*align-items:\s*stretch;/)
     expect(styles.includes('linear-gradient(135deg, var(--brand-strong')).toBe(false)
     expect(styles).toMatch(/\.plans-hero__topbar\s*\{[\s\S]*display:\s*flex;[\s\S]*justify-content:\s*space-between;/)
@@ -68,7 +71,10 @@ describe('meal-plans page template', () => {
     expect(styles).toMatch(/\.calendar-cell__dot\s*\{[\s\S]*margin-top:\s*6rpx;/)
     expect(styles).toMatch(/\.calendar-cell--selected\s*\{/)
     expect(styles).toMatch(/\.calendar-cell--outside-month\s*\{/)
-    expect(styles).toMatch(/\.calendar-toggle__chevron--expanded\s*\{[\s\S]*transform:\s*rotate\(180deg\);/)
+    expect(template).toContain('class="calendar-toggle__chevron {{isCalendarExpanded ? \'calendar-toggle__chevron--expanded\' : \'\'}}"></view>')
+    expect(styles).toMatch(/\.calendar-toggle__chevron\s*\{[\s\S]*width:\s*18rpx;[\s\S]*height:\s*18rpx;[\s\S]*border-right:\s*4rpx solid var\(--text-primary,/)
+    expect(styles).toMatch(/\.calendar-toggle__chevron\s*\{[\s\S]*transform:\s*rotate\(45deg\);/)
+    expect(styles).toMatch(/\.calendar-toggle__chevron--expanded\s*\{[\s\S]*transform:\s*rotate\(-135deg\);/)
     expect(styles).toMatch(/\.inventory-modal__summary\s*\{[\s\S]*display:\s*grid;/)
     expect(styles).toMatch(/\.inventory-modal__panel\s*\{[\s\S]*min-width:\s*500rpx;[\s\S]*max-width:\s*720rpx;[\s\S]*box-sizing:\s*border-box;/)
     expect(styles).toMatch(/\.inventory-item--ok\s*\{[\s\S]*background:/)

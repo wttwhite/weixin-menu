@@ -21,8 +21,10 @@ describe('theme utilities', () => {
     expect(style).toContain('--page-bg')
     expect(style).toContain('--brand')
     expect(style).toContain('--brand: #2e7d32;')
+    expect(style).toContain('--brand-soft: #dff1e2;')
     expect(style).toContain('--brand-strong: #1b5e20;')
     expect(techBlueStyle).toContain('--hero-soft-start: #dcecff;')
+    expect(buildThemeStyle('sakura-pink')).toContain('--brand-soft: #f6d7e2;')
   })
 
   it('exposes all selectable theme options and persists the chosen key in storage', () => {

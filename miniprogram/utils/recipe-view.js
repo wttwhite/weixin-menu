@@ -35,14 +35,15 @@ function getRecipeCoverImageSrc(recipe = {}) {
 function formatRecommendationStars(score) {
   const parsed = Number(score)
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return ''
+    return '☆☆☆☆☆'
   }
 
   const normalized = Math.max(0, Math.min(5, parsed))
   const fullStars = Math.floor(normalized)
   const hasHalfStar = normalized - fullStars >= 0.5
+  const filledSlots = Math.min(5, fullStars + (hasHalfStar ? 1 : 0))
   const stars = '★'.repeat(fullStars) + (hasHalfStar ? '½' : '')
-  return stars || ''
+  return stars + '☆'.repeat(5 - filledSlots)
 }
 
 function formatCookDurationText(duration) {

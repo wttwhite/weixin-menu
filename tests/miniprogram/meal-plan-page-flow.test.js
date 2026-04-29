@@ -189,6 +189,65 @@ describe('meal-plans page flow', () => {
     expect(callFunction).toHaveBeenCalledTimes(1)
   })
 
+  it('reloads and selects the pending date after another page marks meal plans stale', async () => {
+    const callFunction = vi.fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: []
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'meal-1',
+                planDate: '2026-04-29',
+                mealType: 'dinner',
+                recipes: [{ recipeId: 'recipe-1', recipeNameSnapshot: 'Mapo', recipe: { _id: 'recipe-1', name: 'Mapo' } }]
+              }
+            ]
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    await page.onShow()
+    await flushAsyncWork()
+    page.syncCalendarView({
+      viewMonthKey: '2026-04',
+      selectedDate: '2026-04-01'
+    })
+
+    page.markNeedsRefreshOnNextShow('2026-04-29')
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.selectedDate).toBe('2026-04-29')
+    expect(page.data.selectedPlans).toEqual([
+      expect.objectContaining({
+        _id: 'meal-1',
+        primaryRecipeName: 'Mapo'
+      })
+    ])
+  })
+
   it('builds a month calendar and filters plans by selected day', async () => {
     const callFunction = vi.fn().mockResolvedValue({
       result: {

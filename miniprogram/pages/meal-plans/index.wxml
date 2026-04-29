@@ -58,7 +58,7 @@
       </view>
 
       <view class="calendar-toggle" bindtap="toggleCalendarExpanded">
-        <view class="calendar-toggle__chevron {{isCalendarExpanded ? 'calendar-toggle__chevron--expanded' : ''}}">⌄</view>
+        <view class="calendar-toggle__chevron {{isCalendarExpanded ? 'calendar-toggle__chevron--expanded' : ''}}"></view>
       </view>
     </view>
 

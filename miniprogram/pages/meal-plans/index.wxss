@@ -6,7 +6,9 @@ page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 18rpx 18rpx calc(env(safe-area-inset-bottom) + 26rpx);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 18rpx 18rpx calc(env(safe-area-inset-bottom) + 150rpx);
   box-sizing: border-box;
 }
 
@@ -310,18 +312,17 @@ page {
 }
 
 .calendar-toggle__chevron {
-  width: 56rpx;
-  height: 40rpx;
+  width: 18rpx;
+  height: 18rpx;
   border-radius: 999rpx;
-  color: var(--text-secondary, #7d8797);
-  font-size: 34rpx;
-  line-height: 40rpx;
-  text-align: center;
-  transition: transform 220ms ease, color 180ms ease;
+  border-right: 4rpx solid var(--text-primary, #394556);
+  border-bottom: 4rpx solid var(--text-primary, #394556);
+  transform: rotate(45deg);
+  transition: transform 220ms ease, border-color 180ms ease;
 }
 
 .calendar-toggle__chevron--expanded {
-  transform: rotate(180deg);
+  transform: rotate(-135deg);
 }
 
 .plans-day-card__head {

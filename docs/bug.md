@@ -59,4 +59,10 @@
 * [X] 菜谱详情中步骤是数字和字母时不会折行，直接超出去了
 * [X] 食材列表放到制作步骤前面
 * [X] 现在详情1小时以上，直接显示了61，按新增时正常显示
-* [ ] 现在拍照上传的图片，详情不展示，图册选择的详情只在第一次打开的时候展示过
+* [X] 现在拍照上传的图片，详情不展示，图册选择的详情只在第一次打开的时候展示过
+* [X] surface-head的align-items改成center
+* [X] channel-rail的background改成rgba(230, 236, 244, 0.8)
+* [X] 菜谱表单的rating-row__label的**font-size改成32rpx**;
+* [X] 菜谱表单的 form-row__label的**font-size改成28rpx**;
+
+dish-card **box-shadow**: **0 18rpx 30rpx rgba(102, 114, 138, 0.08)**;

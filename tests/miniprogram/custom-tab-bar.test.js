@@ -64,6 +64,35 @@ describe('custom tab bar', () => {
     expect(template.includes('selectedIconPath')).toBe(false)
   })
 
+  it('uses theme-colored text icons like the reference bottom nav', async () => {
+    const styles = readFileSync('miniprogram/custom-tab-bar/index.wxss', 'utf8')
+    const template = readFileSync('miniprogram/custom-tab-bar/index.wxml', 'utf8')
+    const config = JSON.parse(readFileSync('miniprogram/custom-tab-bar/index.json', 'utf8'))
+    const componentConfig = await loadComponent()
+
+    expect(config.usingComponents['t-icon']).toBe('/miniprogram_npm/tdesign-miniprogram/icon/icon')
+    expect(template).toContain('<t-icon')
+    expect(template).toContain('name="{{selected === item.pagePath ? item.activeIcon : item.icon}}"')
+    expect(template).not.toContain('<image')
+    expect(styles).toMatch(/\.tabbar-item\s*\{[\s\S]*color:\s*var\(--text-secondary,\s*#6b7280\);/)
+    expect(styles).toMatch(/\.tabbar-item--active\s*\{[\s\S]*color:\s*var\(--brand,\s*#4f7d8a\);/)
+    expect(styles).toMatch(/\.tabbar-item--active \.tabbar-label\s*\{[\s\S]*font-weight:\s*900;/)
+    expect(componentConfig.data.list.map((item) => item.icon)).toEqual([
+      'book-open',
+      'store',
+      'calendar',
+      'cart',
+      'user'
+    ])
+    expect(componentConfig.data.list.map((item) => item.activeIcon)).toEqual([
+      'book-open-filled',
+      'store-filled',
+      'calendar-filled',
+      'cart-filled',
+      'user-filled'
+    ])
+  })
+
   it('selects the current tab from the active page route on attach', async () => {
     global.getCurrentPages = () => [
       {

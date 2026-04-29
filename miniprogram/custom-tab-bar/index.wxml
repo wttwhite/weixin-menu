@@ -7,10 +7,10 @@
       data-path="{{item.pagePath}}"
       bindtap="handleSwitchTab"
     >
-      <image
+      <t-icon
         class="tabbar-icon"
-        src="{{item.iconPath}}"
-        mode="aspectFit"
+        name="{{selected === item.pagePath ? item.activeIcon : item.icon}}"
+        size="42rpx"
       />
       <text class="tabbar-label">{{item.text}}</text>
     </view>

@@ -159,17 +159,6 @@
         bindremove="handleImageRemove"
       />
 
-      <view class="detail-grid">
-        <view class="detail-grid__item">
-          <view class="field-label">菜系</view>
-          <input class="field-input" data-field="cuisine" value="{{form.cuisine}}" placeholder="例如：川菜" bindinput="handleInput" />
-        </view>
-        <view class="detail-grid__item">
-          <view class="field-label">难度</view>
-          <input class="field-input" data-field="difficulty" value="{{form.difficulty}}" placeholder="简单 / 中等" bindinput="handleInput" />
-        </view>
-      </view>
-
       <view class="field-switch">
         <text>收藏这道菜</text>
         <switch checked="{{form.isFavorite}}" bindchange="handleSwitchFavorite" />

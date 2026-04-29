@@ -9,9 +9,6 @@ page {
   flex-direction: column;
   padding: 14rpx 18rpx calc(env(safe-area-inset-bottom) + 128rpx);
   overflow: hidden;
-  background:
-    radial-gradient(circle at top, var(--surface-muted, #e8edf1), transparent 30%),
-    linear-gradient(180deg, var(--page-bg, #f6f7f8) 0%, #eef2f5 100%);
 }
 
 .hero-banner {
@@ -125,21 +122,89 @@ page {
   line-height: 1.6;
 }
 
-.management-card__more {
+.management-card__search {
   flex: none;
-  width: auto;
+  width: 68rpx;
   min-width: 68rpx;
   height: 68rpx;
   line-height: 68rpx;
   margin: 0;
-  padding: 0 20rpx;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999rpx;
   background: #f4f5f8;
   color: #656d7a;
-  font-size: 34rpx;
+  font-size: 36rpx;
+  font-weight: 800;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.management-card__search--active {
+  background: var(--brand, #4f7d8a);
+  color: #fff;
+}
+
+.management-card__search-panel {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translate(28rpx, -12rpx) scale(0.96);
+  transform-origin: top right;
+  transition: max-height 180ms ease, opacity 180ms ease, transform 180ms ease, margin-top 180ms ease;
+}
+
+.management-card__search-panel--open {
+  max-height: 112rpx;
+  opacity: 1;
+  margin-top: 18rpx;
+  transform: translate(0, 0) scale(1);
+}
+
+.management-card__search-field {
+  height: 78rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: #f4f6fa;
+  border: 1rpx solid rgba(38, 50, 61, 0.08);
+}
+
+.management-card__search-icon {
+  flex: none;
+  font-size: 28rpx;
+  color: var(--brand, #4f7d8a);
+  font-weight: 800;
+}
+
+.management-card__search-input {
+  flex: 1;
+  min-width: 0;
+  height: 72rpx;
+  font-size: 26rpx;
+  color: #27323f;
+}
+
+.management-card__search-placeholder {
+  color: #9aa1ad;
+}
+
+.management-card__search-clear {
+  flex: none;
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(39, 50, 63, 0.12);
+  color: #656d7a;
+  font-size: 28rpx;
+  line-height: 1;
 }
 
 .management-card__actions {
@@ -353,7 +418,7 @@ page {
   border-radius: 28rpx;
   padding: 16rpx;
   background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 18rpx 30rpx rgba(102, 114, 138, 0.14);
+  box-shadow: 0 18rpx 30rpx rgba(102, 114, 138, 0.08);
 }
 
 .dish-thumb {
@@ -509,6 +574,11 @@ page {
   color: #fff;
 }
 
+.cart-primary--disabled {
+  background: var(--brand-soft, #d8eef3);
+  color: #fff;
+}
+
 .cart-secondary {
   background: #f2f4f8;
   color: #7a808d;
@@ -575,10 +645,33 @@ page {
 .plan-modal__tag {
   padding: 12rpx 18rpx;
   border-radius: 999rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
   background: var(--surface-muted, #f3f4f7);
   color: var(--text-primary, #27323f);
   font-size: 28rpx;
   font-weight: 700;
+}
+
+.plan-modal__tag-name {
+  max-width: 260rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-modal__tag-remove {
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 999rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 34, 52, 0.14);
+  color: var(--text-secondary, #5c6872);
+  font-size: 26rpx;
+  line-height: 1;
 }
 
 .plan-modal__date {
@@ -611,19 +704,20 @@ page {
 }
 
 .plan-modal__date-chip--active {
-  color: var(--brand, #4f7d8a);
-  background: var(--surface-muted, #f3f4f7);
+  background: var(--brand, #4f7d8a);
+  color: #fff;
 }
 
 .plan-modal__meal-types {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 12rpx;
   margin-top: 14rpx;
 }
 
 .plan-modal__meal-chip {
-  min-width: 128rpx;
+  flex: 1;
+  min-width: 0;
   padding: 16rpx 20rpx;
   border-radius: 999rpx;
   text-align: center;
@@ -634,8 +728,8 @@ page {
 }
 
 .plan-modal__meal-chip--active {
-  color: var(--brand, #4f7d8a);
-  background: var(--surface-muted, #f3f4f7);
+  background: var(--brand, #4f7d8a);
+  color: #fff;
 }
 
 .plan-modal__actions {
@@ -657,8 +751,13 @@ page {
 }
 
 .plan-modal__primary {
-  background: var(--surface-muted, #f3f4f7);
-  color: var(--brand, #4f7d8a);
+  background: var(--brand, #4f7d8a);
+  color: #fff;
+}
+
+.plan-modal__primary--disabled {
+  background: var(--brand-soft, #d8eef3);
+  color: #fff;
 }
 
 .plan-modal__secondary {

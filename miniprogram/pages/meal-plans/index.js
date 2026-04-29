@@ -659,8 +659,9 @@ Page({
     })
   },
 
-  markNeedsRefreshOnNextShow() {
+  markNeedsRefreshOnNextShow(targetDate = '') {
     this.forceRefreshOnNextShow = true
+    this.pendingSelectedDate = normalizeText(targetDate)
   },
 
   shouldReuseLoadedState() {
@@ -720,8 +721,16 @@ Page({
         emptyMessage: '这个空间还没有用餐计划，点击下方开始添加。',
         truncationMessage: hasMore ? '当前仅显示部分计划，请继续缩小范围或等待分页支持。' : ''
       })
+      const pendingSelectedDate = this.pendingSelectedDate || ''
+      this.pendingSelectedDate = ''
       this.syncCalendarView({
-        items
+        items,
+        ...(pendingSelectedDate
+          ? {
+              viewMonthKey: pendingSelectedDate.slice(0, 7),
+              selectedDate: pendingSelectedDate
+            }
+          : {})
       })
       this.hasLoadedMealPlansOnce = true
     } catch (error) {

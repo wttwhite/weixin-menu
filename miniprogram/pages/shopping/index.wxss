@@ -253,7 +253,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-muted, #e9f0ff);
+  background: #f4f5f8;
   color: var(--brand-strong, #617694);
   font-size: 42rpx;
 }
@@ -284,18 +284,18 @@ page {
 }
 
 .shopping-list-card__status--open {
-  background: var(--surface-muted, #e9f0ff);
-  color: var(--brand, #3173e0);
+  background: #f4f5f8;
+  color: #7a808d;
 }
 
 .shopping-list-card__status--completed {
-  background: var(--surface-muted, #e8f6ea);
-  color: var(--success, #2f8b37);
+  background: #f4f5f8;
+  color: #7a808d;
 }
 
 .shopping-list-card__status--archived {
-  background: var(--surface-muted, #f0f3f7);
-  color: var(--text-tertiary, #7f8a98);
+  background: #f4f5f8;
+  color: #7a808d;
 }
 
 .shopping-list-card__date {
@@ -334,7 +334,7 @@ page {
   height: 12rpx;
   border-radius: 999rpx;
   overflow: hidden;
-  background: var(--surface-muted, #e6e9ef);
+  background: #f4f5f8;
 }
 
 .shopping-list-card__progress-fill {
@@ -447,7 +447,8 @@ page {
 .shopping-item-row__source {
   padding: 4rpx 12rpx;
   border-radius: 999rpx;
-  background: var(--surface-muted, #edf1f8);
+  background: #f4f5f8;
+  color: #7a808d;
 }
 
 .shopping-item-row__record {
@@ -459,8 +460,8 @@ page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-muted, #edf6ee);
-  color: var(--success, #5b9b67);
+  background: #f4f5f8;
+  color: #7a808d;
   font-size: 24rpx;
   font-weight: 700;
   white-space: nowrap;

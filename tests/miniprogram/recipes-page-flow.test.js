@@ -402,6 +402,65 @@ describe('recipes page flow', () => {
     expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Mapo', 'Twice Cooked Pork'])
   })
 
+  it('filters visible recipes by search query and marks the search icon active only when a query exists', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn().mockResolvedValue({
+          result: {
+            code: 0,
+            data: {
+              items: [
+                {
+                  _id: 'recipe-1',
+                  name: 'Mapo',
+                  summary: '麻辣下饭',
+                  category: '川菜',
+                  tags: [{ name: '下饭' }],
+                  ingredients: [{ name: '豆腐' }]
+                },
+                {
+                  _id: 'recipe-2',
+                  name: 'Soup',
+                  summary: '清淡',
+                  category: '汤',
+                  tags: [{ name: '暖胃' }],
+                  ingredients: [{ name: '番茄' }]
+                }
+              ]
+            }
+          }
+        })
+      },
+      navigateTo: vi.fn(),
+      switchTab: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    page.toggleSearchPanel()
+    expect(page.data.showSearchPanel).toBe(true)
+    expect(page.data.searchToggleClass).toBe('management-card__search')
+
+    page.handleRecipeSearchInput({ detail: { value: '豆腐' } })
+    expect(page.data.recipeSearchQuery).toBe('豆腐')
+    expect(page.data.searchToggleClass).toBe('management-card__search management-card__search--active')
+    expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Mapo'])
+    expect(page.data.visibleItemsCountText).toBe('1 道菜')
+
+    page.clearRecipeSearch()
+    expect(page.data.recipeSearchQuery).toBe('')
+    expect(page.data.searchToggleClass).toBe('management-card__search')
+    expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Mapo', 'Soup'])
+  })
+
   it('consumes queued created recipe locally, inserts it at the front, and skips full reload on return', async () => {
     const callFunction = vi.fn()
       .mockResolvedValueOnce({
@@ -684,8 +743,62 @@ describe('recipes page flow', () => {
     global.Date = RealDate
   })
 
+  it('removes selected recipes from the plan modal and syncs the list selection state', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+          .mockResolvedValueOnce({
+            result: {
+              code: 0,
+              data: {
+                items: [
+                  { _id: 'recipe-1', name: 'Mapo', category: '川菜' },
+                  { _id: 'recipe-2', name: 'Soup', category: '汤' }
+                ]
+              }
+            }
+          })
+          .mockResolvedValueOnce({
+            result: {
+              code: 0,
+              data: { items: [] }
+            }
+          })
+      },
+      navigateTo: vi.fn(),
+      switchTab: vi.fn(),
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    page.toggleRecipeSelection({ currentTarget: { dataset: { recipeId: 'recipe-1' } } })
+    page.toggleRecipeSelection({ currentTarget: { dataset: { recipeId: 'recipe-2' } } })
+    page.handlePlanSelectedRecipes()
+    page.removePlanModalRecipe({ currentTarget: { dataset: { recipeId: 'recipe-1' } } })
+
+    expect(page.data.selectedRecipeIds).toEqual(['recipe-2'])
+    expect(page.data.selectedRecipesCount).toBe(1)
+    expect(page.data.planModalSelectedRecipes).toEqual([
+      expect.objectContaining({ _id: 'recipe-2', name: 'Soup' })
+    ])
+    expect(page.data.items.find((item) => item._id === 'recipe-1').selected).toBe(false)
+    expect(page.data.items.find((item) => item._id === 'recipe-2').selected).toBe(true)
+    expect(page.data.visibleItems.find((item) => item._id === 'recipe-1').selectionSymbol).toBe('+')
+    expect(page.data.visibleItems.find((item) => item._id === 'recipe-2').selectionSymbol).toBe('✓')
+  })
+
   it('merges selected recipes into the same date and meal-type plan, dedupes by recipeId, then clears selection', async () => {
     const showToast = vi.fn()
+    const markNeedsRefreshOnNextShow = vi.fn()
     const callFunction = vi.fn()
       .mockResolvedValueOnce({
         result: {
@@ -747,6 +860,15 @@ describe('recipes page flow', () => {
         activeSpaceId: 'space-1'
       }
     })
+    global.getCurrentPages = () => ([
+      {
+        route: 'pages/meal-plans/index',
+        markNeedsRefreshOnNextShow
+      },
+      {
+        route: 'pages/recipes/index'
+      }
+    ])
 
     const page = await loadPage('../../miniprogram/pages/recipes/index.js')
     page.onShow()
@@ -805,6 +927,7 @@ describe('recipes page flow', () => {
     expect(page.data.showPlanModal).toBe(false)
     expect(page.data.selectedRecipeIds).toEqual([])
     expect(page.data.selectedRecipesCount).toBe(0)
+    expect(markNeedsRefreshOnNextShow).toHaveBeenCalledWith('2026-04-21')
     expect(showToast).toHaveBeenCalledWith({
       title: '已加入 2026-04-21',
       icon: 'success'
