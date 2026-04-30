@@ -232,10 +232,10 @@ describe('fileOps repository', () => {
         stage: 'addRecord',
         collectionName: 'recipes',
         itemIndex: 0,
-        requestLimitRetryAttempts: 8
+        requestLimitRetryAttempts: 2
       }
     })
 
-    expect(sleeps.slice(1, 9)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    expect(sleeps.slice(1, 3)).toEqual([1, 2])
   })
 })

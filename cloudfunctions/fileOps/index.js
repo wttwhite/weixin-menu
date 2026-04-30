@@ -17,8 +17,8 @@ const { createStorageService } = require('./services/storage-service')
 
 let hasInitialized = false
 const RESTORE_TRANSACTION_WRITE_LIMIT = 10
-const RESTORE_REQUEST_LIMIT_RETRY_COUNT = 8
-const RESTORE_REQUEST_LIMIT_RETRY_DELAY_MS = 2000
+const RESTORE_REQUEST_LIMIT_RETRY_COUNT = 2
+const RESTORE_REQUEST_LIMIT_RETRY_DELAY_MS = 500
 
 function getCloudSdk(cloudSdk) {
   return cloudSdk || require('wx-server-sdk')
