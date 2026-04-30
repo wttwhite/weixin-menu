@@ -280,13 +280,25 @@ function createRepository(options = {}) {
     await connection.collection(collectionName).where({ spaceId }).remove()
   }
 
-  async function addRecord(connection, collectionName, data) {
-    const created = await connection.collection(collectionName).add({
-      data
+  async function setRecord(connection, collectionName, data) {
+    const id = data && data._id
+    if (!id) {
+      const error = new Error('Restore record id is required')
+      error.data = {
+        stage: 'setRecord',
+        collectionName
+      }
+      throw error
+    }
+
+    const next = { ...data }
+    delete next._id
+    await connection.collection(collectionName).doc(id).set({
+      data: next
     })
     return {
-      _id: created._id,
-      ...data
+      _id: id,
+      ...next
     }
   }
 
@@ -352,18 +364,18 @@ function createRepository(options = {}) {
     }
   }
 
-  async function addRecordsForRestore(collectionName, items = []) {
+  async function setRecordsForRestore(collectionName, items = []) {
     const records = items || []
     for (let index = 0; index < records.length; index += RESTORE_TRANSACTION_WRITE_LIMIT) {
       const chunk = records.slice(index, index + RESTORE_TRANSACTION_WRITE_LIMIT)
       for (let offset = 0; offset < chunk.length; offset += 1) {
         const item = chunk[offset]
         try {
-          await runRestoreOperation(() => addRecord(db, collectionName, item))
+          await runRestoreOperation(() => setRecord(db, collectionName, item))
         } catch (error) {
           error.data = {
             ...((error && error.data) || {}),
-            stage: 'addRecord',
+            stage: 'setRecord',
             collectionName,
             itemIndex: index + offset,
             recordId: item && item._id
@@ -378,39 +390,15 @@ function createRepository(options = {}) {
   }
 
   async function replaceSpaceData(spaceId, payload = {}) {
-    const collectionsToClear = [
-      COLLECTIONS.RECIPES,
-      COLLECTIONS.RECIPE_TAGS,
-      RECIPE_IMAGES,
-      COLLECTIONS.PANTRY_ITEMS,
-      COLLECTIONS.MEAL_PLANS,
-      COLLECTIONS.SHOPPING_LISTS,
-      COLLECTIONS.SHOPPING_ITEMS
-    ]
-
-    for (const collectionName of collectionsToClear) {
-      try {
-        await runRestoreOperation(() => clearSpaceCollection(db, collectionName, spaceId))
-      } catch (error) {
-        error.data = {
-          ...((error && error.data) || {}),
-          stage: 'clearCollection',
-          collectionName
-        }
-        throw error
-      }
-    }
-    await sleepFn(restoreRetryDelayMs)
-
     const withSpaceId = (items = []) => items.map((item) => ({ ...item, spaceId }))
 
-    await addRecordsForRestore(COLLECTIONS.RECIPES, withSpaceId(payload.recipes))
-    await addRecordsForRestore(COLLECTIONS.RECIPE_TAGS, withSpaceId(payload.recipeTags))
-    await addRecordsForRestore(RECIPE_IMAGES, withSpaceId(payload.recipeImages))
-    await addRecordsForRestore(COLLECTIONS.PANTRY_ITEMS, withSpaceId(payload.pantryItems))
-    await addRecordsForRestore(COLLECTIONS.MEAL_PLANS, withSpaceId(payload.mealPlans))
-    await addRecordsForRestore(COLLECTIONS.SHOPPING_LISTS, withSpaceId(payload.shoppingLists))
-    await addRecordsForRestore(COLLECTIONS.SHOPPING_ITEMS, withSpaceId(payload.shoppingItems))
+    await setRecordsForRestore(COLLECTIONS.RECIPES, withSpaceId(payload.recipes))
+    await setRecordsForRestore(COLLECTIONS.RECIPE_TAGS, withSpaceId(payload.recipeTags))
+    await setRecordsForRestore(RECIPE_IMAGES, withSpaceId(payload.recipeImages))
+    await setRecordsForRestore(COLLECTIONS.PANTRY_ITEMS, withSpaceId(payload.pantryItems))
+    await setRecordsForRestore(COLLECTIONS.MEAL_PLANS, withSpaceId(payload.mealPlans))
+    await setRecordsForRestore(COLLECTIONS.SHOPPING_LISTS, withSpaceId(payload.shoppingLists))
+    await setRecordsForRestore(COLLECTIONS.SHOPPING_ITEMS, withSpaceId(payload.shoppingItems))
 
     if (payload.settings && typeof payload.settings === 'object') {
       try {

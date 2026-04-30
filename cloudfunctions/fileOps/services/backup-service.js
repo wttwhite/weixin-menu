@@ -370,7 +370,12 @@ function buildIdMap(items = [], options = {}) {
     if (!item || !item._id) {
       continue
     }
-    map.set(item._id, resolveRandomId(options))
+    map.set(
+      item._id,
+      typeof options.randomId === 'function'
+        ? resolveRandomId(options)
+        : item._id
+    )
   }
   return map
 }

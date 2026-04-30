@@ -23,6 +23,31 @@ function createMockDb() {
       },
       doc(id) {
         return {
+          async set({ data }) {
+            const sourceData = { _id: id, ...data }
+            const shouldFailLimit =
+              typeof mockDb.failAddLimit === 'function' && mockDb.failAddLimit(name, sourceData)
+            if (shouldFailLimit) {
+              const error = new Error(
+                'collection.add:fail -501003 exceed request limit. [LimitExceeded.OutOte request overrun]'
+              )
+              error.code = -501003
+              throw error
+            }
+            if (typeof mockDb.failAddOnce === 'function' && mockDb.failAddOnce(name, sourceData)) {
+              mockDb.failAddOnce = null
+              const error = new Error(
+                'collection.add:fail -501003 exceed request limit. [LimitExceeded.OutOte request overrun]'
+              )
+              error.code = -501003
+              throw error
+            }
+            if (typeof mockDb.failAdd === 'function' && mockDb.failAdd(name, sourceData)) {
+              throw new Error('mock set failed')
+            }
+            operations.push({ type: 'set', scope, collection: name, id, data })
+            return {}
+          },
           async update({ data }) {
             operations.push({ type: 'update', scope, collection: name, id, data })
             return {}
@@ -109,7 +134,7 @@ function createMockDb() {
 }
 
 describe('fileOps repository', () => {
-  it('restores large backups with direct writes instead of transactional writes', async () => {
+  it('restores large backups with direct overwrite writes instead of clearing first', async () => {
     const db = createMockDb()
     const repository = createRepository({
       cloudSdk: {
@@ -135,13 +160,14 @@ describe('fileOps repository', () => {
       }
     })
 
-    const addOperations = db.operations.filter((operation) => operation.type === 'add')
-    expect(addOperations).toHaveLength(137)
-    expect(addOperations.every((operation) => !Array.isArray(operation.data))).toBe(true)
-    expect(addOperations.every((operation) => operation.scope === 'direct')).toBe(true)
+    const removeOperations = db.operations.filter((operation) => operation.type === 'remove')
+    const setOperations = db.operations.filter((operation) => operation.type === 'set')
+    expect(removeOperations).toHaveLength(0)
+    expect(setOperations).toHaveLength(137)
+    expect(setOperations.every((operation) => operation.scope === 'direct')).toBe(true)
   })
 
-  it('uses direct restore writes when transactional writes hit cloud request limits', async () => {
+  it('uses direct overwrite writes when transactional add writes would hit cloud request limits', async () => {
     const db = createMockDb()
     db.failTransactionAddLimit = (collection, data) => collection === 'recipes' && data._id === 'recipe-0'
     const repository = createRepository({
@@ -169,10 +195,11 @@ describe('fileOps repository', () => {
     expect(db.operations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          type: 'add',
+          type: 'set',
           scope: 'direct',
           collection: 'recipes',
-          data: expect.objectContaining({ _id: 'recipe-0' })
+          id: 'recipe-0',
+          data: expect.not.objectContaining({ _id: 'recipe-0' })
         })
       ])
     )
@@ -205,7 +232,7 @@ describe('fileOps repository', () => {
       })
     ).rejects.toMatchObject({
       data: {
-        stage: 'addRecord',
+        stage: 'setRecord',
         collectionName: 'pantry_items',
         itemIndex: 2,
         recordId: 'pantry-2'
@@ -241,11 +268,11 @@ describe('fileOps repository', () => {
       settings: {}
     })
 
-    const recipeAdds = db.operations.filter(
-      (operation) => operation.type === 'add' && operation.collection === 'recipes'
+    const recipeSets = db.operations.filter(
+      (operation) => operation.type === 'set' && operation.collection === 'recipes'
     )
-    expect(recipeAdds).toHaveLength(1)
-    expect(sleeps).toEqual([1, 1])
+    expect(recipeSets).toHaveLength(1)
+    expect(sleeps).toEqual([1])
   })
 
   it('reports retry attempts when cloud database request limit keeps failing', async () => {
@@ -278,13 +305,13 @@ describe('fileOps repository', () => {
       })
     ).rejects.toMatchObject({
       data: {
-        stage: 'addRecord',
+        stage: 'setRecord',
         collectionName: 'recipes',
         itemIndex: 0,
         requestLimitRetryAttempts: 2
       }
     })
 
-    expect(sleeps.slice(1, 3)).toEqual([1, 2])
+    expect(sleeps).toEqual([1, 2])
   })
 })

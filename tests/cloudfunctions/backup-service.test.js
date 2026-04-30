@@ -933,7 +933,7 @@ describe('backup service', () => {
 
     expect(storageService.getUploadedFiles()[0].cloudPath).toContain('spaces/target-space/')
     expect(storageService.getUploadedFiles()[0].cloudPath).not.toContain('spaces/source-space/')
-    expect(repository.getImported().recipes[0]._id).not.toBe('recipe-1')
+    expect(repository.getImported().recipes[0]._id).toBe('recipe-1')
     expect(repository.getImported().recipeImages[0].recipeId).toBe(repository.getImported().recipes[0]._id)
   })
 
