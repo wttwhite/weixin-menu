@@ -252,14 +252,19 @@ function createRepository(options = {}) {
     await connection.collection(collectionName).where({ spaceId }).remove()
   }
 
-  async function addRecord(connection, collectionName, data) {
-    const created = await connection.collection(collectionName).add({
-      data
-    })
-    return {
-      _id: created._id,
-      ...data
+  async function addRecords(connection, collectionName, items = []) {
+    if (!items.length) {
+      return []
     }
+
+    const created = await connection.collection(collectionName).add({
+      data: items
+    })
+    const ids = created.ids || created._ids || []
+    return items.map((item, index) => ({
+      _id: ids[index] || item._id,
+      ...item
+    }))
   }
 
   async function replaceSpaceData(spaceId, payload = {}) {
@@ -278,27 +283,15 @@ function createRepository(options = {}) {
         await clearSpaceCollection(connection, collectionName, spaceId)
       }
 
-      for (const recipe of payload.recipes || []) {
-        await addRecord(connection, COLLECTIONS.RECIPES, { ...recipe, spaceId })
-      }
-      for (const recipeTag of payload.recipeTags || []) {
-        await addRecord(connection, COLLECTIONS.RECIPE_TAGS, { ...recipeTag, spaceId })
-      }
-      for (const recipeImage of payload.recipeImages || []) {
-        await addRecord(connection, RECIPE_IMAGES, { ...recipeImage, spaceId })
-      }
-      for (const pantryItem of payload.pantryItems || []) {
-        await addRecord(connection, COLLECTIONS.PANTRY_ITEMS, { ...pantryItem, spaceId })
-      }
-      for (const mealPlan of payload.mealPlans || []) {
-        await addRecord(connection, COLLECTIONS.MEAL_PLANS, { ...mealPlan, spaceId })
-      }
-      for (const shoppingList of payload.shoppingLists || []) {
-        await addRecord(connection, COLLECTIONS.SHOPPING_LISTS, { ...shoppingList, spaceId })
-      }
-      for (const shoppingItem of payload.shoppingItems || []) {
-        await addRecord(connection, COLLECTIONS.SHOPPING_ITEMS, { ...shoppingItem, spaceId })
-      }
+      const withSpaceId = (items = []) => items.map((item) => ({ ...item, spaceId }))
+
+      await addRecords(connection, COLLECTIONS.RECIPES, withSpaceId(payload.recipes))
+      await addRecords(connection, COLLECTIONS.RECIPE_TAGS, withSpaceId(payload.recipeTags))
+      await addRecords(connection, RECIPE_IMAGES, withSpaceId(payload.recipeImages))
+      await addRecords(connection, COLLECTIONS.PANTRY_ITEMS, withSpaceId(payload.pantryItems))
+      await addRecords(connection, COLLECTIONS.MEAL_PLANS, withSpaceId(payload.mealPlans))
+      await addRecords(connection, COLLECTIONS.SHOPPING_LISTS, withSpaceId(payload.shoppingLists))
+      await addRecords(connection, COLLECTIONS.SHOPPING_ITEMS, withSpaceId(payload.shoppingItems))
 
       if (payload.settings && typeof payload.settings === 'object') {
         await connection.collection(COLLECTIONS.SPACES).doc(spaceId).update({
