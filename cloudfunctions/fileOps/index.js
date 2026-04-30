@@ -16,6 +16,7 @@ const {
 const { createStorageService } = require('./services/storage-service')
 
 let hasInitialized = false
+const RESTORE_TRANSACTION_WRITE_LIMIT = 50
 
 function getCloudSdk(cloudSdk) {
   return cloudSdk || require('wx-server-sdk')
@@ -252,19 +253,44 @@ function createRepository(options = {}) {
     await connection.collection(collectionName).where({ spaceId }).remove()
   }
 
-  async function addRecords(connection, collectionName, items = []) {
-    if (!items.length) {
-      return []
+  async function addRecord(connection, collectionName, data) {
+    const created = await connection.collection(collectionName).add({
+      data
+    })
+    return {
+      _id: created._id,
+      ...data
+    }
+  }
+
+  async function runInTransaction(work) {
+    if (typeof db.startTransaction !== 'function') {
+      throw new Error('Backup restore requires transaction support')
     }
 
-    const created = await connection.collection(collectionName).add({
-      data: items
-    })
-    const ids = created.ids || created._ids || []
-    return items.map((item, index) => ({
-      _id: ids[index] || item._id,
-      ...item
-    }))
+    const transaction = await db.startTransaction()
+    try {
+      const result = await work(transaction)
+      await transaction.commit()
+      return result
+    } catch (error) {
+      if (typeof transaction.rollback === 'function') {
+        await transaction.rollback()
+      }
+      throw error
+    }
+  }
+
+  async function addRecordsInTransactions(collectionName, items = []) {
+    const records = items || []
+    for (let index = 0; index < records.length; index += RESTORE_TRANSACTION_WRITE_LIMIT) {
+      const chunk = records.slice(index, index + RESTORE_TRANSACTION_WRITE_LIMIT)
+      await runInTransaction(async (transaction) => {
+        for (const item of chunk) {
+          await addRecord(transaction, collectionName, item)
+        }
+      })
+    }
   }
 
   async function replaceSpaceData(spaceId, payload = {}) {
@@ -278,43 +304,30 @@ function createRepository(options = {}) {
       COLLECTIONS.SHOPPING_ITEMS
     ]
 
-    const runWithConnection = async (connection) => {
+    await runInTransaction(async (connection) => {
       for (const collectionName of collectionsToClear) {
         await clearSpaceCollection(connection, collectionName, spaceId)
       }
+    })
 
-      const withSpaceId = (items = []) => items.map((item) => ({ ...item, spaceId }))
+    const withSpaceId = (items = []) => items.map((item) => ({ ...item, spaceId }))
 
-      await addRecords(connection, COLLECTIONS.RECIPES, withSpaceId(payload.recipes))
-      await addRecords(connection, COLLECTIONS.RECIPE_TAGS, withSpaceId(payload.recipeTags))
-      await addRecords(connection, RECIPE_IMAGES, withSpaceId(payload.recipeImages))
-      await addRecords(connection, COLLECTIONS.PANTRY_ITEMS, withSpaceId(payload.pantryItems))
-      await addRecords(connection, COLLECTIONS.MEAL_PLANS, withSpaceId(payload.mealPlans))
-      await addRecords(connection, COLLECTIONS.SHOPPING_LISTS, withSpaceId(payload.shoppingLists))
-      await addRecords(connection, COLLECTIONS.SHOPPING_ITEMS, withSpaceId(payload.shoppingItems))
+    await addRecordsInTransactions(COLLECTIONS.RECIPES, withSpaceId(payload.recipes))
+    await addRecordsInTransactions(COLLECTIONS.RECIPE_TAGS, withSpaceId(payload.recipeTags))
+    await addRecordsInTransactions(RECIPE_IMAGES, withSpaceId(payload.recipeImages))
+    await addRecordsInTransactions(COLLECTIONS.PANTRY_ITEMS, withSpaceId(payload.pantryItems))
+    await addRecordsInTransactions(COLLECTIONS.MEAL_PLANS, withSpaceId(payload.mealPlans))
+    await addRecordsInTransactions(COLLECTIONS.SHOPPING_LISTS, withSpaceId(payload.shoppingLists))
+    await addRecordsInTransactions(COLLECTIONS.SHOPPING_ITEMS, withSpaceId(payload.shoppingItems))
 
-      if (payload.settings && typeof payload.settings === 'object') {
+    if (payload.settings && typeof payload.settings === 'object') {
+      await runInTransaction(async (connection) => {
         await connection.collection(COLLECTIONS.SPACES).doc(spaceId).update({
           data: {
             settings: payload.settings
           }
         })
-      }
-    }
-
-    if (typeof db.startTransaction !== 'function') {
-      throw new Error('Backup restore requires transaction support')
-    }
-
-    const transaction = await db.startTransaction()
-    try {
-      await runWithConnection(transaction)
-      await transaction.commit()
-    } catch (error) {
-      if (typeof transaction.rollback === 'function') {
-        await transaction.rollback()
-      }
-      throw error
+      })
     }
 
     return payload

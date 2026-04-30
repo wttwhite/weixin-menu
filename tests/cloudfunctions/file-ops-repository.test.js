@@ -3,41 +3,45 @@ import { createRepository } from '../../cloudfunctions/fileOps/index'
 
 function createMockDb() {
   const operations = []
-  const transaction = {
-    collection(name) {
-      return {
-        where(query) {
-          return {
-            async remove() {
-              operations.push({ type: 'remove', collection: name, query })
-              return {}
+  let transactionIndex = 0
+
+  function createTransaction() {
+    transactionIndex += 1
+    const tx = transactionIndex
+    return {
+      collection(name) {
+        return {
+          where(query) {
+            return {
+              async remove() {
+                operations.push({ type: 'remove', tx, collection: name, query })
+                return {}
+              }
             }
-          }
-        },
-        doc(id) {
-          return {
-            async update({ data }) {
-              operations.push({ type: 'update', collection: name, id, data })
-              return {}
+          },
+          doc(id) {
+            return {
+              async update({ data }) {
+                operations.push({ type: 'update', tx, collection: name, id, data })
+                return {}
+              }
             }
+          },
+          async add({ data }) {
+            operations.push({ type: 'add', tx, collection: name, data })
+            return { _id: data._id }
           }
-        },
-        async add({ data }) {
-          operations.push({ type: 'add', collection: name, data })
-          return Array.isArray(data)
-            ? { ids: data.map((item) => item._id) }
-            : { _id: data._id }
         }
-      }
-    },
-    commit: vi.fn(),
-    rollback: vi.fn()
+      },
+      commit: vi.fn(),
+      rollback: vi.fn()
+    }
   }
 
   return {
     operations,
     async startTransaction() {
-      return transaction
+      return createTransaction()
     },
     collection() {
       throw new Error('outside transaction should not be used by replaceSpaceData')
@@ -46,7 +50,7 @@ function createMockDb() {
 }
 
 describe('fileOps repository', () => {
-  it('restores large backups with batched collection writes inside one transaction', async () => {
+  it('restores large backups without exceeding per-transaction write limits', async () => {
     const db = createMockDb()
     const repository = createRepository({
       cloudSdk: {
@@ -71,9 +75,13 @@ describe('fileOps repository', () => {
     })
 
     const addOperations = db.operations.filter((operation) => operation.type === 'add')
-    expect(addOperations).toHaveLength(6)
-    expect(addOperations.every((operation) => Array.isArray(operation.data))).toBe(true)
-    expect(addOperations.map((operation) => operation.data.length)).toEqual([16, 7, 89, 10, 3, 12])
-    expect(db.operations).toHaveLength(14)
+    expect(addOperations).toHaveLength(137)
+    expect(addOperations.every((operation) => !Array.isArray(operation.data))).toBe(true)
+
+    const writeCountByTransaction = db.operations.reduce((counts, operation) => {
+      counts.set(operation.tx, (counts.get(operation.tx) || 0) + 1)
+      return counts
+    }, new Map())
+    expect(Math.max(...writeCountByTransaction.values())).toBeLessThanOrEqual(50)
   })
 })
