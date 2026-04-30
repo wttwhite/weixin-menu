@@ -1,6 +1,7 @@
 const { createPantryService } = require('../../services/pantry')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
+const { syncPageTheme } = require('../../utils/theme')
 const {
   buildUnitOptionItems,
   buildManagerOptionLabels,
@@ -21,6 +22,33 @@ const STATUS_OPTIONS = [
   { label: '已用完', value: 'empty' },
   { label: '已丢弃', value: 'discarded' }
 ]
+
+const DETAIL_STATUS_META = {
+  active: {
+    label: '正常',
+    className: 'detail-status'
+  },
+  opened: {
+    label: '已开封',
+    className: 'detail-status'
+  },
+  expiring: {
+    label: '即将过期',
+    className: 'detail-status'
+  },
+  expired: {
+    label: '已过期',
+    className: 'detail-status'
+  },
+  empty: {
+    label: '已用完',
+    className: 'detail-status'
+  },
+  discarded: {
+    label: '已丢弃',
+    className: 'detail-status'
+  }
+}
 
 function getTodayDate() {
   const now = new Date()
@@ -46,16 +74,28 @@ function buildPageCopy(isEdit = false) {
   }
 }
 
+function getDetailStatusMeta(form = {}, statusOptions = [], statusIndex = 0) {
+  const actualStatus = normalizeText(form.actualStatus)
+  const storedStatus = normalizeText(form.status)
+  const status = DETAIL_STATUS_META[actualStatus] ? actualStatus : storedStatus
+  return DETAIL_STATUS_META[status] || {
+    label: statusOptions[statusIndex] || STATUS_OPTIONS[0].label,
+    className: 'detail-status'
+  }
+}
+
 function buildDetailViewData(form = {}, statusOptions = [], statusIndex = 0) {
   const quantity = normalizeText(form.quantity) || '1'
   const unit = normalizeText(form.unit)
   const expirationDateText = normalizeText(form.expirationDate) || '未设置'
   const notesText = normalizeText(form.notes)
+  const statusMeta = getDetailStatusMeta(form, statusOptions, statusIndex)
   return {
     detailNameText: normalizeText(form.name) || '未命名库存',
     detailCategoryText: normalizeText(form.category) || '未设置',
     detailLocationText: normalizeText(form.location) || '未设置',
-    detailStatusText: statusOptions[statusIndex] || STATUS_OPTIONS[0].label,
+    detailStatusText: statusMeta.label,
+    detailStatusClass: statusMeta.className,
     detailQuantityText: unit ? `${quantity} ${unit}` : quantity,
     detailProductionDateText: normalizeText(form.productionDate) || '未设置',
     detailShelfLifeText: normalizeText(form.shelfLifeMonths) ? `${normalizeText(form.shelfLifeMonths)} 个月` : '未设置',
@@ -103,6 +143,8 @@ function markPantryPageForRefresh() {
 
 Page({
   data: {
+    themeKey: 'default',
+    themeStyle: '',
     loading: true,
     submitting: false,
     deleting: false,
@@ -142,6 +184,7 @@ Page({
   },
 
   async onLoad(options) {
+    syncPageTheme(this)
     const pantryItemId = options && options.pantryItemId ? options.pantryItemId : ''
     const activeSpaceId = getActiveSpaceId()
 
@@ -186,6 +229,7 @@ Page({
         shelfLifeMonths: matched.shelfLifeMonths || '',
         openedDate: matched.openedDate || '',
         status: matched.storedStatus || matched.status || 'active',
+        actualStatus: matched.status || matched.storedStatus || 'active',
         expirationDate: matched.expirationDate || '',
         notes: matched.notes || ''
       }
@@ -511,7 +555,9 @@ Page({
       )
       const form = {
         ...createEmptyPantryForm(),
-        ...(result.item || nextForm)
+        ...(result.item || nextForm),
+        status: (result.item && (result.item.storedStatus || result.item.status)) || nextForm.status || 'active',
+        actualStatus: (result.item && (result.item.status || result.item.storedStatus)) || nextForm.status || 'active'
       }
       const categoryOptions = buildManagerOptionLabels(this.data.categoryOptions || [], form.category)
       const locationOptions = buildManagerOptionLabels(this.data.locationOptions || [], form.location)

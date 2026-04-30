@@ -93,9 +93,10 @@ describe('recipe detail template', () => {
 
   it('uses theme variables instead of fixed orange detail-page styling', () => {
     const styles = readFileSync('miniprogram/pages/recipe-detail/index.wxss', 'utf8')
+    const detailPageBlock = styles.match(/\.detail-page\s*\{[^}]*\}/)
 
     expect(styles).not.toContain('rgba(197, 106, 61')
-    expect(styles).toMatch(/\.detail-page\s*\{[\s\S]*linear-gradient\(180deg,\s*var\(--page-bg/)
+    expect(detailPageBlock ? detailPageBlock[0] : '').not.toMatch(/background:/)
     expect(styles).toMatch(/button\.hero-share\s*\{[\s\S]*box-shadow:\s*none;/)
     expect(styles).toMatch(/\.card-head__icon\s*\{[\s\S]*background:\s*var\(--surface-muted/)
   })

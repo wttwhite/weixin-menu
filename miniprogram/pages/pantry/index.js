@@ -21,10 +21,6 @@ const FRESHNESS_META = {
   expiring: {
     label: '临期',
     className: 'freshness-badge freshness-badge--expiring-soon'
-  },
-  expired: {
-    label: '过期',
-    className: 'freshness-badge freshness-badge--expired'
   }
 }
 
@@ -52,6 +48,12 @@ const STORED_STATUS_META = {
     className: 'usage-badge usage-badge--discarded',
     actionLabel: '恢复',
     actionIcon: '↺'
+  },
+  expired: {
+    label: '已过期',
+    className: 'usage-badge usage-badge--expired',
+    actionLabel: '开封',
+    actionIcon: '◔'
   }
 }
 
@@ -173,9 +175,30 @@ function buildCategorySourceValues(items = []) {
   return values
 }
 
-function buildCategoryOptions(items = [], sourceValues = []) {
+function mergeCategorySourceValues(sourceValues = [], items = []) {
+  const values = []
+  ;(sourceValues || []).forEach((value) => {
+    const text = normalizeText(value)
+    if (text && !values.includes(text)) {
+      values.push(text)
+    }
+  })
+  buildCategorySourceValues(items).forEach((value) => {
+    if (value && !values.includes(value)) {
+      values.push(value)
+    }
+  })
+  return values
+}
+
+function isProcessedItem(item = {}) {
+  return item.status === 'empty' || item.status === 'discarded'
+}
+
+function buildCategoryOptions(items = [], sourceValues = [], showProcessed = false) {
+  const countItems = showProcessed ? (items || []) : (items || []).filter((item) => !isProcessedItem(item))
   const countsByKey = {}
-  ;(items || []).forEach((item) => {
+  countItems.forEach((item) => {
     const key = getCategoryKey(item.category)
     countsByKey[key] = (countsByKey[key] || 0) + 1
   })
@@ -184,7 +207,7 @@ function buildCategoryOptions(items = [], sourceValues = []) {
     {
       key: 'all',
       label: '全部',
-      count: (items || []).length
+      count: countItems.length
     }
   ]
   const seen = new Set(['all'])
@@ -238,10 +261,33 @@ function buildQuantityDisplay(item = {}) {
   return unit ? `${quantity} ${unit}` : quantity
 }
 
+function formatExpirationDateText(expirationDate = '') {
+  const parts = normalizeText(expirationDate).split('-')
+  if (parts.length !== 3) {
+    return normalizeText(expirationDate)
+  }
+  return `${parts[0]}/${parts[1]}/${parts[2]}`
+}
+
+function buildExpirationDateClass(actualStatus = '', expirationDate = '') {
+  if (!normalizeText(expirationDate)) {
+    return 'pantry-item__expiration'
+  }
+  if (actualStatus === 'expired') {
+    return 'pantry-item__expiration pantry-item__expiration--expired'
+  }
+  if (actualStatus === 'expiring') {
+    return 'pantry-item__expiration pantry-item__expiration--soon'
+  }
+  return 'pantry-item__expiration'
+}
+
 function buildDisplayItem(item = {}) {
   const actualStatus = normalizeText(item.status) || 'active'
   const storedStatus = normalizeStoredStatus(item.storedStatus || item.status)
-  const storedMeta = STORED_STATUS_META[storedStatus] || STORED_STATUS_META.active
+  const storedMeta = actualStatus === 'expired'
+    ? STORED_STATUS_META.expired
+    : STORED_STATUS_META[storedStatus] || STORED_STATUS_META.active
   const freshnessMeta = FRESHNESS_META[actualStatus] || null
   const location = normalizeText(item.location)
   const notes = normalizeText(item.notes)
@@ -263,6 +309,8 @@ function buildDisplayItem(item = {}) {
     deleteActionIcon: '🗑',
     locationLabel: location || '未设置位置',
     dateLabel: expirationDate ? `到期 ${expirationDate}` : '未设置到期',
+    expirationDateText: formatExpirationDateText(expirationDate),
+    expirationDateClass: buildExpirationDateClass(actualStatus, expirationDate),
     hasNotes: Boolean(notes),
     notesDisplay: notes,
     cardThumbText: buildThumbText(item)
@@ -271,10 +319,6 @@ function buildDisplayItem(item = {}) {
 
 function buildDisplayItems(items = []) {
   return (items || []).map((item) => buildDisplayItem(item))
-}
-
-function isProcessedItem(item = {}) {
-  return item.status === 'empty' || item.status === 'discarded'
 }
 
 function matchesKeyword(item = {}, keyword = '') {
@@ -654,7 +698,7 @@ Page({
       ...overrides
     }
 
-    const categoryOptions = buildCategoryOptions(nextState.items || [], nextState.categorySourceValues || [])
+    const categoryOptions = buildCategoryOptions(nextState.items || [], nextState.categorySourceValues || [], nextState.showProcessed)
     const hasActiveCategory = categoryOptions.some((item) => item.key === nextState.activeCategoryKey)
     const activeCategoryKey = hasActiveCategory ? nextState.activeCategoryKey : 'all'
     const visibleItems = filterVisibleItems(nextState.items || [], {
@@ -1024,7 +1068,7 @@ Page({
       this.closeCreateModal()
       this.syncDerivedState({
         items: nextItems,
-        categorySourceValues: buildCategorySourceValues(nextItems),
+        categorySourceValues: mergeCategorySourceValues(this.data.categorySourceValues || [], nextItems),
         summary: buildSummary(nextItems, nextItems.length, nextItems.length, false),
         truncationMessage: ''
       })

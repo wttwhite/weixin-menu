@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+function getStyleBlock(styles, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`))
+  return match ? match[0] : ''
+}
+
 describe('pantry edit template', () => {
   it('does not block selecting past expiration dates in date picker', () => {
     const template = readFileSync('miniprogram/pages/pantry-edit/index.wxml', 'utf8')
@@ -51,12 +57,28 @@ describe('pantry edit template', () => {
     expect(template).toContain('card-head')
     expect(template).toContain('detail-pair-grid')
     expect(template).toContain('detail-edit-button')
+    expect(template).toContain('style="{{themeStyle}}"')
     expect(template).toContain('showEditModal')
     expect(template).toContain('pantry-form-modal')
     expect(template).toContain('bind:submit="submitEditModal"')
     expect(template).toContain('bind:change="handleEditFormChange"')
     expect(template.includes('`')).toBe(false)
     expect(template.includes('${')).toBe(false)
+  })
+
+  it('uses theme colors and no page-level background on pantry detail', () => {
+    const styles = readFileSync('miniprogram/pages/pantry-edit/index.wxss', 'utf8')
+    const editPageStyles = getStyleBlock(styles, '.edit-page')
+    const detailPageStyles = getStyleBlock(styles, '.detail-page')
+    const heroStyles = getStyleBlock(styles, '.hero-card')
+
+    expect(editPageStyles).not.toMatch(/background:/)
+    expect(detailPageStyles).not.toMatch(/background:/)
+    expect(heroStyles).toMatch(/linear-gradient\(135deg,\s*var\(--brand-strong\)/)
+    expect(styles).not.toContain('.detail-status--opened')
+    expect(styles).not.toContain('.detail-status--expiring')
+    expect(styles).not.toContain('.detail-status--empty')
+    expect(styles).not.toContain('.detail-status--discarded')
   })
 
   it('keeps notes textarea and delete action compact instead of full width', () => {

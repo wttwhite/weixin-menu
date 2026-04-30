@@ -33,7 +33,7 @@
             bindinput="handleSearchInput"
             confirm-type="search"
           />
-          <view wx:if="{{searchKeyword}}" class="search-box__clear" bindtap="clearSearch">×</view>
+          <view wx:if="{{searchKeyword}}" class="search-box__clear" catchtap="clearSearch">×</view>
         </view>
 
         <view class="processed-toggle" bindtap="handleToggleProcessed">{{showProcessedText}}</view>
@@ -96,11 +96,12 @@
                   </view>
 
                   <view class="pantry-item__meta">{{item.categoryLabel}} · {{item.locationLabel}}</view>
-                  <view class="pantry-item__quantity">{{item.quantityDisplay}}</view>
+                  <view class="pantry-item__quantity">
+                    <text>库存：{{item.quantityDisplay}}</text><text wx:if="{{item.expirationDateText}}" class="pantry-item__separator">·</text><text wx:if="{{item.expirationDateText}}" class="{{item.expirationDateClass}}">{{item.expirationDateText}}</text>
+                  </view>
 
-                  <view class="pantry-item__footer">
+                  <view wx:if="{{item.showStatusBadge}}" class="pantry-item__footer">
                     <view wx:if="{{item.showStatusBadge}}" class="{{item.statusClass}}">{{item.statusLabel}}</view>
-                    <view class="pantry-item__date">{{item.dateLabel}}</view>
                   </view>
 
                   <view wx:if="{{item.hasNotes}}" class="pantry-item__notes">{{item.notesDisplay}}</view>
@@ -121,7 +122,12 @@
                   data-pantry-item-id="{{item._id}}"
                   catchtap="handleDeleteItem"
                 >
-                  {{item.deleteActionIcon}}
+                  <view class="delete-line-icon">
+                    <view class="delete-line-icon__lid"></view>
+                    <view class="delete-line-icon__handle"></view>
+                    <view class="delete-line-icon__line delete-line-icon__line--left"></view>
+                    <view class="delete-line-icon__line delete-line-icon__line--right"></view>
+                  </view>
                 </view>
               </view>
             </view>

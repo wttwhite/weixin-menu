@@ -66,3 +66,5 @@
 * [X] 菜谱表单的 form-row__label的**font-size改成28rpx**;
 
 dish-card **box-shadow**: **0 18rpx 30rpx rgba(102, 114, 138, 0.08)**;
+
+pantry-page、calendar-panel、plans-day-card去掉background；计划页面calendar-nav__button、calendar-nav__month、plan-card__icon、meal-plan-status-chip改成淡灰色背景；meal-plan-status-chip

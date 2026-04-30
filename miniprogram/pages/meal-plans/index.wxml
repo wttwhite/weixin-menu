@@ -174,8 +174,8 @@
   </view>
 
   <view wx:if="{{showInventoryModal}}" class="inventory-modal__overlay" catchtap="closeInventoryModal" catchtouchmove="noop">
-    <view class="inventory-modal" catchtap="closeInventoryModal" catchtouchmove="noop">
-      <view class="inventory-modal__panel" catchtap="noop" catchtouchmove="noop">
+    <view class="inventory-modal" catchtap="noop">
+      <view class="inventory-modal__panel" catchtap="noop">
         <view class="inventory-modal__header">
           <view>
             <view class="inventory-modal__title">食材库存检查</view>
@@ -186,44 +186,47 @@
 
         <view wx:if="{{inventoryModalLoading}}" class="feedback-card feedback-card--inline">正在检查库存...</view>
 
-        <view wx:else>
-          <view class="inventory-modal__summary">
-            <view class="inventory-stat">
-              <view class="inventory-stat__value">{{inventorySummary.totalText}}</view>
-              <view class="inventory-stat__label">需食材</view>
-            </view>
-            <view class="inventory-stat inventory-stat--ok">
-              <view class="inventory-stat__value">{{inventorySummary.inStockText}}</view>
-              <view class="inventory-stat__label">库存充足</view>
-            </view>
-            <view class="inventory-stat inventory-stat--missing">
-              <view class="inventory-stat__value">{{inventorySummary.missingText}}</view>
-              <view class="inventory-stat__label">需采购</view>
-            </view>
-          </view>
-
-          <view class="inventory-list">
-            <view wx:for="{{inventoryItems}}" wx:key="key" class="inventory-item {{item.selectable ? 'inventory-item--missing' : 'inventory-item--ok'}}">
-              <view class="{{item.iconClass}}">{{item.iconText}}</view>
-              <view class="inventory-item__body">
-                <view class="inventory-item__name">{{item.name}}</view>
-                <view class="inventory-item__meta">{{item.requiredText}}</view>
-                <view class="inventory-item__meta">{{item.stockText}}</view>
+        <scroll-view wx:else class="inventory-modal__body" scroll-y="true" show-scrollbar="{{true}}" enhanced="{{true}}" bounces="{{false}}">
+          <view class="inventory-modal__body-content">
+            <view class="inventory-modal__summary">
+              <view class="inventory-stat">
+                <view class="inventory-stat__value">{{inventorySummary.totalText}}</view>
+                <view class="inventory-stat__label">需食材</view>
               </view>
-              <view
-                wx:if="{{item.selectable}}"
-                class="inventory-item__checkbox {{item.selected ? 'inventory-item__checkbox--selected' : ''}}"
-                data-key="{{item.key}}"
-                bindtap="toggleInventorySelection"
-              >
-                {{item.selected ? '✓' : ''}}
+              <view class="inventory-stat inventory-stat--ok">
+                <view class="inventory-stat__value">{{inventorySummary.inStockText}}</view>
+                <view class="inventory-stat__label">库存充足</view>
               </view>
-              <view class="{{item.statusClass}}">{{item.statusText}}</view>
+              <view class="inventory-stat inventory-stat--missing">
+                <view class="inventory-stat__value">{{inventorySummary.missingText}}</view>
+                <view class="inventory-stat__label">需采购</view>
+              </view>
             </view>
-          </view>
 
-          <t-button class="inventory-modal__primary" theme="primary" block bindtap="generateShoppingList">{{inventoryGenerateButtonText}}</t-button>
-        </view>
+            <view class="inventory-list">
+              <view wx:for="{{inventoryItems}}" wx:key="key" class="inventory-item {{item.selectable ? 'inventory-item--missing' : 'inventory-item--ok'}}">
+                <view class="{{item.iconClass}}">{{item.iconText}}</view>
+                <view class="inventory-item__body">
+                  <view class="inventory-item__name">{{item.name}}</view>
+                  <view class="inventory-item__meta">{{item.requiredText}}</view>
+                  <view class="inventory-item__source">{{item.sourceText}}</view>
+                  <view class="inventory-item__meta">{{item.stockText}}</view>
+                </view>
+                <view
+                  wx:if="{{item.selectable}}"
+                  class="inventory-item__checkbox {{item.selected ? 'inventory-item__checkbox--selected' : ''}}"
+                  data-key="{{item.key}}"
+                  bindtap="toggleInventorySelection"
+                >
+                  {{item.selected ? '✓' : ''}}
+                </view>
+                <view class="{{item.statusClass}}">{{item.statusText}}</view>
+              </view>
+            </view>
+
+            <t-button class="inventory-modal__primary" theme="primary" block bindtap="generateShoppingList">{{inventoryGenerateButtonText}}</t-button>
+          </view>
+        </scroll-view>
       </view>
     </view>
   </view>

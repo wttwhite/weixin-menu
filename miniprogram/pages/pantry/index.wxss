@@ -9,9 +9,6 @@ page {
   flex-direction: column;
   padding: 14rpx 18rpx calc(env(safe-area-inset-bottom) + 127rpx);
   overflow: hidden;
-  background:
-    radial-gradient(circle at top, var(--surface-muted, #e8edf1), transparent 30%),
-    linear-gradient(180deg, var(--page-bg, #f6f7f8) 0%, #eef2f5 100%);
 }
 
 .hero-banner {
@@ -85,7 +82,6 @@ page {
   height: 68rpx;
   line-height: 68rpx;
   margin: 0;
-  padding: 0 20rpx;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -185,12 +181,25 @@ page {
   gap: 14rpx;
   padding: 0 16rpx;
   height: 72rpx;
-  border-radius: 22rpx;
+  border-radius: 999rpx;
   background: #f4f6f8;
 }
 
-.search-box__icon,
+.search-box__icon {
+  color: #8c94a2;
+  font-size: 28rpx;
+}
+
 .search-box__clear {
+  flex: none;
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 40rpx;
+  border-radius: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6ebf0;
   color: #8c94a2;
   font-size: 28rpx;
 }
@@ -430,7 +439,7 @@ page {
 
 .pantry-item__name {
   min-width: 0;
-  font-size: 28rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #27323f;
 }
@@ -443,10 +452,26 @@ page {
 
 .pantry-item__quantity {
   margin-top: 8rpx;
-  font-size: 38rpx;
+  font-size: 26rpx;
   line-height: 1;
   font-weight: 700;
   color: var(--brand);
+}
+
+.pantry-item__separator {
+  margin: 0 8rpx;
+}
+
+.pantry-item__expiration {
+  color: #8b95a3;
+}
+
+.pantry-item__expiration--soon {
+  color: #d6861d;
+}
+
+.pantry-item__expiration--expired {
+  color: #d14b4b;
 }
 
 .pantry-item__footer {
@@ -519,16 +544,21 @@ page {
 }
 
 .usage-badge--opened {
-  background: #eef5ff;
-  color: #4d7edc;
+  background: #fff4de;
+  color: #d6861d;
 }
 
 .usage-badge--used-up {
-  background: #fff2da;
-  color: #b87517;
+  background: #f3f5f8;
+  color: #667084;
 }
 
 .usage-badge--discarded {
+  background: #f3f5f8;
+  color: #667084;
+}
+
+.usage-badge--expired {
   background: #ffe8e8;
   color: #d14b4b;
 }
@@ -551,6 +581,55 @@ page {
 .item-action--delete {
   background: #ffe8e8;
   color: #d14b4b;
+}
+
+.delete-line-icon {
+  position: relative;
+  width: 24rpx;
+  height: 28rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #d14b4b;
+  border-top: 0;
+  border-radius: 0 0 5rpx 5rpx;
+}
+
+.delete-line-icon__lid {
+  position: absolute;
+  left: -4rpx;
+  top: -8rpx;
+  width: 32rpx;
+  height: 2rpx;
+  border-radius: 2rpx;
+  background: #d14b4b;
+}
+
+.delete-line-icon__handle {
+  position: absolute;
+  left: 7rpx;
+  top: -13rpx;
+  width: 10rpx;
+  height: 5rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #d14b4b;
+  border-bottom: 0;
+  border-radius: 5rpx 5rpx 0 0;
+}
+
+.delete-line-icon__line {
+  position: absolute;
+  top: 6rpx;
+  width: 2rpx;
+  height: 14rpx;
+  border-radius: 2rpx;
+  background: #d14b4b;
+}
+
+.delete-line-icon__line--left {
+  left: 7rpx;
+}
+
+.delete-line-icon__line--right {
+  right: 7rpx;
 }
 
 .floating-create-button {

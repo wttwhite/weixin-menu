@@ -1,4 +1,4 @@
-const DEFAULT_EXPIRING_SOON_DAYS = 3
+const DEFAULT_EXPIRING_SOON_DAYS = 30
 const { isValidIsoDate } = require('../utils/time')
 
 const VALID_PANTRY_STATUS = new Set(['active', 'opened', 'expiring', 'expired', 'empty', 'discarded'])

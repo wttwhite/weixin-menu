@@ -110,10 +110,30 @@ describe('pantry form modal', () => {
     expect(template).toContain('class="unit-selector__close" bindtap="closeUnitSelector"')
     expect(template).toMatch(/field-clear field-clear--inline[\s\S]*category-picker__arrow/)
     expect(styles).toMatch(/\.pantry-form-modal__overlay\s*\{[\s\S]*padding:\s*72rpx 20rpx calc\(env\(safe-area-inset-bottom\) \+ 150rpx\);/)
-    expect(styles).toMatch(/\.pantry-form-modal__body\s*\{[\s\S]*height:\s*100%;/)
+    expect(styles).toMatch(/\.pantry-form-modal__body\s*\{[\s\S]*height:\s*auto;/)
     expect(styles).toMatch(/\.pantry-form-modal__title\s*\{[\s\S]*font-size:\s*34rpx;/)
     expect(styles).toMatch(/\.category-selector__title,\s*\.unit-selector__title\s*\{[\s\S]*font-size:\s*34rpx;/)
     expect(styles).toMatch(/\.category-selector__item--active\s*\{[\s\S]*background:\s*var\(--surface-muted,\s*#f3f4f7\);/)
+  })
+
+  it('keeps the notes field fully reachable inside the scrollable pantry form body', () => {
+    const template = readFileSync('miniprogram/components/pantry-form-modal/index.wxml', 'utf8')
+    const styles = readFileSync('miniprogram/components/pantry-form-modal/index.wxss', 'utf8')
+
+    expect(template).toMatch(/<scroll-view class="pantry-form-modal__body" scroll-y="true" show-scrollbar="\{\{true\}\}" enhanced="\{\{true\}\}" bounces="\{\{false\}\}">/)
+    expect(styles).toMatch(/\.pantry-form-modal\s*\{[\s\S]*height:\s*100%;[\s\S]*max-height:\s*86vh;/)
+    expect(styles).toMatch(/\.pantry-form-modal__body\s*\{[\s\S]*height:\s*auto;[\s\S]*overflow-y:\s*auto;/)
+    expect(styles).toMatch(/\.pantry-form-modal__body-content\s*\{[\s\S]*padding-bottom:\s*40rpx;/)
+  })
+
+  it('uses compact white pantry form controls like the original menu form', () => {
+    const styles = readFileSync('miniprogram/components/pantry-form-modal/index.wxss', 'utf8')
+
+    expect(styles).toMatch(/\.pantry-form-modal \.field-input,\s*\.pantry-form-modal \.category-picker__value\s*\{[\s\S]*height:\s*76rpx;/)
+    expect(styles).toMatch(/\.pantry-form-modal \.field-input,\s*\.pantry-form-modal \.category-picker__value\s*\{[\s\S]*background:\s*#fff;/)
+    expect(styles).toMatch(/\.pantry-form-modal \.quantity-stepper\s*\{[\s\S]*background:\s*#fff;/)
+    expect(styles).toMatch(/\.pantry-form-modal \.stepper-button,\s*\.pantry-form-modal \.stepper-value\s*\{[\s\S]*height:\s*76rpx;/)
+    expect(styles).toMatch(/\.pantry-form-modal \.field-textarea\s*\{[\s\S]*background:\s*#fff;/)
   })
 
   it('uses one consistent 10rpx top gap for pantry form controls', () => {

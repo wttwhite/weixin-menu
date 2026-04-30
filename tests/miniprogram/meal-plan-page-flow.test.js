@@ -248,6 +248,67 @@ describe('meal-plans page flow', () => {
     ])
   })
 
+  it('reloads and selects the pending date from the app-level refresh marker after switching tabs', async () => {
+    const callFunction = vi.fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: []
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'meal-1',
+                planDate: '2026-04-29',
+                mealType: 'dinner',
+                recipes: [{ recipeId: 'recipe-1', recipeNameSnapshot: 'Mapo', recipe: { _id: 'recipe-1', name: 'Mapo' } }]
+              }
+            ]
+          }
+        }
+      })
+    const app = {
+      globalData: {
+        activeSpaceId: 'space-1',
+        pendingMealPlansRefresh: null
+      }
+    }
+    global.wx = {
+      cloud: { callFunction },
+      showToast: vi.fn(),
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => app
+
+    const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    await page.onShow()
+    await flushAsyncWork()
+
+    app.globalData.pendingMealPlansRefresh = {
+      spaceId: 'space-1',
+      targetDate: '2026-04-29'
+    }
+    await page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(app.globalData.pendingMealPlansRefresh).toBeNull()
+    expect(page.data.selectedDate).toBe('2026-04-29')
+    expect(page.data.selectedPlans).toEqual([
+      expect.objectContaining({
+        _id: 'meal-1',
+        primaryRecipeName: 'Mapo'
+      })
+    ])
+  })
+
   it('builds a month calendar and filters plans by selected day', async () => {
     const callFunction = vi.fn().mockResolvedValue({
       result: {
@@ -503,6 +564,20 @@ describe('meal-plans page flow', () => {
     expect(page.data.inventorySummary.totalText).toBe('3')
     expect(page.data.inventorySummary.inStockText).toBe('1')
     expect(page.data.inventorySummary.missingText).toBe('2')
+    expect(page.data.inventoryItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: '黑木耳',
+          requiredText: '需要: 1把',
+          sourceText: '鸡汤'
+        }),
+        expect.objectContaining({
+          name: '菠菜',
+          requiredText: '需要: 1份',
+          sourceText: '炒菠菜'
+        })
+      ])
+    )
     expect(page.data.inventorySelectedKeys).toEqual(
       expect.arrayContaining(['黑木耳__把', '菠菜__份'])
     )
@@ -859,7 +934,7 @@ describe('meal-plans page flow', () => {
     })
 
     expect(page.data.showMealPlanStatusModal).toBe(true)
-    expect(page.data.mealPlanStatusModalTitle).toBe('晚餐：番茄蛋花汤')
+    expect(page.data.mealPlanStatusModalTitle).toBe('晚餐')
 
     await page.selectMealPlanStatus({
       currentTarget: {

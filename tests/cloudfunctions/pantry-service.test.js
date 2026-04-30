@@ -694,7 +694,8 @@ describe('pantry service', () => {
         _id: 'pantry-1',
         name: 'Greek Yogurt',
         quantity: '2',
-        status: 'active',
+        status: 'expiring',
+        storedStatus: 'active',
         updatedBy: 'user-1'
       })
     )
@@ -704,7 +705,7 @@ describe('pantry service', () => {
         spaceId: 'space-1',
         filters: {
           category: 'dairy',
-          status: 'active'
+          status: 'expiring'
         },
         now: '2026-04-10'
       },

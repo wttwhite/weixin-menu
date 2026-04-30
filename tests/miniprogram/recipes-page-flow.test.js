@@ -934,6 +934,93 @@ describe('recipes page flow', () => {
     })
   })
 
+  it('stores an app-level meal plan refresh marker when the plans tab is not in the current page stack', async () => {
+    const showToast = vi.fn()
+    const app = {
+      globalData: {
+        activeSpaceId: 'space-1',
+        pendingMealPlansRefresh: null
+      }
+    }
+    const callFunction = vi.fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              { _id: 'recipe-1', name: 'Mapo', category: '川菜' }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: { items: [] }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: { items: [] }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'meal-1',
+              planDate: '2026-04-22',
+              mealType: 'dinner'
+            }
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      switchTab: vi.fn(),
+      showToast,
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => app
+    global.getCurrentPages = () => ([
+      {
+        route: 'pages/recipes/index'
+      }
+    ])
+
+    const page = await loadPage('../../miniprogram/pages/recipes/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    page.toggleRecipeSelection({
+      currentTarget: {
+        dataset: {
+          recipeId: 'recipe-1'
+        }
+      }
+    })
+    page.handlePlanSelectedRecipes()
+    page.handlePlanDateChange({
+      detail: {
+        value: '2026-04-22'
+      }
+    })
+
+    await page.submitPlanSelection()
+
+    expect(app.globalData.pendingMealPlansRefresh).toEqual({
+      spaceId: 'space-1',
+      targetDate: '2026-04-22'
+    })
+    expect(showToast).toHaveBeenCalledWith({
+      title: '已加入 2026-04-22',
+      icon: 'success'
+    })
+  })
+
   it('opens category manager modal and loads category counts from cloud', async () => {
     const callFunction = vi
       .fn()

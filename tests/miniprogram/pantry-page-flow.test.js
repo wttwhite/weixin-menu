@@ -169,6 +169,70 @@ describe('pantry edit page flow', () => {
     expect(page.data.showEditModal).toBe(false)
   })
 
+  it('syncs theme and keeps pantry detail status visually neutral', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'dairy' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'fridge' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'pantry-1',
+              name: 'Milk',
+              category: 'dairy',
+              quantity: '1',
+              unit: 'box',
+              location: 'fridge',
+              storedStatus: 'active',
+              status: 'expiring',
+              expirationDate: '2026-05-01'
+            }
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      redirectTo: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1',
+        themeKey: 'sakura-pink'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry-edit/index.js')
+    page.onLoad({ pantryItemId: 'pantry-1' })
+    await flushAsyncWork()
+
+    expect(page.data.themeKey).toBe('sakura-pink')
+    expect(page.data.themeStyle).toContain('--brand: #d58aa2;')
+    expect(page.data.form.status).toBe('active')
+    expect(page.data.detailStatusText).toBe('即将过期')
+    expect(page.data.detailStatusClass).toBe('detail-status')
+  })
+
   it('opens shared edit modal from pantry detail and updates local detail state after save', async () => {
     const callFunction = vi
       .fn()

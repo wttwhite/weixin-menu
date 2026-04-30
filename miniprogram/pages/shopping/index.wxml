@@ -1,3 +1,4 @@
+<page-meta page-style="{{showListModal ? 'overflow: hidden;' : ''}}" />
 <view class="shopping-page" style="{{themeStyle}}">
   <view class="shopping-hero">
     <view class="shopping-hero__date">{{currentDateLabel}}</view>
@@ -65,25 +66,35 @@
 
           <view class="shopping-list-card__actions">
             <view
-              class="shopping-list-card__action"
+              class="shopping-list-card__action shopping-list-card__action--edit"
               data-shopping-list-id="{{item._id}}"
               bindtap="openEditListModal"
             >
-              ✎
+              <view class="shopping-list-card__element-icon shopping-list-card__element-icon--edit">
+                <view class="shopping-list-card__element-edit-box"></view>
+                <view class="shopping-list-card__element-edit-pencil"></view>
+              </view>
             </view>
             <view
               class="shopping-list-card__action shopping-list-card__action--danger"
               data-shopping-list-id="{{item._id}}"
               bindtap="deleteList"
             >
-              🗑
+              <view class="shopping-list-card__element-icon shopping-list-card__element-icon--delete">
+                <view class="shopping-list-card__element-delete-handle"></view>
+                <view class="shopping-list-card__element-delete-lid"></view>
+                <view class="shopping-list-card__element-delete-body">
+                  <view class="shopping-list-card__element-delete-line"></view>
+                  <view class="shopping-list-card__element-delete-line"></view>
+                </view>
+              </view>
             </view>
           </view>
         </view>
 
         <view class="shopping-list-card__progress">
           <view class="shopping-list-card__progress-track">
-            <view class="shopping-list-card__progress-fill" style="{{item.progressPercentStyle}}"></view>
+            <view class="{{item.progressFillClass}}" style="{{item.progressPercentStyle}}"></view>
           </view>
           <view class="shopping-list-card__progress-text">{{item.progressText}}</view>
         </view>
@@ -100,7 +111,7 @@
         </view>
 
         <view wx:if="{{!item.itemsCollapsed}}" class="shopping-item-list">
-          <view wx:for="{{item.items}}" wx:key="_id" wx:for-item="shoppingItem" class="shopping-item-row">
+          <view wx:for="{{item.manualItems}}" wx:key="_id" wx:for-item="shoppingItem" class="shopping-item-row">
             <checkbox-group
               class="shopping-item-row__main"
               data-shopping-list-id="{{item._id}}"
@@ -108,19 +119,44 @@
               bindchange="handleToggleItem"
             >
               <label class="shopping-item-row__checkline">
-                <checkbox value="checked" checked="{{shoppingItem.isChecked}}" />
+                <checkbox value="checked" checked="{{shoppingItem.isChecked}}" color="#3b82f6" />
                 <view class="shopping-item-row__content">
                   <view class="{{shoppingItem.nameClass}}">{{shoppingItem.name}}</view>
-                  <view class="shopping-item-row__meta">
-                    <text wx:if="{{shoppingItem.quantityLabel}}">{{shoppingItem.quantityLabel}}</text>
-                    <text wx:if="{{shoppingItem.sourceLabel}}" class="shopping-item-row__source">{{shoppingItem.sourceLabel}}</text>
-                  </view>
                 </view>
               </label>
             </checkbox-group>
 
+            <view wx:if="{{shoppingItem.quantityLabel}}" class="shopping-item-row__quantity">{{shoppingItem.quantityLabel}}</view>
             <view
-              class="shopping-item-row__record"
+              class="{{shoppingItem.recordClass}}"
+              data-shopping-list-id="{{item._id}}"
+              data-shopping-item-id="{{shoppingItem._id}}"
+              catchtap="openPantryEntryModal"
+            >
+              录入库存
+            </view>
+          </view>
+
+          <view wx:if="{{item.generatedItems.length}}" class="shopping-item-list__generated-bar">{{item.generatedSummaryText}}</view>
+
+          <view wx:for="{{item.generatedItems}}" wx:key="_id" wx:for-item="shoppingItem" class="shopping-item-row">
+            <checkbox-group
+              class="shopping-item-row__main"
+              data-shopping-list-id="{{item._id}}"
+              data-shopping-item-id="{{shoppingItem._id}}"
+              bindchange="handleToggleItem"
+            >
+              <label class="shopping-item-row__checkline">
+                <checkbox value="checked" checked="{{shoppingItem.isChecked}}" color="#3b82f6" />
+                <view class="shopping-item-row__content">
+                  <view class="{{shoppingItem.nameClass}}">{{shoppingItem.name}}</view>
+                </view>
+              </label>
+            </checkbox-group>
+
+            <view wx:if="{{shoppingItem.quantityLabel}}" class="shopping-item-row__quantity">{{shoppingItem.quantityLabel}}</view>
+            <view
+              class="{{shoppingItem.recordClass}}"
               data-shopping-list-id="{{item._id}}"
               data-shopping-item-id="{{shoppingItem._id}}"
               catchtap="openPantryEntryModal"
@@ -146,7 +182,7 @@
         <view class="shopping-modal__close-icon" bindtap="closeListModal">×</view>
       </view>
 
-      <scroll-view class="shopping-modal__body" scroll-y="true" show-scrollbar="{{false}}">
+      <scroll-view class="shopping-modal__body" scroll-y="true" show-scrollbar="{{true}}" enhanced="{{true}}" bounces="{{false}}">
         <view class="shopping-modal__body-content">
           <input
             class="shopping-modal__input"
@@ -180,7 +216,7 @@
           <view class="shopping-modal__subhead">手工采购项</view>
 
           <view wx:for="{{listItemDrafts}}" wx:key="index" class="shopping-draft-row">
-            <view class="shopping-draft-row__top">
+            <view class="shopping-draft-row__fields">
               <input
                 class="shopping-draft-row__input shopping-draft-row__input--name"
                 value="{{item.name}}"
@@ -196,18 +232,20 @@
               >
                 <text>{{listItemCategoryOptions[item.categoryIndex] || item.category || '未设置'}}</text>
               </view>
-              <view class="shopping-draft-row__remove" data-index="{{index}}" bindtap="removeListItemDraft">×</view>
-            </view>
 
-            <view class="shopping-draft-row__bottom">
-              <input
-                class="shopping-draft-row__input shopping-draft-row__input--quantity"
-                value="{{item.quantity}}"
-                data-index="{{index}}"
-                data-field="quantity"
-                placeholder="数量"
-                bindinput="handleListItemDraftInput"
-              />
+              <view class="shopping-draft-row__quantity-stepper">
+                <view class="shopping-draft-row__stepper-btn" data-index="{{index}}" bindtap="decrementListItemDraftQuantity">−</view>
+                <input
+                  class="shopping-draft-row__stepper-input"
+                  value="{{item.quantity}}"
+                  data-index="{{index}}"
+                  data-field="quantity"
+                  placeholder="数量"
+                  type="number"
+                  bindinput="handleListItemDraftInput"
+                />
+                <view class="shopping-draft-row__stepper-btn" data-index="{{index}}" bindtap="incrementListItemDraftQuantity">＋</view>
+              </view>
               <input
                 class="shopping-draft-row__input shopping-draft-row__input--unit"
                 value="{{item.unit}}"
@@ -216,6 +254,7 @@
                 placeholder="单位"
                 bindinput="handleListItemDraftInput"
               />
+              <view class="shopping-draft-row__remove" data-index="{{index}}" bindtap="removeListItemDraft">×</view>
             </view>
           </view>
 

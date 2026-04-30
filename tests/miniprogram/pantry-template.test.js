@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+function getStyleBlock(styles, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`))
+  return match ? match[0] : ''
+}
+
 describe('pantry page settings modal', () => {
   it('uses a shared pantry manager modal for category-only settings', () => {
     const template = readFileSync('miniprogram/pages/pantry/index.wxml', 'utf8')
@@ -46,11 +52,27 @@ describe('pantry page settings modal', () => {
     expect(template).toMatch(/pantry-item__header[\s\S]*pantry-item__name[\s\S]*usageStatusLabel/)
     expect(template).toContain('wx:if="{{item.showStatusBadge}}"')
     expect(template).toContain('{{item.usageActionIcon}}')
-    expect(template).toContain('{{item.deleteActionIcon}}')
+    expect(template).toContain('delete-line-icon')
+    expect(template).not.toContain('{{item.deleteActionIcon}}')
     expect(template).toContain('rail-item__content')
     expect(template).toContain('rail-item__count')
     expect(template.includes('pantry-item__thumb')).toBe(false)
     expect(template.includes('search-card__hint')).toBe(false)
+  })
+
+  it('renders pantry quantity with inline expiration date and requested font sizes', () => {
+    const template = readFileSync('miniprogram/pages/pantry/index.wxml', 'utf8')
+    const styles = readFileSync('miniprogram/pages/pantry/index.wxss', 'utf8')
+
+    expect(template).toContain('库存：{{item.quantityDisplay}}')
+    expect(template).toContain('class="pantry-item__separator"')
+    expect(template).toContain('class="{{item.expirationDateClass}}"')
+    expect(template).not.toContain('class="pantry-item__date">{{item.dateLabel}}')
+    expect(styles).toMatch(/\.pantry-item__name\s*\{[\s\S]*font-size:\s*32rpx;/)
+    expect(styles).toMatch(/\.pantry-item__quantity\s*\{[\s\S]*font-size:\s*26rpx;/)
+    expect(styles).toMatch(/\.pantry-item__separator\s*\{[\s\S]*margin:\s*0 8rpx;/)
+    expect(styles).toMatch(/\.pantry-item__expiration--soon\s*\{[\s\S]*color:\s*#d6861d;/)
+    expect(styles).toMatch(/\.pantry-item__expiration--expired\s*\{[\s\S]*color:\s*#d14b4b;/)
   })
 
   it('prevents outer page scroll and constrains left/right panels to scroll internally', () => {
@@ -121,12 +143,32 @@ describe('pantry page settings modal', () => {
     const styles = readFileSync('miniprogram/pages/pantry/index.wxss', 'utf8')
 
     expect(styles).toMatch(/\.search-box\s*\{[\s\S]*height:\s*72rpx;/)
+    expect(styles).toMatch(/\.search-box\s*\{[\s\S]*border-radius:\s*999rpx;/)
     expect(styles).toMatch(/\.search-box__input\s*\{[\s\S]*height:\s*72rpx;/)
+    expect(styles).toMatch(/\.search-box__clear\s*\{[\s\S]*width:\s*44rpx;/)
+    expect(styles).toMatch(/\.management-card__more\s*\{(?:(?!padding:)[\s\S])*\}/)
+    expect(styles).toMatch(/\.delete-line-icon\s*\{[\s\S]*border:\s*2rpx solid #d14b4b;/)
   })
 
   it('centers the pantry surface header vertically', () => {
     const styles = readFileSync('miniprogram/pages/pantry/index.wxss', 'utf8')
 
     expect(styles).toMatch(/\.surface-head\s*\{[\s\S]*align-items:\s*center;/)
+  })
+
+  it('does not paint a page-level pantry background', () => {
+    const styles = readFileSync('miniprogram/pages/pantry/index.wxss', 'utf8')
+    const pantryPageStyles = getStyleBlock(styles, '.pantry-page')
+
+    expect(pantryPageStyles).not.toMatch(/background:/)
+  })
+
+  it('uses requested pantry list status colors', () => {
+    const styles = readFileSync('miniprogram/pages/pantry/index.wxss', 'utf8')
+
+    expect(getStyleBlock(styles, '.usage-badge--opened')).toMatch(/color:\s*#d6861d;/)
+    expect(getStyleBlock(styles, '.freshness-badge--expiring-soon')).toMatch(/color:\s*#d6861d;/)
+    expect(getStyleBlock(styles, '.usage-badge--used-up')).toMatch(/color:\s*#667084;/)
+    expect(getStyleBlock(styles, '.usage-badge--discarded')).toMatch(/color:\s*#667084;/)
   })
 })

@@ -2,9 +2,6 @@
   min-height: 100vh;
   overflow-x: hidden;
   padding: 28rpx 24rpx 180rpx;
-  background:
-    radial-gradient(circle at top, rgba(135, 203, 158, 0.18), transparent 28%),
-    linear-gradient(180deg, #f7faf8 0%, #edf2ef 100%);
 }
 
 .editor-shell,
@@ -20,9 +17,6 @@
   overflow-x: hidden;
   padding: 20rpx 20rpx 160rpx;
   box-sizing: border-box;
-  background:
-    radial-gradient(circle at top, rgba(135, 203, 158, 0.18), transparent 28%),
-    linear-gradient(180deg, #f7faf8 0%, #edf2ef 100%);
 }
 
 .detail-content {
@@ -54,7 +48,7 @@
   padding: 0;
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 24%),
-    linear-gradient(135deg, #3f6c4f 0%, #5b936d 54%, #89be91 100%);
+    linear-gradient(135deg, var(--brand-strong) 0%, var(--brand) 54%, var(--brand-soft) 100%);
 }
 
 .hero-overlay {
@@ -194,6 +188,18 @@
   font-size: 28rpx;
   font-weight: 700;
   color: #8d96a3;
+}
+
+.detail-status {
+  flex: none;
+  text-align: right;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #8d96a3;
+}
+
+.hero-summary .detail-status {
+  color: #fff;
 }
 
 .card-title {

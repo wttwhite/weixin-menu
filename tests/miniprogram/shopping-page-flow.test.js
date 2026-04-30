@@ -137,16 +137,16 @@ describe('shopping page flow', () => {
       'list-completed',
       'list-archived'
     ])
-    expect(page.data.visibleShoppingLists[0].items).toEqual([
+    expect(page.data.visibleShoppingLists[0]).toEqual(
       expect.objectContaining({
-        _id: 'item-1',
-        sourceLabel: '计划生成'
-      }),
-      expect.objectContaining({
-        _id: 'item-2',
-        sourceLabel: '手动增加'
+        statusTone: 'open',
+        progressFillClass: 'shopping-list-card__progress-fill shopping-list-card__progress-fill--open',
+        generatedSummaryText: '从计划生成，共 1 项食材'
       })
-    ])
+    )
+    expect(page.data.visibleShoppingLists[0].manualItems.map((item) => item._id)).toEqual(['item-2'])
+    expect(page.data.visibleShoppingLists[0].generatedItems.map((item) => item._id)).toEqual(['item-1'])
+    expect(page.data.visibleShoppingLists[0].items[0]).not.toHaveProperty('sourceLabel')
 
     page.handleStatusFilterChange({
       currentTarget: {
@@ -281,6 +281,48 @@ describe('shopping page flow', () => {
         categoryIndex: 1
       })
     )
+  })
+
+  it('adjusts manual shopping draft quantity with the stepper and keeps it at least one', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/shopping/index.js')
+
+    page.setData({
+      listItemDrafts: [
+        {
+          name: '鸡蛋',
+          category: '',
+          quantity: '1',
+          unit: '个'
+        }
+      ]
+    })
+
+    const event = {
+      currentTarget: {
+        dataset: {
+          index: 0
+        }
+      }
+    }
+
+    page.decrementListItemDraftQuantity(event)
+    expect(page.data.listItemDrafts[0].quantity).toBe('1')
+
+    page.incrementListItemDraftQuantity(event)
+    expect(page.data.listItemDrafts[0].quantity).toBe('2')
   })
 
   it('splits combined shopping item text into name, quantity, and unit when opening edit list drafts', async () => {

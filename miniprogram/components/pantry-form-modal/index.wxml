@@ -5,7 +5,7 @@
       <view class="pantry-form-modal__close-icon" bindtap="close">×</view>
     </view>
 
-    <scroll-view class="pantry-form-modal__body" scroll-y="true" show-scrollbar="{{false}}">
+    <scroll-view class="pantry-form-modal__body" scroll-y="true" show-scrollbar="{{true}}" enhanced="{{true}}" bounces="{{false}}">
       <view class="pantry-form-modal__body-content">
         <view class="editor-shell">
           <view class="editor-section">

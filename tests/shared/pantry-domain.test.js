@@ -6,11 +6,11 @@ import {
 } from '../../shared/domain/pantry'
 
 describe('derivePantryStatus', () => {
-  it('marks items as expiring soon when the expiration date is near', () => {
+  it('marks items as expiring soon when the expiration date is within one month', () => {
     expect(
       derivePantryStatus({
         status: 'active',
-        expirationDate: '2026-04-12',
+        expirationDate: '2026-05-10',
         now: '2026-04-10'
       })
     ).toBe('expiring')

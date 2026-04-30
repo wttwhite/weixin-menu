@@ -288,7 +288,29 @@ function findPageByRoute(route = '') {
   return null
 }
 
+function normalizeRefreshText(value = '') {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function markPendingMealPlansRefresh(targetDate = '') {
+  if (typeof getApp !== 'function') {
+    return false
+  }
+
+  const app = getApp()
+  if (!app || !app.globalData) {
+    return false
+  }
+
+  app.globalData.pendingMealPlansRefresh = {
+    spaceId: getActiveSpaceId(),
+    targetDate: normalizeRefreshText(targetDate)
+  }
+  return true
+}
+
 function markMealPlansPageForRefresh(targetDate = '') {
+  markPendingMealPlansRefresh(targetDate)
   const mealPlansPage = findPageByRoute('pages/meal-plans/index')
   if (!mealPlansPage || typeof mealPlansPage.markNeedsRefreshOnNextShow !== 'function') {
     return false

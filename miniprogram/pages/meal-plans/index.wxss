@@ -103,13 +103,19 @@ page {
 }
 
 .feedback-card,
-.empty-card,
+.empty-card {
+  margin-top: 18rpx;
+  border-radius: 30rpx;
+  padding: 24rpx;
+  background: var(--surface-bg, rgba(255, 255, 255, 0.97));
+  box-shadow: var(--shadow-soft, 0 18rpx 34rpx rgba(56, 63, 79, 0.1));
+}
+
 .calendar-panel,
 .plans-day-card {
   margin-top: 18rpx;
   border-radius: 30rpx;
   padding: 24rpx;
-  background: var(--surface-bg, rgba(255, 255, 255, 0.97));
   box-shadow: var(--shadow-soft, 0 18rpx 34rpx rgba(56, 63, 79, 0.1));
 }
 
@@ -167,7 +173,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-muted, #f2f4f8);
+  background: #f4f5f8;
   color: var(--text-primary, #394556);
 }
 
@@ -195,7 +201,7 @@ page {
   height: 72rpx;
   line-height: 72rpx;
   border-radius: 999rpx;
-  background: var(--surface-muted, #f7f8fb);
+  background: #f4f5f8;
   border: 1px solid var(--border-soft, #e4e8ef);
   font-size: 28rpx;
   font-weight: 700;
@@ -405,7 +411,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-muted, #f3f4f7);
+  background: #f4f5f8;
   font-size: 36rpx;
 }
 
@@ -557,13 +563,13 @@ page {
 .meal-plan-status-modal__title {
   font-size: 40rpx;
   font-weight: 800;
-  color: var(--text-primary, #27323f);
+  color: #4b5563;
 }
 
 .meal-plan-status-modal__date {
   margin-top: 8rpx;
   font-size: 26rpx;
-  color: var(--text-tertiary, #8a90a0);
+  color: #4b5563;
 }
 
 .meal-plan-status-modal__close {
@@ -596,13 +602,13 @@ page {
 .meal-plan-status-modal__label {
   font-size: 28rpx;
   font-weight: 700;
-  color: var(--text-secondary, #5e7765);
+  color: #4b5563;
 }
 
 .meal-plan-status-modal__value {
   font-size: 30rpx;
   font-weight: 800;
-  color: var(--text-primary, #27323f);
+  color: #4b5563;
 }
 
 .meal-plan-status-modal__chips {
@@ -615,8 +621,8 @@ page {
   min-width: 132rpx;
   padding: 14rpx 18rpx;
   border-radius: 999rpx;
-  background: var(--surface-muted, #f3f4f7);
-  color: var(--text-secondary, #7a808d);
+  background: #f4f5f8;
+  color: #4b5563;
   font-size: 28rpx;
   font-weight: 700;
   text-align: center;
@@ -641,7 +647,7 @@ page {
   gap: 14rpx;
   padding: 16rpx 18rpx;
   border-radius: 20rpx;
-  background: var(--surface-muted, #f3f4f7);
+  background: #f4f5f8;
 }
 
 .meal-plan-status-modal__recipe-item--disabled {
@@ -700,12 +706,19 @@ page {
   backdrop-filter: blur(8rpx);
 }
 
+.inventory-modal {
+  width: 95%;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .inventory-modal__panel {
-  width: 100%;
-  min-width: 500rpx;
   max-width: 720rpx;
   max-height: 82vh;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   box-sizing: border-box;
   border-radius: 34rpx;
   padding: 24rpx;
@@ -714,6 +727,7 @@ page {
 }
 
 .inventory-modal__header {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -752,6 +766,18 @@ page {
   padding: 16rpx;
   border-radius: 28rpx;
   background: #f8fafc;
+}
+
+.inventory-modal__body {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  overflow-y: auto;
+}
+
+.inventory-modal__body-content {
+  padding-bottom: 24rpx;
+  box-sizing: border-box;
 }
 
 .inventory-stat {
@@ -801,7 +827,7 @@ page {
 }
 
 .inventory-item--missing {
-  background: linear-gradient(180deg, rgba(255, 245, 244, 0.98), rgba(255, 251, 250, 0.98));
+  background: #f4f5f8;
 }
 
 .inventory-item__icon {
@@ -841,6 +867,12 @@ page {
   margin-top: 6rpx;
   font-size: 24rpx;
   color: #6c7788;
+}
+
+.inventory-item__source {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #a5adba;
 }
 
 .inventory-item__status {

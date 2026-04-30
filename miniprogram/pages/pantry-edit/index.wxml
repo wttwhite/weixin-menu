@@ -1,4 +1,4 @@
-<view class="edit-page">
+<view class="edit-page" style="{{themeStyle}}">
   <view wx:if="{{!activeSpaceId}}" class="state-card">
     <view class="state-title">还没有可用空间</view>
     <view class="state-text">请先切换或创建空间，再管理共享库存。</view>
@@ -21,7 +21,7 @@
           <view class="hero-copy-panel">
             <view class="hero-badge">{{detailCategoryText}}</view>
             <view class="hero-title">{{detailNameText}}</view>
-            <view class="hero-summary">{{detailLocationText}} · {{detailStatusText}}</view>
+            <view class="hero-summary">{{detailLocationText}} · <text class="{{detailStatusClass}}">{{detailStatusText}}</text></view>
             <view class="hero-metrics">
               <view class="hero-metric">{{detailQuantityText}}</view>
               <view class="hero-metric">{{detailHeroExpirationText}}</view>
@@ -41,7 +41,7 @@
             <view class="card-head__icon">📦</view>
             <view class="card-title">库存概览</view>
           </view>
-          <view class="card-head__meta">{{detailStatusText}}</view>
+          <view class="{{detailStatusClass}}">{{detailStatusText}}</view>
         </view>
         <view class="card-divider"></view>
 

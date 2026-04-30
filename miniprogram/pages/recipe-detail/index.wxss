@@ -3,9 +3,6 @@
   padding: 20rpx 20rpx 160rpx;
   box-sizing: border-box;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at top, var(--surface-muted, #e8edf1), transparent 30%),
-    linear-gradient(180deg, var(--page-bg, #f6f7f8) 0%, var(--surface-muted, #e8edf1) 100%);
 }
 
 .detail-content {

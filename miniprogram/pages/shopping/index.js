@@ -92,6 +92,11 @@ function getStatusClass(status = '') {
   return `shopping-list-card__status shopping-list-card__status--${normalized}`
 }
 
+function getProgressFillClass(status = '') {
+  const normalized = normalizeText(status) || 'open'
+  return `shopping-list-card__progress-fill shopping-list-card__progress-fill--${normalized}`
+}
+
 function getStatusSectionTitle(filterKey = 'all') {
   return getStatusLabel(filterKey === 'all' ? 'open' : filterKey).replace('归档', '已归档')
 }
@@ -106,8 +111,8 @@ function decorateShoppingItem(item = {}) {
     ...item,
     isChecked,
     quantityLabel: item.quantity && item.unit ? `${item.quantity} ${item.unit}` : item.quantity || item.unit || '',
-    sourceLabel: item.sourceType === 'generated' ? '计划生成' : '手动增加',
-    nameClass: isChecked ? 'shopping-item-row__name shopping-item-row__name--checked' : 'shopping-item-row__name'
+    nameClass: isChecked ? 'shopping-item-row__name shopping-item-row__name--checked' : 'shopping-item-row__name',
+    recordClass: isChecked ? 'shopping-item-row__record shopping-item-row__record--checked' : 'shopping-item-row__record'
   }
 }
 
@@ -140,6 +145,8 @@ function decorateShoppingList(list = {}, collapsedIdSet = new Set()) {
   const generatedCount = items.filter((item) => item.sourceType === 'generated').length
   const status = normalizeText(list.status) || 'open'
   const itemsCollapsed = Boolean(list && list._id && collapsedIdSet.has(list._id))
+  const manualItems = items.filter((item) => item.sourceType !== 'generated')
+  const generatedItems = items.filter((item) => item.sourceType === 'generated')
 
   return {
     ...list,
@@ -148,14 +155,18 @@ function decorateShoppingList(list = {}, collapsedIdSet = new Set()) {
     status,
     statusLabel: getStatusLabel(status),
     statusClass: getStatusClass(status),
+    statusTone: status,
     progress,
     progressText: `${progress.checked} / ${progress.total} 项已完成`,
     progressPercentStyle: `width:${progress.percent}%;`,
+    progressFillClass: getProgressFillClass(status),
     items,
     itemsCollapsed,
     generatedCount,
+    generatedItems,
+    generatedSummaryText: `从计划生成，共 ${generatedCount} 项食材`,
     pendingCount: items.filter((item) => !item.isChecked).length,
-    manualItems: items.filter((item) => item.sourceType !== 'generated')
+    manualItems
   }
 }
 
@@ -600,6 +611,31 @@ Page({
     this.setData({
       [`listItemDrafts[${index}].${field}`]: event.detail.value
     })
+  },
+
+  adjustListItemDraftQuantity(event, delta) {
+    const index = Number(event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.index
+      : -1)
+    if (index < 0) {
+      return
+    }
+
+    const draft = (this.data.listItemDrafts || [])[index] || {}
+    const current = Number(normalizeText(draft.quantity))
+    const nextQuantity = Math.max(1, (Number.isFinite(current) && current > 0 ? current : 1) + delta)
+
+    this.setData({
+      [`listItemDrafts[${index}].quantity`]: String(nextQuantity)
+    })
+  },
+
+  decrementListItemDraftQuantity(event) {
+    this.adjustListItemDraftQuantity(event, -1)
+  },
+
+  incrementListItemDraftQuantity(event) {
+    this.adjustListItemDraftQuantity(event, 1)
   },
 
   openDraftCategorySelector(event) {

@@ -180,9 +180,10 @@ describe('pantry list page flow', () => {
 
     expect(page.data.activeCategoryKey).toBe('all')
     expect(page.data.categoryViewItems.map((item) => item.label)).toEqual(['全部', 'dairy', 'dry'])
+    expect(page.data.categoryViewItems.map((item) => item.countText)).toEqual(['2', '2', '0'])
     expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Milk', 'Yogurt'])
     expect(page.data.managementStatusText).toBe('正常 1 · 已开封 0 · 即将过期 1 · 已过期 0 · 已用完 1 · 已丢弃 0')
-    expect(page.data.managementCategoryCountText).toBe('dairy 2 · dry 1')
+    expect(page.data.managementCategoryCountText).toBe('dairy 2 · dry 0')
     expect(page.data.items[0].statusLabel).toBe('')
     expect(page.data.items[0].showStatusBadge).toBe(false)
     expect(page.data.items[0].usageActionIcon).toBe('⋯')
@@ -192,6 +193,18 @@ describe('pantry list page flow', () => {
 
     page.handleToggleProcessed()
     expect(page.data.showProcessed).toBe(true)
+    expect(page.data.categoryViewItems.map((item) => item.countText)).toEqual(['3', '2', '1'])
+    expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Milk', 'Rice', 'Yogurt'])
+
+    page.handleSearchInput({
+      detail: {
+        value: 'yo'
+      }
+    })
+    expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Yogurt'])
+
+    page.clearSearch()
+    expect(page.data.searchKeyword).toBe('')
     expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Milk', 'Rice', 'Yogurt'])
 
     page.handleSearchInput({
@@ -220,6 +233,7 @@ describe('pantry list page flow', () => {
 
     page.handleToggleProcessed()
     expect(page.data.showProcessed).toBe(false)
+    expect(page.data.categoryViewItems.map((item) => item.countText)).toEqual(['2', '2', '0'])
     expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Milk', 'Yogurt'])
 
     expect(callFunction).toHaveBeenCalledTimes(1)
@@ -232,6 +246,125 @@ describe('pantry list page flow', () => {
       },
       config: undefined
     })
+  })
+
+  it('uses expired as the primary usage badge instead of showing both normal and expired badges', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'pantry-expired',
+              name: 'Yogurt',
+              category: 'dairy',
+              location: 'fridge',
+              quantity: '1',
+              unit: '盒',
+              status: 'expired',
+              storedStatus: 'active',
+              expirationDate: '2026-04-01'
+            }
+          ],
+          filterOptions: {
+            categories: ['dairy'],
+            locations: ['fridge']
+          }
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.items[0].usageStatusLabel).toBe('已过期')
+    expect(page.data.items[0].usageStatusClass).toBe('usage-badge usage-badge--expired')
+    expect(page.data.items[0].statusLabel).toBe('')
+    expect(page.data.items[0].showStatusBadge).toBe(false)
+  })
+
+  it('formats quantity with expiration date and colors near or expired dates', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'pantry-future',
+              name: 'Rice',
+              category: 'dry',
+              quantity: '2',
+              unit: '袋',
+              status: 'active',
+              expirationDate: '2026-08-01'
+            },
+            {
+              _id: 'pantry-soon',
+              name: 'Milk',
+              category: 'dairy',
+              quantity: '1',
+              unit: '盒',
+              status: 'expiring',
+              expirationDate: '2026-05-10'
+            },
+            {
+              _id: 'pantry-expired',
+              name: 'Yogurt',
+              category: 'dairy',
+              quantity: '3',
+              unit: '杯',
+              status: 'expired',
+              expirationDate: '2026-04-01'
+            }
+          ],
+          filterOptions: {
+            categories: ['dry', 'dairy'],
+            locations: []
+          }
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.items[0]).toEqual(expect.objectContaining({
+      quantityDisplay: '2 袋',
+      expirationDateText: '2026/08/01',
+      expirationDateClass: 'pantry-item__expiration'
+    }))
+    expect(page.data.items[1]).toEqual(expect.objectContaining({
+      quantityDisplay: '1 盒',
+      expirationDateText: '2026/05/10',
+      expirationDateClass: 'pantry-item__expiration pantry-item__expiration--soon'
+    }))
+    expect(page.data.items[2]).toEqual(expect.objectContaining({
+      quantityDisplay: '3 杯',
+      expirationDateText: '2026/04/01',
+      expirationDateClass: 'pantry-item__expiration pantry-item__expiration--expired'
+    }))
   })
 
   it('opens the settings modal from the top-right entry and loads pantry categories only', async () => {
@@ -559,6 +692,81 @@ describe('pantry list page flow', () => {
         name: 'Milk'
       })
     ])
+  })
+
+  it('keeps configured rail categories after creating a pantry item locally', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'pantry-1',
+                name: 'Milk',
+                category: 'dairy',
+                location: 'fridge',
+                quantity: '1',
+                unit: '盒',
+                status: 'active'
+              }
+            ],
+            filterOptions: {
+              categories: ['dairy', 'dry'],
+              locations: ['fridge']
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'pantry-2',
+              name: 'Rice',
+              category: 'dry',
+              location: 'cabinet',
+              quantity: '1',
+              unit: '袋',
+              status: 'active'
+            }
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.submitCreatePantry({
+      detail: {
+        form: {
+          name: 'Rice',
+          category: 'dry',
+          location: 'cabinet',
+          quantity: '1',
+          unit: '袋',
+          status: 'active'
+        }
+      }
+    })
+    await flushAsyncWork()
+
+    expect(page.data.categorySourceValues).toEqual(['dairy', 'dry'])
+    expect(page.data.categoryViewItems.map((item) => item.label)).toEqual(['全部', 'dairy', 'dry'])
   })
 
   it('prefills the create pantry form category from the active rail filter', async () => {

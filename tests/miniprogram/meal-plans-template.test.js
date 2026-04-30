@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+function getStyleBlock(styles, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`))
+  return match ? match[0] : ''
+}
+
 describe('meal-plans page template', () => {
   it('renders hero, collapsible calendar, and inventory check modal structure', () => {
     const template = readFileSync('miniprogram/pages/meal-plans/index.wxml', 'utf8')
@@ -76,7 +82,9 @@ describe('meal-plans page template', () => {
     expect(styles).toMatch(/\.calendar-toggle__chevron\s*\{[\s\S]*transform:\s*rotate\(45deg\);/)
     expect(styles).toMatch(/\.calendar-toggle__chevron--expanded\s*\{[\s\S]*transform:\s*rotate\(-135deg\);/)
     expect(styles).toMatch(/\.inventory-modal__summary\s*\{[\s\S]*display:\s*grid;/)
-    expect(styles).toMatch(/\.inventory-modal__panel\s*\{[\s\S]*min-width:\s*500rpx;[\s\S]*max-width:\s*720rpx;[\s\S]*box-sizing:\s*border-box;/)
+    expect(styles).toMatch(/\.inventory-modal\s*\{[\s\S]*width:\s*95%;/)
+    expect(getStyleBlock(styles, '.inventory-modal__panel')).not.toMatch(/width:\s*95%;/)
+    expect(styles).toMatch(/\.inventory-modal__panel\s*\{[\s\S]*max-width:\s*720rpx;[\s\S]*box-sizing:\s*border-box;/)
     expect(styles).toMatch(/\.inventory-item--ok\s*\{[\s\S]*background:/)
     expect(styles).toMatch(/\.inventory-item--missing\s*\{[\s\S]*background:/)
     expect(styles).toMatch(/\.inventory-item__checkbox\s*\{/)
@@ -87,13 +95,48 @@ describe('meal-plans page template', () => {
     expect(styles).toMatch(/\.plan-card__tools\s*\{[\s\S]*display:\s*flex;/)
     expect(styles).toMatch(/\.plan-card__tool--status\s*\{/)
     expect(styles).toMatch(/\.plan-card__recipe-tag\s*\{/)
-    expect(styles).toMatch(/\.plan-card__icon\s*\{[\s\S]*background:\s*var\(--surface-muted,\s*#f3f4f7\);/)
+    expect(styles).toMatch(/\.plan-card__icon\s*\{[\s\S]*background:\s*#f4f5f8;/)
     expect(styles).toMatch(/\.meal-plan-status-modal__overlay\s*\{/)
     expect(styles).toMatch(/\.meal-plan-status-chip--active\s*\{/)
     expect(styles).toMatch(/\.meal-plan-status-chip--active\s*\{[\s\S]*border-color:/)
-    expect(styles).toMatch(/\.meal-plan-status-modal__recipe-item\s*\{[\s\S]*background:\s*var\(--surface-muted,\s*#f3f4f7\);/)
+    expect(styles).toMatch(/\.meal-plan-status-modal__recipe-item\s*\{[\s\S]*background:\s*#f4f5f8;/)
     expect(styles).toMatch(/\.meal-plan-status-modal__delete\s*\{/)
     expect(styles).not.toMatch(/\.fab-add\s*\{[\s\S]*position:\s*fixed;/)
+  })
+
+  it('uses a wide inventory modal, pale missing rows, rounded action button, and lighter recipe source text', () => {
+    const template = readFileSync('miniprogram/pages/meal-plans/index.wxml', 'utf8')
+    const styles = readFileSync('miniprogram/pages/meal-plans/index.wxss', 'utf8')
+
+    expect(getStyleBlock(styles, '.inventory-modal')).toMatch(/width:\s*95%;/)
+    expect(getStyleBlock(styles, '.inventory-modal__panel')).not.toMatch(/width:\s*95%;/)
+    expect(getStyleBlock(styles, '.inventory-item--missing')).toMatch(/background:\s*#f4f5f8;/)
+    expect(getStyleBlock(styles, '.inventory-modal__primary')).toMatch(/border-radius:\s*999rpx;/)
+    expect(template).toContain('inventory-item__source')
+    expect(getStyleBlock(styles, '.inventory-item__source')).toMatch(/color:\s*#a5adba;/)
+  })
+
+  it('uses transparent plan sections and pale gray plan controls', () => {
+    const styles = readFileSync('miniprogram/pages/meal-plans/index.wxss', 'utf8')
+
+    expect(getStyleBlock(styles, '.calendar-panel')).not.toMatch(/background:/)
+    expect(getStyleBlock(styles, '.plans-day-card')).not.toMatch(/background:/)
+    expect(getStyleBlock(styles, '.calendar-nav__button')).toMatch(/background:\s*#f4f5f8;/)
+    expect(getStyleBlock(styles, '.calendar-nav__month')).toMatch(/background:\s*#f4f5f8;/)
+    expect(getStyleBlock(styles, '.plan-card__icon')).toMatch(/background:\s*#f4f5f8;/)
+    expect(getStyleBlock(styles, '.meal-plan-status-chip')).toMatch(/background:\s*#f4f5f8;/)
+    expect(getStyleBlock(styles, '.meal-plan-status-chip')).toMatch(/color:\s*#4b5563;/)
+    expect(getStyleBlock(styles, '.meal-plan-status-modal__recipe-item')).toMatch(/background:\s*#f4f5f8;/)
+  })
+
+  it('uses deep gray text in the meal plan status modal header and labels', () => {
+    const styles = readFileSync('miniprogram/pages/meal-plans/index.wxss', 'utf8')
+
+    expect(getStyleBlock(styles, '.meal-plan-status-modal__title')).toMatch(/color:\s*#4b5563;/)
+    expect(getStyleBlock(styles, '.meal-plan-status-modal__date')).toMatch(/color:\s*#4b5563;/)
+    expect(getStyleBlock(styles, '.meal-plan-status-modal__label')).toMatch(/color:\s*#4b5563;/)
+    expect(getStyleBlock(styles, '.meal-plan-status-modal__value')).toMatch(/color:\s*#4b5563;/)
+    expect(getStyleBlock(styles, '.meal-plan-status-chip')).toMatch(/color:\s*#4b5563;/)
   })
 
   it('uses theme variables for the meal plans hero and page surface', () => {
@@ -125,6 +168,17 @@ describe('meal-plans page template', () => {
     expect(template).toContain('class="meal-plan-status-modal__overlay" catchtap="closeMealPlanStatusModal" catchtouchmove="noop"')
     expect(template).toContain('class="meal-plan-status-modal" catchtap="noop" catchtouchmove="noop"')
     expect(template).toContain('class="inventory-modal__overlay" catchtap="closeInventoryModal" catchtouchmove="noop"')
-    expect(template).toContain('class="inventory-modal__panel" catchtap="noop" catchtouchmove="noop"')
+    expect(template).toContain('class="inventory-modal" catchtap="noop"')
+    expect(template).toContain('class="inventory-modal__panel" catchtap="noop"')
+  })
+
+  it('uses a native scroll-view for the inventory modal body on real devices', () => {
+    const template = readFileSync('miniprogram/pages/meal-plans/index.wxml', 'utf8')
+    const styles = readFileSync('miniprogram/pages/meal-plans/index.wxss', 'utf8')
+
+    expect(template).toMatch(/<scroll-view wx:else class="inventory-modal__body" scroll-y="true" show-scrollbar="\{\{true\}\}" enhanced="\{\{true\}\}" bounces="\{\{false\}\}">/)
+    expect(template).toContain('inventory-modal__body-content')
+    expect(styles).toMatch(/\.inventory-modal__panel\s*\{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;[\s\S]*overflow:\s*hidden;/)
+    expect(styles).toMatch(/\.inventory-modal__body\s*\{[\s\S]*flex:\s*1;[\s\S]*min-height:\s*0;[\s\S]*overflow-y:\s*auto;/)
   })
 })

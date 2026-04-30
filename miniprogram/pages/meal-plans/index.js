@@ -414,7 +414,8 @@ function buildInventoryCheckResult(selectedPlans = [], recipeDetails = [], pantr
       name: item.name,
       quantityText: item.quantityText,
       unit: item.unit,
-      requiredText: `需要: ${formatQuantity(item.quantityText, item.unit)} · ${Array.from(item.sources).join(' / ')}`,
+      requiredText: `需要: ${formatQuantity(item.quantityText, item.unit)}`,
+      sourceText: Array.from(item.sources).join(' / '),
       stockText: stock ? `库存: ${formatQuantity(stock.quantityText, item.unit)}` : '库存: 0',
       statusText: inStock ? '有库存' : '缺货',
       selectable: !inStock,
@@ -539,13 +540,46 @@ function buildMealPlanStatusModalView(item = {}, todayIso = '') {
   }))
   return {
     mealPlanStatusModalId: selectedPlan._id || '',
-    mealPlanStatusModalTitle: `${selectedPlan.mealTypeLabel || '餐次'}${selectedPlan.primaryRecipeName ? `：${selectedPlan.primaryRecipeName}` : ''}`,
+    mealPlanStatusModalTitle: selectedPlan.mealTypeLabel || '餐次',
     mealPlanStatusModalDate: selectedPlan.planDate || '',
     mealPlanStatusModalMealTypeLabel: selectedPlan.mealTypeLabel || buildMealTypeLabel(selectedPlan.mealType),
     mealPlanStatusModalStatus: normalizeMealPlanStatus(selectedPlan.status) || MEAL_PLAN_STATUS.PLANNED,
     mealPlanStatusChipItems: buildMealPlanStatusChipItems(selectedPlan.status),
     mealPlanStatusModalRecipeItems: recipeItems,
     mealPlanStatusModalRecipeCountText: `菜谱 (${recipeItems.length})`
+  }
+}
+
+function consumePendingMealPlansRefresh() {
+  if (typeof getApp !== 'function') {
+    return {
+      hasPending: false,
+      targetDate: ''
+    }
+  }
+
+  const app = getApp()
+  const globalData = app && app.globalData ? app.globalData : null
+  const pending = globalData ? globalData.pendingMealPlansRefresh : null
+  if (!pending) {
+    return {
+      hasPending: false,
+      targetDate: ''
+    }
+  }
+
+  globalData.pendingMealPlansRefresh = null
+  const activeSpaceId = getActiveSpaceId()
+  if (pending.spaceId && pending.spaceId !== activeSpaceId) {
+    return {
+      hasPending: false,
+      targetDate: ''
+    }
+  }
+
+  return {
+    hasPending: true,
+    targetDate: normalizeText(pending.targetDate)
   }
 }
 
@@ -665,6 +699,12 @@ Page({
   },
 
   shouldReuseLoadedState() {
+    const pendingRefresh = consumePendingMealPlansRefresh()
+    if (pendingRefresh.hasPending) {
+      this.pendingSelectedDate = pendingRefresh.targetDate
+      return false
+    }
+
     if (this.forceRefreshOnNextShow) {
       this.forceRefreshOnNextShow = false
       return false
