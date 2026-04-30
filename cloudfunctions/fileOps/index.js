@@ -286,8 +286,20 @@ function createRepository(options = {}) {
     for (let index = 0; index < records.length; index += RESTORE_TRANSACTION_WRITE_LIMIT) {
       const chunk = records.slice(index, index + RESTORE_TRANSACTION_WRITE_LIMIT)
       await runInTransaction(async (transaction) => {
-        for (const item of chunk) {
-          await addRecord(transaction, collectionName, item)
+        for (let offset = 0; offset < chunk.length; offset += 1) {
+          const item = chunk[offset]
+          try {
+            await addRecord(transaction, collectionName, item)
+          } catch (error) {
+            error.data = {
+              ...((error && error.data) || {}),
+              stage: 'addRecord',
+              collectionName,
+              itemIndex: index + offset,
+              recordId: item && item._id
+            }
+            throw error
+          }
         }
       })
     }
@@ -306,7 +318,16 @@ function createRepository(options = {}) {
 
     await runInTransaction(async (connection) => {
       for (const collectionName of collectionsToClear) {
-        await clearSpaceCollection(connection, collectionName, spaceId)
+        try {
+          await clearSpaceCollection(connection, collectionName, spaceId)
+        } catch (error) {
+          error.data = {
+            ...((error && error.data) || {}),
+            stage: 'clearCollection',
+            collectionName
+          }
+          throw error
+        }
       }
     })
 
@@ -322,11 +343,21 @@ function createRepository(options = {}) {
 
     if (payload.settings && typeof payload.settings === 'object') {
       await runInTransaction(async (connection) => {
-        await connection.collection(COLLECTIONS.SPACES).doc(spaceId).update({
-          data: {
-            settings: payload.settings
+        try {
+          await connection.collection(COLLECTIONS.SPACES).doc(spaceId).update({
+            data: {
+              settings: payload.settings
+            }
+          })
+        } catch (error) {
+          error.data = {
+            ...((error && error.data) || {}),
+            stage: 'updateSettings',
+            collectionName: COLLECTIONS.SPACES,
+            recordId: spaceId
           }
-        })
+          throw error
+        }
       })
     }
 

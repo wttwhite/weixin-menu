@@ -790,10 +790,17 @@ describe('backup service', () => {
     })
   })
 
-  it('cleans up already uploaded target-space files when import fails before restore completes', async () => {
+  it('includes restore diagnostics when import fails before restore completes', async () => {
     const repository = createRepository()
     repository.replaceSpaceData = async () => {
-      throw new Error('replace failed')
+      const error = new Error('add failed: invalid field')
+      error.code = 'DATABASE_REQUEST_FAILED'
+      error.data = {
+        stage: 'addRecords',
+        collectionName: 'pantry_items',
+        itemIndex: 3
+      }
+      throw error
     }
     const storageService = createStorageService()
     const zip = new JSZip()
@@ -831,7 +838,14 @@ describe('backup service', () => {
         storageService
       )
     ).rejects.toMatchObject({
-      code: ERROR_CODES.BACKUP_RESTORE_FAILED
+      code: ERROR_CODES.BACKUP_RESTORE_FAILED,
+      data: expect.objectContaining({
+        stage: 'addRecords',
+        collectionName: 'pantry_items',
+        itemIndex: 3,
+        causeMessage: 'add failed: invalid field',
+        causeCode: 'DATABASE_REQUEST_FAILED'
+      })
     })
 
     expect(storageService.getDeletedFiles()).toEqual(

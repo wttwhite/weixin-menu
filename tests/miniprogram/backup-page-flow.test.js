@@ -205,4 +205,71 @@ describe('backup page flow', () => {
     expect(mealPlansPage.markNeedsRefreshOnNextShow).toHaveBeenCalledTimes(1)
     expect(shoppingPage.markNeedsRefreshOnNextShow).toHaveBeenCalledTimes(1)
   })
+
+  it('shows restore diagnostics when backup import fails', async () => {
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+    global.wx = {
+      getStorageSync: vi.fn(),
+      setStorageSync: vi.fn(),
+      removeStorageSync: vi.fn(),
+      showModal: vi.fn().mockResolvedValue({ confirm: true }),
+      chooseMessageFile: vi.fn().mockResolvedValue({
+        tempFiles: [{ path: '/tmp/backup.zip', name: 'backup.zip' }]
+      }),
+      showToast: vi.fn(),
+      cloud: {
+        uploadFile: vi.fn().mockResolvedValue({ fileID: 'cloud://temp/backup.zip' }),
+        callFunction: vi.fn().mockImplementation(({ name, data }) => {
+          if (name === 'fileOps' && data.action === 'listBackupRecords') {
+            return Promise.resolve({
+              result: {
+                code: 0,
+                data: { items: [] }
+              }
+            })
+          }
+          if (name === 'memberOps' && data.action === 'bootstrap') {
+            return Promise.resolve({
+              result: {
+                code: 0,
+                data: {
+                  openid: 'owner-1',
+                  activeSpaceId: 'space-1',
+                  role: 'owner',
+                  spaces: [{ spaceId: 'space-1', name: '家庭厨房', role: 'owner' }]
+                }
+              }
+            })
+          }
+          if (name === 'fileOps' && data.action === 'importSpaceBackup') {
+            return Promise.resolve({
+              result: {
+                code: 464,
+                message: 'Backup restore failed',
+                data: {
+                  restoreMessage: '恢复失败: 阶段=addRecord; 集合=pantry_items; 序号=3; 原因=invalid field'
+                }
+              }
+            })
+          }
+          throw new Error(`${name}:${data.action}`)
+        })
+      }
+    }
+
+    const page = await loadPage('../../miniprogram/pages/backup/index.js')
+    page.onShow()
+    await flushAsyncWork()
+    await page.handleImport()
+    await flushAsyncWork()
+
+    expect(wx.showToast).toHaveBeenLastCalledWith({
+      title: '恢复失败: 阶段=addRecord; 集合=pantry_items; 序号=3; 原因=invalid field',
+      icon: 'none'
+    })
+  })
 })

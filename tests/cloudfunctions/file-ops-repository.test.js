@@ -3,6 +3,9 @@ import { createRepository } from '../../cloudfunctions/fileOps/index'
 
 function createMockDb() {
   const operations = []
+  const mockDb = {
+    failAdd: null
+  }
   let transactionIndex = 0
 
   function createTransaction() {
@@ -28,6 +31,9 @@ function createMockDb() {
             }
           },
           async add({ data }) {
+            if (typeof mockDb.failAdd === 'function' && mockDb.failAdd(name, data)) {
+              throw new Error('mock add failed')
+            }
             operations.push({ type: 'add', tx, collection: name, data })
             return { _id: data._id }
           }
@@ -39,6 +45,13 @@ function createMockDb() {
   }
 
   return {
+    ...mockDb,
+    get failAdd() {
+      return mockDb.failAdd
+    },
+    set failAdd(value) {
+      mockDb.failAdd = value
+    },
     operations,
     async startTransaction() {
       return createTransaction()
@@ -83,5 +96,38 @@ describe('fileOps repository', () => {
       return counts
     }, new Map())
     expect(Math.max(...writeCountByTransaction.values())).toBeLessThanOrEqual(50)
+  })
+
+  it('annotates restore write failures with collection and item index', async () => {
+    const db = createMockDb()
+    db.failAdd = (collection, data) => collection === 'pantry_items' && data._id === 'pantry-2'
+    const repository = createRepository({
+      cloudSdk: {
+        DYNAMIC_CURRENT_ENV: 'test-env',
+        init: vi.fn(),
+        database: () => db
+      },
+      db
+    })
+
+    await expect(
+      repository.replaceSpaceData('space-1', {
+        recipes: [],
+        recipeTags: [],
+        recipeImages: [],
+        pantryItems: Array.from({ length: 3 }, (_, index) => ({ _id: `pantry-${index}` })),
+        mealPlans: [],
+        shoppingLists: [],
+        shoppingItems: [],
+        settings: {}
+      })
+    ).rejects.toMatchObject({
+      data: {
+        stage: 'addRecord',
+        collectionName: 'pantry_items',
+        itemIndex: 2,
+        recordId: 'pantry-2'
+      }
+    })
   })
 })

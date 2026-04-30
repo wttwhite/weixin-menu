@@ -9,6 +9,57 @@ function toAppError(message, code, data = null) {
   return error
 }
 
+function normalizeErrorDetail(value) {
+  if (value === undefined || value === null) {
+    return ''
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  try {
+    return JSON.stringify(value)
+  } catch (error) {
+    return String(value)
+  }
+}
+
+function buildRestoreFailureData(error = {}) {
+  const sourceData =
+    error && error.data && typeof error.data === 'object' && !Array.isArray(error.data)
+      ? error.data
+      : {}
+  const details = {
+    ...sourceData,
+    causeMessage: normalizeErrorDetail(error && error.message),
+    causeCode: normalizeErrorDetail(error && error.code)
+  }
+
+  const segments = []
+  if (details.stage) {
+    segments.push(`阶段=${details.stage}`)
+  }
+  if (details.collectionName) {
+    segments.push(`集合=${details.collectionName}`)
+  }
+  if (details.itemIndex !== undefined && details.itemIndex !== null) {
+    segments.push(`序号=${details.itemIndex}`)
+  }
+  if (details.causeCode) {
+    segments.push(`代码=${details.causeCode}`)
+  }
+  if (details.causeMessage) {
+    segments.push(`原因=${details.causeMessage}`)
+  }
+
+  details.restoreMessage = segments.length
+    ? `恢复失败: ${segments.join('; ')}`
+    : '恢复失败: 未返回具体错误'
+  return details
+}
+
 function normalizeId(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -631,7 +682,11 @@ async function importSpaceBackup(event = {}, context = {}, repository = {}, stor
         settings: payload.settings || {}
       })
     } catch (error) {
-      throw toAppError(error.message || 'Backup restore failed', ERROR_CODES.BACKUP_RESTORE_FAILED)
+      throw toAppError(
+        'Backup restore failed',
+        ERROR_CODES.BACKUP_RESTORE_FAILED,
+        buildRestoreFailureData(error)
+      )
     }
 
     restoreCompleted = true
