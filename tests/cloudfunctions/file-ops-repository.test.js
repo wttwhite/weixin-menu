@@ -5,6 +5,7 @@ function createMockDb() {
   const operations = []
   const mockDb = {
     failAdd: null,
+    failAddLimit: null,
     failAddOnce: null
   }
   let transactionIndex = 0
@@ -32,6 +33,13 @@ function createMockDb() {
             }
           },
           async add({ data }) {
+            if (typeof mockDb.failAddLimit === 'function' && mockDb.failAddLimit(name, data)) {
+              const error = new Error(
+                'collection.add:fail -501003 exceed request limit. [LimitExceeded.OutOte request overrun]'
+              )
+              error.code = -501003
+              throw error
+            }
             if (typeof mockDb.failAddOnce === 'function' && mockDb.failAddOnce(name, data)) {
               mockDb.failAddOnce = null
               const error = new Error(
@@ -60,6 +68,12 @@ function createMockDb() {
     },
     set failAdd(value) {
       mockDb.failAdd = value
+    },
+    get failAddLimit() {
+      return mockDb.failAddLimit
+    },
+    set failAddLimit(value) {
+      mockDb.failAddLimit = value
     },
     get failAddOnce() {
       return mockDb.failAddOnce
@@ -183,5 +197,45 @@ describe('fileOps repository', () => {
     )
     expect(recipeAdds).toHaveLength(1)
     expect(sleeps).toEqual([1, 1])
+  })
+
+  it('reports retry attempts when cloud database request limit keeps failing', async () => {
+    const db = createMockDb()
+    const sleeps = []
+    db.failAddLimit = (collection, data) => collection === 'recipes' && data._id === 'recipe-0'
+    const repository = createRepository({
+      cloudSdk: {
+        DYNAMIC_CURRENT_ENV: 'test-env',
+        init: vi.fn(),
+        database: () => db
+      },
+      db,
+      sleep: async (delay) => {
+        sleeps.push(delay)
+      },
+      restoreRetryDelayMs: 1
+    })
+
+    await expect(
+      repository.replaceSpaceData('space-1', {
+        recipes: [{ _id: 'recipe-0' }],
+        recipeTags: [],
+        recipeImages: [],
+        pantryItems: [],
+        mealPlans: [],
+        shoppingLists: [],
+        shoppingItems: [],
+        settings: {}
+      })
+    ).rejects.toMatchObject({
+      data: {
+        stage: 'addRecord',
+        collectionName: 'recipes',
+        itemIndex: 0,
+        requestLimitRetryAttempts: 8
+      }
+    })
+
+    expect(sleeps.slice(1, 9)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
   })
 })

@@ -17,8 +17,8 @@ const { createStorageService } = require('./services/storage-service')
 
 let hasInitialized = false
 const RESTORE_TRANSACTION_WRITE_LIMIT = 10
-const RESTORE_REQUEST_LIMIT_RETRY_COUNT = 4
-const RESTORE_REQUEST_LIMIT_RETRY_DELAY_MS = 300
+const RESTORE_REQUEST_LIMIT_RETRY_COUNT = 8
+const RESTORE_REQUEST_LIMIT_RETRY_DELAY_MS = 2000
 
 function getCloudSdk(cloudSdk) {
   return cloudSdk || require('wx-server-sdk')
@@ -315,6 +315,12 @@ function createRepository(options = {}) {
         return await runInTransaction(work)
       } catch (error) {
         if (!isRequestLimitError(error) || attempt >= RESTORE_REQUEST_LIMIT_RETRY_COUNT) {
+          if (isRequestLimitError(error)) {
+            error.data = {
+              ...((error && error.data) || {}),
+              requestLimitRetryAttempts: attempt
+            }
+          }
           throw error
         }
         attempt += 1
