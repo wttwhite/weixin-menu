@@ -330,27 +330,47 @@ function createRepository(options = {}) {
     }
   }
 
-  async function addRecordsInTransactions(collectionName, items = []) {
+  async function runRestoreOperation(work) {
+    let attempt = 0
+    while (true) {
+      try {
+        return await work()
+      } catch (error) {
+        if (!isRequestLimitError(error) || attempt >= RESTORE_REQUEST_LIMIT_RETRY_COUNT) {
+          if (isRequestLimitError(error)) {
+            error.data = {
+              ...((error && error.data) || {}),
+              requestLimitRetryAttempts: attempt
+            }
+          }
+          throw error
+        }
+        attempt += 1
+        const delay = restoreRetryDelayMs * attempt
+        await sleepFn(delay)
+      }
+    }
+  }
+
+  async function addRecordsForRestore(collectionName, items = []) {
     const records = items || []
     for (let index = 0; index < records.length; index += RESTORE_TRANSACTION_WRITE_LIMIT) {
       const chunk = records.slice(index, index + RESTORE_TRANSACTION_WRITE_LIMIT)
-      await runRestoreTransaction(async (transaction) => {
-        for (let offset = 0; offset < chunk.length; offset += 1) {
-          const item = chunk[offset]
-          try {
-            await addRecord(transaction, collectionName, item)
-          } catch (error) {
-            error.data = {
-              ...((error && error.data) || {}),
-              stage: 'addRecord',
-              collectionName,
-              itemIndex: index + offset,
-              recordId: item && item._id
-            }
-            throw error
+      for (let offset = 0; offset < chunk.length; offset += 1) {
+        const item = chunk[offset]
+        try {
+          await runRestoreOperation(() => addRecord(db, collectionName, item))
+        } catch (error) {
+          error.data = {
+            ...((error && error.data) || {}),
+            stage: 'addRecord',
+            collectionName,
+            itemIndex: index + offset,
+            recordId: item && item._id
           }
+          throw error
         }
-      })
+      }
       if (index + RESTORE_TRANSACTION_WRITE_LIMIT < records.length) {
         await sleepFn(restoreRetryDelayMs)
       }
@@ -368,50 +388,48 @@ function createRepository(options = {}) {
       COLLECTIONS.SHOPPING_ITEMS
     ]
 
-    await runRestoreTransaction(async (connection) => {
-      for (const collectionName of collectionsToClear) {
-        try {
-          await clearSpaceCollection(connection, collectionName, spaceId)
-        } catch (error) {
-          error.data = {
-            ...((error && error.data) || {}),
-            stage: 'clearCollection',
-            collectionName
-          }
-          throw error
+    for (const collectionName of collectionsToClear) {
+      try {
+        await runRestoreOperation(() => clearSpaceCollection(db, collectionName, spaceId))
+      } catch (error) {
+        error.data = {
+          ...((error && error.data) || {}),
+          stage: 'clearCollection',
+          collectionName
         }
+        throw error
       }
-    })
+    }
     await sleepFn(restoreRetryDelayMs)
 
     const withSpaceId = (items = []) => items.map((item) => ({ ...item, spaceId }))
 
-    await addRecordsInTransactions(COLLECTIONS.RECIPES, withSpaceId(payload.recipes))
-    await addRecordsInTransactions(COLLECTIONS.RECIPE_TAGS, withSpaceId(payload.recipeTags))
-    await addRecordsInTransactions(RECIPE_IMAGES, withSpaceId(payload.recipeImages))
-    await addRecordsInTransactions(COLLECTIONS.PANTRY_ITEMS, withSpaceId(payload.pantryItems))
-    await addRecordsInTransactions(COLLECTIONS.MEAL_PLANS, withSpaceId(payload.mealPlans))
-    await addRecordsInTransactions(COLLECTIONS.SHOPPING_LISTS, withSpaceId(payload.shoppingLists))
-    await addRecordsInTransactions(COLLECTIONS.SHOPPING_ITEMS, withSpaceId(payload.shoppingItems))
+    await addRecordsForRestore(COLLECTIONS.RECIPES, withSpaceId(payload.recipes))
+    await addRecordsForRestore(COLLECTIONS.RECIPE_TAGS, withSpaceId(payload.recipeTags))
+    await addRecordsForRestore(RECIPE_IMAGES, withSpaceId(payload.recipeImages))
+    await addRecordsForRestore(COLLECTIONS.PANTRY_ITEMS, withSpaceId(payload.pantryItems))
+    await addRecordsForRestore(COLLECTIONS.MEAL_PLANS, withSpaceId(payload.mealPlans))
+    await addRecordsForRestore(COLLECTIONS.SHOPPING_LISTS, withSpaceId(payload.shoppingLists))
+    await addRecordsForRestore(COLLECTIONS.SHOPPING_ITEMS, withSpaceId(payload.shoppingItems))
 
     if (payload.settings && typeof payload.settings === 'object') {
-      await runRestoreTransaction(async (connection) => {
-        try {
-          await connection.collection(COLLECTIONS.SPACES).doc(spaceId).update({
+      try {
+        await runRestoreOperation(() =>
+          db.collection(COLLECTIONS.SPACES).doc(spaceId).update({
             data: {
               settings: payload.settings
             }
           })
-        } catch (error) {
-          error.data = {
-            ...((error && error.data) || {}),
-            stage: 'updateSettings',
-            collectionName: COLLECTIONS.SPACES,
-            recordId: spaceId
-          }
-          throw error
+        )
+      } catch (error) {
+        error.data = {
+          ...((error && error.data) || {}),
+          stage: 'updateSettings',
+          collectionName: COLLECTIONS.SPACES,
+          recordId: spaceId
         }
-      })
+        throw error
+      }
     }
 
     return payload

@@ -6,55 +6,66 @@ function createMockDb() {
   const mockDb = {
     failAdd: null,
     failAddLimit: null,
+    failTransactionAddLimit: null,
     failAddOnce: null
   }
   let transactionIndex = 0
+
+  function createCollection(scope, name) {
+    return {
+      where(query) {
+        return {
+          async remove() {
+            operations.push({ type: 'remove', scope, collection: name, query })
+            return {}
+          }
+        }
+      },
+      doc(id) {
+        return {
+          async update({ data }) {
+            operations.push({ type: 'update', scope, collection: name, id, data })
+            return {}
+          }
+        }
+      },
+      async add({ data }) {
+        const shouldFailLimit =
+          typeof mockDb.failAddLimit === 'function' && mockDb.failAddLimit(name, data)
+        const shouldFailTransactionLimit =
+          scope !== 'direct' &&
+          typeof mockDb.failTransactionAddLimit === 'function' &&
+          mockDb.failTransactionAddLimit(name, data)
+        if (shouldFailLimit || shouldFailTransactionLimit) {
+          const error = new Error(
+            'collection.add:fail -501003 exceed request limit. [LimitExceeded.OutOte request overrun]'
+          )
+          error.code = -501003
+          throw error
+        }
+        if (typeof mockDb.failAddOnce === 'function' && mockDb.failAddOnce(name, data)) {
+          mockDb.failAddOnce = null
+          const error = new Error(
+            'collection.add:fail -501003 exceed request limit. [LimitExceeded.OutOte request overrun]'
+          )
+          error.code = -501003
+          throw error
+        }
+        if (typeof mockDb.failAdd === 'function' && mockDb.failAdd(name, data)) {
+          throw new Error('mock add failed')
+        }
+        operations.push({ type: 'add', scope, collection: name, data })
+        return { _id: data._id }
+      }
+    }
+  }
 
   function createTransaction() {
     transactionIndex += 1
     const tx = transactionIndex
     return {
       collection(name) {
-        return {
-          where(query) {
-            return {
-              async remove() {
-                operations.push({ type: 'remove', tx, collection: name, query })
-                return {}
-              }
-            }
-          },
-          doc(id) {
-            return {
-              async update({ data }) {
-                operations.push({ type: 'update', tx, collection: name, id, data })
-                return {}
-              }
-            }
-          },
-          async add({ data }) {
-            if (typeof mockDb.failAddLimit === 'function' && mockDb.failAddLimit(name, data)) {
-              const error = new Error(
-                'collection.add:fail -501003 exceed request limit. [LimitExceeded.OutOte request overrun]'
-              )
-              error.code = -501003
-              throw error
-            }
-            if (typeof mockDb.failAddOnce === 'function' && mockDb.failAddOnce(name, data)) {
-              mockDb.failAddOnce = null
-              const error = new Error(
-                'collection.add:fail -501003 exceed request limit. [LimitExceeded.OutOte request overrun]'
-              )
-              error.code = -501003
-              throw error
-            }
-            if (typeof mockDb.failAdd === 'function' && mockDb.failAdd(name, data)) {
-              throw new Error('mock add failed')
-            }
-            operations.push({ type: 'add', tx, collection: name, data })
-            return { _id: data._id }
-          }
-        }
+        return createCollection(`tx-${tx}`, name)
       },
       commit: vi.fn(),
       rollback: vi.fn()
@@ -75,6 +86,12 @@ function createMockDb() {
     set failAddLimit(value) {
       mockDb.failAddLimit = value
     },
+    get failTransactionAddLimit() {
+      return mockDb.failTransactionAddLimit
+    },
+    set failTransactionAddLimit(value) {
+      mockDb.failTransactionAddLimit = value
+    },
     get failAddOnce() {
       return mockDb.failAddOnce
     },
@@ -85,14 +102,14 @@ function createMockDb() {
     async startTransaction() {
       return createTransaction()
     },
-    collection() {
-      throw new Error('outside transaction should not be used by replaceSpaceData')
+    collection(name) {
+      return createCollection('direct', name)
     }
   }
 }
 
 describe('fileOps repository', () => {
-  it('restores large backups without exceeding per-transaction write limits', async () => {
+  it('restores large backups with direct writes instead of transactional writes', async () => {
     const db = createMockDb()
     const repository = createRepository({
       cloudSdk: {
@@ -121,12 +138,44 @@ describe('fileOps repository', () => {
     const addOperations = db.operations.filter((operation) => operation.type === 'add')
     expect(addOperations).toHaveLength(137)
     expect(addOperations.every((operation) => !Array.isArray(operation.data))).toBe(true)
+    expect(addOperations.every((operation) => operation.scope === 'direct')).toBe(true)
+  })
 
-    const writeCountByTransaction = db.operations.reduce((counts, operation) => {
-      counts.set(operation.tx, (counts.get(operation.tx) || 0) + 1)
-      return counts
-    }, new Map())
-    expect(Math.max(...writeCountByTransaction.values())).toBeLessThanOrEqual(50)
+  it('uses direct restore writes when transactional writes hit cloud request limits', async () => {
+    const db = createMockDb()
+    db.failTransactionAddLimit = (collection, data) => collection === 'recipes' && data._id === 'recipe-0'
+    const repository = createRepository({
+      cloudSdk: {
+        DYNAMIC_CURRENT_ENV: 'test-env',
+        init: vi.fn(),
+        database: () => db
+      },
+      db,
+      sleep: async () => {},
+      restoreRetryDelayMs: 0
+    })
+
+    await repository.replaceSpaceData('space-1', {
+      recipes: [{ _id: 'recipe-0' }],
+      recipeTags: [],
+      recipeImages: [],
+      pantryItems: [],
+      mealPlans: [],
+      shoppingLists: [],
+      shoppingItems: [],
+      settings: {}
+    })
+
+    expect(db.operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'add',
+          scope: 'direct',
+          collection: 'recipes',
+          data: expect.objectContaining({ _id: 'recipe-0' })
+        })
+      ])
+    )
   })
 
   it('annotates restore write failures with collection and item index', async () => {
