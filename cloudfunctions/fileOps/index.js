@@ -16,7 +16,9 @@ const {
 const { createStorageService } = require('./services/storage-service')
 
 let hasInitialized = false
-const RESTORE_TRANSACTION_WRITE_LIMIT = 50
+const RESTORE_TRANSACTION_WRITE_LIMIT = 10
+const RESTORE_REQUEST_LIMIT_RETRY_COUNT = 4
+const RESTORE_REQUEST_LIMIT_RETRY_DELAY_MS = 300
 
 function getCloudSdk(cloudSdk) {
   return cloudSdk || require('wx-server-sdk')
@@ -48,6 +50,26 @@ function toAppError(message, code, data = null) {
   return error
 }
 
+function sleep(delayMs) {
+  return new Promise((resolve) => setTimeout(resolve, delayMs))
+}
+
+function isRequestLimitError(error = {}) {
+  const candidates = [
+    error.code,
+    error.errCode,
+    error.message,
+    error.errMsg
+  ].map((value) => String(value || ''))
+
+  return candidates.some((value) =>
+    value.includes('-501003') ||
+    value.includes('LimitExceeded') ||
+    value.includes('EXCEED_REQUEST_LIMIT') ||
+    /exceed request limit/i.test(value)
+  )
+}
+
 function createRepository(options = {}) {
   const cloudSdk = getCloudSdk(options.cloudSdk)
   ensureCloudInit(cloudSdk)
@@ -55,6 +77,11 @@ function createRepository(options = {}) {
   const RECIPE_IMAGES = COLLECTIONS.RECIPE_IMAGES || 'recipe_images'
   const BACKUP_RECORDS = COLLECTIONS.BACKUP_RECORDS || 'backup_records'
   const PAGE_SIZE = 100
+  const sleepFn = options.sleep || sleep
+  const restoreRetryDelayMs =
+    typeof options.restoreRetryDelayMs === 'number'
+      ? options.restoreRetryDelayMs
+      : RESTORE_REQUEST_LIMIT_RETRY_DELAY_MS
 
   async function listAllRecords(collectionName, where = {}) {
     const items = []
@@ -281,11 +308,27 @@ function createRepository(options = {}) {
     }
   }
 
+  async function runRestoreTransaction(work) {
+    let attempt = 0
+    while (true) {
+      try {
+        return await runInTransaction(work)
+      } catch (error) {
+        if (!isRequestLimitError(error) || attempt >= RESTORE_REQUEST_LIMIT_RETRY_COUNT) {
+          throw error
+        }
+        attempt += 1
+        const delay = restoreRetryDelayMs * attempt
+        await sleepFn(delay)
+      }
+    }
+  }
+
   async function addRecordsInTransactions(collectionName, items = []) {
     const records = items || []
     for (let index = 0; index < records.length; index += RESTORE_TRANSACTION_WRITE_LIMIT) {
       const chunk = records.slice(index, index + RESTORE_TRANSACTION_WRITE_LIMIT)
-      await runInTransaction(async (transaction) => {
+      await runRestoreTransaction(async (transaction) => {
         for (let offset = 0; offset < chunk.length; offset += 1) {
           const item = chunk[offset]
           try {
@@ -302,6 +345,9 @@ function createRepository(options = {}) {
           }
         }
       })
+      if (index + RESTORE_TRANSACTION_WRITE_LIMIT < records.length) {
+        await sleepFn(restoreRetryDelayMs)
+      }
     }
   }
 
@@ -316,7 +362,7 @@ function createRepository(options = {}) {
       COLLECTIONS.SHOPPING_ITEMS
     ]
 
-    await runInTransaction(async (connection) => {
+    await runRestoreTransaction(async (connection) => {
       for (const collectionName of collectionsToClear) {
         try {
           await clearSpaceCollection(connection, collectionName, spaceId)
@@ -330,6 +376,7 @@ function createRepository(options = {}) {
         }
       }
     })
+    await sleepFn(restoreRetryDelayMs)
 
     const withSpaceId = (items = []) => items.map((item) => ({ ...item, spaceId }))
 
@@ -342,7 +389,7 @@ function createRepository(options = {}) {
     await addRecordsInTransactions(COLLECTIONS.SHOPPING_ITEMS, withSpaceId(payload.shoppingItems))
 
     if (payload.settings && typeof payload.settings === 'object') {
-      await runInTransaction(async (connection) => {
+      await runRestoreTransaction(async (connection) => {
         try {
           await connection.collection(COLLECTIONS.SPACES).doc(spaceId).update({
             data: {

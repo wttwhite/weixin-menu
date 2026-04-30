@@ -4,7 +4,8 @@ import { createRepository } from '../../cloudfunctions/fileOps/index'
 function createMockDb() {
   const operations = []
   const mockDb = {
-    failAdd: null
+    failAdd: null,
+    failAddOnce: null
   }
   let transactionIndex = 0
 
@@ -31,6 +32,14 @@ function createMockDb() {
             }
           },
           async add({ data }) {
+            if (typeof mockDb.failAddOnce === 'function' && mockDb.failAddOnce(name, data)) {
+              mockDb.failAddOnce = null
+              const error = new Error(
+                'collection.add:fail -501003 exceed request limit. [LimitExceeded.OutOte request overrun]'
+              )
+              error.code = -501003
+              throw error
+            }
             if (typeof mockDb.failAdd === 'function' && mockDb.failAdd(name, data)) {
               throw new Error('mock add failed')
             }
@@ -52,6 +61,12 @@ function createMockDb() {
     set failAdd(value) {
       mockDb.failAdd = value
     },
+    get failAddOnce() {
+      return mockDb.failAddOnce
+    },
+    set failAddOnce(value) {
+      mockDb.failAddOnce = value
+    },
     operations,
     async startTransaction() {
       return createTransaction()
@@ -71,7 +86,9 @@ describe('fileOps repository', () => {
         init: vi.fn(),
         database: () => db
       },
-      db
+      db,
+      sleep: async () => {},
+      restoreRetryDelayMs: 0
     })
 
     await repository.replaceSpaceData('space-1', {
@@ -107,7 +124,9 @@ describe('fileOps repository', () => {
         init: vi.fn(),
         database: () => db
       },
-      db
+      db,
+      sleep: async () => {},
+      restoreRetryDelayMs: 0
     })
 
     await expect(
@@ -129,5 +148,40 @@ describe('fileOps repository', () => {
         recordId: 'pantry-2'
       }
     })
+  })
+
+  it('retries restore writes when cloud database request limit is exceeded', async () => {
+    const db = createMockDb()
+    const sleeps = []
+    db.failAddOnce = (collection, data) => collection === 'recipes' && data._id === 'recipe-0'
+    const repository = createRepository({
+      cloudSdk: {
+        DYNAMIC_CURRENT_ENV: 'test-env',
+        init: vi.fn(),
+        database: () => db
+      },
+      db,
+      sleep: async (delay) => {
+        sleeps.push(delay)
+      },
+      restoreRetryDelayMs: 1
+    })
+
+    await repository.replaceSpaceData('space-1', {
+      recipes: [{ _id: 'recipe-0' }],
+      recipeTags: [],
+      recipeImages: [],
+      pantryItems: [],
+      mealPlans: [],
+      shoppingLists: [],
+      shoppingItems: [],
+      settings: {}
+    })
+
+    const recipeAdds = db.operations.filter(
+      (operation) => operation.type === 'add' && operation.collection === 'recipes'
+    )
+    expect(recipeAdds).toHaveLength(1)
+    expect(sleeps).toEqual([1, 1])
   })
 })
