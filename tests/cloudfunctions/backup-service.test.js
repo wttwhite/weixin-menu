@@ -488,9 +488,261 @@ describe('backup service', () => {
     expect(repository.getImported().settings).toEqual({
       pantryCategories: ['蛋类'],
       pantryLocations: ['冷藏'],
-      customCategories: ['家常']
+      recipeCategories: ['家常']
     })
     expect(storageService.getUploadedFiles()[0].cloudPath).toContain('spaces/space-1/recipes/mapped-1/images/cover/mapped-3.jpg')
+  })
+
+  it('maps legacy custom recipe categories to current recipeCategories and overwrites stored categories', async () => {
+    const repository = createRepository()
+    const storageService = createStorageService()
+    const zip = new JSZip()
+    zip.file(
+      'backup.json',
+      JSON.stringify({
+        version: '1.0.0',
+        exportTime: '2026-04-12T00:00:00.000Z',
+        recipes: [],
+        pantryItems: [],
+        mealPlans: [],
+        shoppingLists: [],
+        settings: {
+          recipeCategories: ['旧小程序分类'],
+          customCategories: ['导入分类A', '导入分类B'],
+          pantryCategories: ['蛋类'],
+          pantryLocations: ['冷藏']
+        }
+      })
+    )
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' })
+    storageService.setDownloadedFile('cloud://temp/legacy-category-settings', buffer)
+
+    await importSpaceBackup(
+      { spaceId: 'space-1', tempFileId: 'cloud://temp/legacy-category-settings' },
+      { openid: 'user-1' },
+      repository,
+      storageService
+    )
+
+    expect(repository.getImported().settings).toEqual({
+      recipeCategories: ['导入分类A', '导入分类B'],
+      pantryCategories: ['蛋类'],
+      pantryLocations: ['冷藏']
+    })
+  })
+
+  it('normalizes imported pantry date fields to date-only values', async () => {
+    const repository = createRepository()
+    const storageService = createStorageService()
+    const zip = new JSZip()
+    zip.file(
+      'backup.json',
+      JSON.stringify({
+        version: '1.0.0',
+        exportTime: '2026-04-12T00:00:00.000Z',
+        recipes: [],
+        pantryItems: [
+          {
+            id: 'pantry-old-1',
+            name: '陈醋',
+            productionDate: '2024-01-06T00:00:00.000Z',
+            expirationDate: '2027-01-06T00:00:00.000Z',
+            openedDate: '2026-04-30T08:12:00.000Z'
+          }
+        ],
+        mealPlans: [],
+        shoppingLists: [],
+        settings: {}
+      })
+    )
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' })
+    storageService.setDownloadedFile('cloud://temp/pantry-date-only', buffer)
+
+    await importSpaceBackup(
+      { spaceId: 'space-1', tempFileId: 'cloud://temp/pantry-date-only' },
+      { openid: 'user-1' },
+      repository,
+      storageService
+    )
+
+    expect(repository.getImported().pantryItems[0]).toEqual(
+      expect.objectContaining({
+        productionDate: '2024-01-06',
+        expirationDate: '2027-01-06',
+        openedDate: '2026-04-30'
+      })
+    )
+  })
+
+  it('marks imported legacy business records as active for list queries', async () => {
+    const repository = createRepository()
+    const storageService = createStorageService()
+    const zip = new JSZip()
+    zip.file(
+      'backup.json',
+      JSON.stringify({
+        version: '1.0.0',
+        exportTime: '2026-04-12T00:00:00.000Z',
+        recipes: [
+          {
+            id: 'recipe-old-1',
+            name: 'Tomato Egg',
+            tags: [],
+            images: []
+          }
+        ],
+        recipeTags: [
+          {
+            id: 'tag-old-1',
+            name: '家常'
+          }
+        ],
+        recipeImages: [
+          {
+            id: 'image-old-1',
+            recipeId: 'recipe-old-1',
+            uploadStatus: 'pending'
+          }
+        ],
+        pantryItems: [
+          {
+            id: 'pantry-old-1',
+            name: 'Egg'
+          }
+        ],
+        mealPlans: [
+          {
+            id: 'meal-old-1',
+            planDate: '2026-04-12',
+            recipes: [
+              {
+                id: 'meal-recipe-old-1',
+                recipeId: 'recipe-old-1',
+                recipeNameSnapshot: 'Tomato Egg'
+              }
+            ]
+          }
+        ],
+        shoppingLists: [
+          {
+            id: 'shopping-old-1',
+            name: 'Weekend',
+            items: [
+              {
+                id: 'shopping-item-old-1',
+                name: 'Egg'
+              }
+            ]
+          }
+        ],
+        shoppingItems: [
+          {
+            id: 'shopping-item-old-2',
+            shoppingListId: 'shopping-old-1',
+            name: 'Tomato'
+          }
+        ],
+        settings: {
+          pantryCategories: ['蛋类']
+        }
+      })
+    )
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' })
+    storageService.setDownloadedFile('cloud://temp/legacy-active-records', buffer)
+
+    await importSpaceBackup(
+      { spaceId: 'space-1', tempFileId: 'cloud://temp/legacy-active-records' },
+      { openid: 'user-1' },
+      repository,
+      storageService,
+      {
+        randomId: (() => {
+          let index = 0
+          return () => `mapped-${++index}`
+        })()
+      }
+    )
+
+    const imported = repository.getImported()
+    ;[
+      imported.recipes[0],
+      imported.recipeTags[0],
+      imported.recipeImages[0],
+      imported.pantryItems[0],
+      imported.mealPlans[0],
+      imported.shoppingLists[0],
+      imported.shoppingItems[0],
+      imported.shoppingItems[1]
+    ].forEach((item) => {
+      expect(item).toMatchObject({
+        deletedAt: ''
+      })
+    })
+  })
+
+  it('uploads legacy ready recipe images when the backup zip contains the image file', async () => {
+    const repository = createRepository()
+    const storageService = createStorageService()
+    const zip = new JSZip()
+    zip.file(
+      'backup.json',
+      JSON.stringify({
+        version: '1.0.0',
+        exportTime: '2026-04-12T00:00:00.000Z',
+        recipes: [
+          {
+            id: 'recipe-old-1',
+            name: 'Tomato Egg',
+            coverImageId: 'image-old-1',
+            tags: [],
+            images: [
+              {
+                id: 'image-old-1',
+                recipeId: 'recipe-old-1',
+                filePath: 'uploads/recipes/2026/04/image-old-1.jpeg',
+                mimeType: 'image/jpeg',
+                imageRole: 'cover',
+                uploadStatus: 'ready'
+              }
+            ]
+          }
+        ],
+        pantryItems: [],
+        mealPlans: [],
+        shoppingLists: [],
+        settings: {}
+      })
+    )
+    zip.file('files/uploads/recipes/2026/04/image-old-1.jpeg', 'legacy-image-bytes')
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' })
+    storageService.setDownloadedFile('cloud://temp/legacy-ready-image', buffer)
+
+    await importSpaceBackup(
+      { spaceId: 'space-1', tempFileId: 'cloud://temp/legacy-ready-image' },
+      { openid: 'user-1' },
+      repository,
+      storageService,
+      {
+        randomId: (() => {
+          let index = 0
+          return () => `mapped-${++index}`
+        })()
+      }
+    )
+
+    expect(storageService.getUploadedFiles()).toHaveLength(1)
+    expect(repository.getImported().recipeImages[0]).toEqual(
+      expect.objectContaining({
+        fileId: 'cloud://uploaded/1',
+        uploadStatus: 'confirmed'
+      })
+    )
+    expect(repository.getImported().recipes[0].images[0]).toEqual(
+      expect.objectContaining({
+        fileId: 'cloud://uploaded/1',
+        uploadStatus: 'confirmed'
+      })
+    )
   })
 
   it('does not fail import when writing the import backup record fails after restore', async () => {

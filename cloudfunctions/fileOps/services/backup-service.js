@@ -17,6 +17,30 @@ function normalizeFilePath(value) {
   return normalizeId(value).replace(/\\/g, '/')
 }
 
+function normalizeStringList(value = []) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .map((item) => normalizeId(item))
+        .filter(Boolean)
+    )
+  )
+}
+
+function normalizeDateOnly(value) {
+  const text = normalizeId(value)
+  if (!text) {
+    return ''
+  }
+
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})(?:$|[T\s])/)
+  return match ? match[1] : ''
+}
+
 function resolveNowIso(options = {}) {
   if (typeof options.nowIso === 'function') {
     return options.nowIso()
@@ -56,6 +80,15 @@ function getRecordId(item = {}) {
   return normalizeId(item._id || item.id)
 }
 
+function withActiveDeleteMarker(item = {}) {
+  return Object.prototype.hasOwnProperty.call(item, 'deletedAt')
+    ? item
+    : {
+        ...item,
+        deletedAt: ''
+      }
+}
+
 function dedupeItemsById(items = []) {
   const map = new Map()
   for (const item of items || []) {
@@ -64,7 +97,7 @@ function dedupeItemsById(items = []) {
       continue
     }
     map.set(id, {
-      ...item,
+      ...withActiveDeleteMarker(item),
       _id: id
     })
   }
@@ -75,7 +108,7 @@ function normalizeRecipeTagShape(tag = {}) {
   const _id = getRecordId(tag)
   return _id
     ? {
-        ...tag,
+        ...withActiveDeleteMarker(tag),
         _id
       }
     : null
@@ -85,7 +118,7 @@ function normalizeRecipeImageShape(image = {}, fallbackRecipeId = '') {
   const _id = getRecordId(image)
   return _id
     ? {
-        ...image,
+        ...withActiveDeleteMarker(image),
         _id,
         recipeId: normalizeId(image.recipeId) || fallbackRecipeId,
         cloudPath: normalizeId(image.cloudPath || image.filePath),
@@ -109,7 +142,7 @@ function normalizeRecipeShape(recipe = {}) {
     .filter(Boolean)
 
   return {
-    ...recipe,
+    ...withActiveDeleteMarker(recipe),
     _id,
     coverImageId: normalizeId(recipe.coverImageId),
     tagIds: Array.isArray(recipe.tagIds) && recipe.tagIds.length
@@ -124,8 +157,11 @@ function normalizePantryShape(item = {}) {
   const _id = getRecordId(item)
   return _id
     ? {
-        ...item,
-        _id
+        ...withActiveDeleteMarker(item),
+        _id,
+        productionDate: normalizeDateOnly(item.productionDate),
+        expirationDate: normalizeDateOnly(item.expirationDate),
+        openedDate: normalizeDateOnly(item.openedDate)
       }
     : null
 }
@@ -137,7 +173,7 @@ function normalizeMealPlanShape(plan = {}) {
   }
 
   return {
-    ...plan,
+    ...withActiveDeleteMarker(plan),
     _id,
     recipes: (Array.isArray(plan.recipes) ? plan.recipes : []).map((entry) => ({
       ...entry,
@@ -150,7 +186,7 @@ function normalizeShoppingItemShape(item = {}, fallbackShoppingListId = '') {
   const _id = getRecordId(item)
   return _id
     ? {
-        ...item,
+        ...withActiveDeleteMarker(item),
         _id,
         shoppingListId: normalizeId(item.shoppingListId) || fallbackShoppingListId,
         isChecked: item.isChecked === true || item.checked === true
@@ -169,10 +205,36 @@ function normalizeShoppingListShape(list = {}) {
     .filter(Boolean)
 
   return {
-    ...list,
+    ...withActiveDeleteMarker(list),
     _id,
     items
   }
+}
+
+function normalizeImportedSettings(settings = {}) {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    return {}
+  }
+
+  const next = { ...settings }
+  delete next.customCategories
+
+  const legacyRecipeCategories = normalizeStringList(settings.customCategories)
+  const currentRecipeCategories = normalizeStringList(settings.recipeCategories)
+  if (legacyRecipeCategories.length || currentRecipeCategories.length) {
+    next.recipeCategories = legacyRecipeCategories.length
+      ? legacyRecipeCategories
+      : currentRecipeCategories
+  }
+
+  if (Object.prototype.hasOwnProperty.call(settings, 'pantryCategories')) {
+    next.pantryCategories = normalizeStringList(settings.pantryCategories)
+  }
+  if (Object.prototype.hasOwnProperty.call(settings, 'pantryLocations')) {
+    next.pantryLocations = normalizeStringList(settings.pantryLocations)
+  }
+
+  return next
 }
 
 function normalizeImportedBackupPayload(payload = {}) {
@@ -229,7 +291,8 @@ function normalizeImportedBackupPayload(payload = {}) {
     pantryItems,
     mealPlans,
     shoppingLists,
-    shoppingItems
+    shoppingItems,
+    settings: normalizeImportedSettings(payload.settings || {})
   }
 }
 
@@ -239,6 +302,15 @@ function getBackupZipPathForImage(image = {}) {
     return `files/${backupFilePath.replace(/^files\//, '')}`
   }
   return normalizeImageFileName(image)
+}
+
+function shouldImportRecipeImageFile(image = {}) {
+  if (!image || image.deletedAt || image.isDeleted === true) {
+    return false
+  }
+
+  const uploadStatus = normalizeId(image.uploadStatus)
+  return uploadStatus === 'confirmed' || uploadStatus === 'ready'
 }
 
 function buildIdMap(items = [], options = {}) {
@@ -495,7 +567,7 @@ async function importSpaceBackup(event = {}, context = {}, repository = {}, stor
     for (let index = 0; index < (payload.recipeImages || []).length; index += 1) {
       const sourceImage = payload.recipeImages[index]
       const remappedImage = remappedPayload.recipeImages[index]
-      if (!sourceImage || sourceImage.deletedAt || sourceImage.uploadStatus !== 'confirmed') {
+      if (!shouldImportRecipeImageFile(sourceImage)) {
         importedRecipeImages.push(remappedImage)
         continue
       }
@@ -509,7 +581,7 @@ async function importSpaceBackup(event = {}, context = {}, repository = {}, stor
     for (let index = 0; index < importedRecipeImages.length; index += 1) {
       const sourceImage = (payload.recipeImages || [])[index]
       const image = importedRecipeImages[index]
-      if (!sourceImage || sourceImage.deletedAt || sourceImage.uploadStatus !== 'confirmed') {
+      if (!shouldImportRecipeImageFile(sourceImage)) {
         continue
       }
       const backupFile = zip.file(getBackupZipPathForImage(sourceImage))

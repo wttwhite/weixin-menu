@@ -4,6 +4,66 @@ const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 const { syncPageTheme } = require('../../utils/theme')
 
+const IMPORT_REFRESH_ROUTES = new Set([
+  'pages/recipes/index',
+  'pages/pantry/index',
+  'pages/meal-plans/index',
+  'pages/shopping/index'
+])
+
+function markDataPagesForRefreshAfterImport() {
+  if (typeof getCurrentPages !== 'function') {
+    return
+  }
+
+  const pages = getCurrentPages() || []
+  pages.forEach((page) => {
+    if (
+      page &&
+      IMPORT_REFRESH_ROUTES.has(page.route) &&
+      typeof page.markNeedsRefreshOnNextShow === 'function'
+    ) {
+      page.markNeedsRefreshOnNextShow()
+    }
+  })
+}
+
+function formatBackupTime(value = '') {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  const normalized = value.trim()
+  if (!normalized) {
+    return ''
+  }
+
+  const parsed = new Date(normalized)
+  if (Number.isNaN(parsed.getTime())) {
+    return normalized.slice(0, 19).replace('T', ' ')
+  }
+
+  const beijingTime = new Date(parsed.getTime() + 8 * 60 * 60 * 1000)
+  const pad = (number) => String(number).padStart(2, '0')
+  return [
+    beijingTime.getUTCFullYear(),
+    pad(beijingTime.getUTCMonth() + 1),
+    pad(beijingTime.getUTCDate())
+  ].join('-') + ' ' + [
+    pad(beijingTime.getUTCHours()),
+    pad(beijingTime.getUTCMinutes()),
+    pad(beijingTime.getUTCSeconds())
+  ].join(':')
+}
+
+function decorateBackupRecord(record = {}) {
+  const timeText = formatBackupTime(record.updatedAt || record.createdAt || '')
+  return {
+    ...record,
+    timeText
+  }
+}
+
 Page({
   data: {
     loading: true,
@@ -45,7 +105,7 @@ Page({
       ])
       this.setData({
         loading: false,
-        records: result.items || [],
+        records: (result.items || []).map((item) => decorateBackupRecord(item)),
         role: session.role || ''
       })
     } catch (error) {
@@ -121,6 +181,7 @@ Page({
         filePath: file.path
       })
       await createBackupService().importSpaceBackup(this.data.activeSpaceId, upload.fileID)
+      markDataPagesForRefreshAfterImport()
       await this.loadRecords()
       wx.showToast({
         title: '导入完成',

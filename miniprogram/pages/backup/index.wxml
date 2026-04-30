@@ -16,7 +16,7 @@
       <view class="record-card__type">{{item.type}}</view>
       <view class="record-card__status">{{item.status}}</view>
       <view wx:if="{{item.fileName}}" class="record-card__time">{{item.fileName}}</view>
-      <view class="record-card__time">{{item.updatedAt || item.createdAt}}</view>
+      <view class="record-card__time">{{item.timeText}}</view>
       <t-button
         wx:if="{{item.fileId}}"
         class="record-card__button"
