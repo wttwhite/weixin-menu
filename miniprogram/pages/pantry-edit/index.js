@@ -576,6 +576,7 @@ Page({
         ...buildDetailViewData(form, this.data.statusOptions, statusIndex),
         form
       })
+      markPantryPageForRefresh()
       wx.showToast({
         title: '已更新库存',
         icon: 'success'

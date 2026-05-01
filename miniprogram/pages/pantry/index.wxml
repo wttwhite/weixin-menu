@@ -118,16 +118,11 @@
                 </view>
 
                 <view
-                  class="item-action item-action--delete"
+                  class="item-action item-action--edit"
                   data-pantry-item-id="{{item._id}}"
-                  catchtap="handleDeleteItem"
+                  catchtap="handleEditItem"
                 >
-                  <view class="delete-line-icon">
-                    <view class="delete-line-icon__lid"></view>
-                    <view class="delete-line-icon__handle"></view>
-                    <view class="delete-line-icon__line delete-line-icon__line--left"></view>
-                    <view class="delete-line-icon__line delete-line-icon__line--right"></view>
-                  </view>
+                  <t-icon name="edit-1" size="28rpx" />
                 </view>
               </view>
             </view>
@@ -193,5 +188,18 @@
     bind:change="handleCreateFormChange"
     bind:close="closeCreateModal"
     bind:submit="submitCreatePantry"
+  />
+
+  <pantry-form-modal
+    visible="{{showEditModal}}"
+    title="编辑库存"
+    submit-label="保存修改"
+    submitting="{{submittingEdit}}"
+    value="{{editForm}}"
+    category-options="{{editCategoryOptions}}"
+    location-options="{{editLocationOptions}}"
+    bind:change="handleEditFormChange"
+    bind:close="closeEditModal"
+    bind:submit="submitEditPantry"
   />
 </view>

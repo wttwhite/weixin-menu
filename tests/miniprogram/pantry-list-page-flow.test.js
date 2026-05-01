@@ -367,6 +367,79 @@ describe('pantry list page flow', () => {
     }))
   })
 
+  it('derives expired display locally when a loaded item expires today but still has active status', async () => {
+    const RealDate = Date
+    class MockDate extends RealDate {
+      constructor(...args) {
+        if (args.length) {
+          super(...args)
+          return
+        }
+        super('2026-05-01T09:00:00.000Z')
+      }
+
+      getFullYear() {
+        return 2026
+      }
+
+      getMonth() {
+        return 4
+      }
+
+      getDate() {
+        return 1
+      }
+    }
+    global.Date = MockDate
+
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          items: [
+            {
+              _id: 'pantry-potato',
+              name: '土豆',
+              category: '蔬菜',
+              quantity: '1',
+              unit: '袋',
+              status: 'active',
+              expirationDate: '2026-05-01'
+            }
+          ],
+          filterOptions: {
+            categories: ['蔬菜'],
+            locations: []
+          }
+        }
+      }
+    })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(page.data.items[0]).toEqual(expect.objectContaining({
+      status: 'expired',
+      storedStatus: 'active',
+      usageStatusLabel: '已过期',
+      usageStatusClass: 'usage-badge usage-badge--expired',
+      expirationDateClass: 'pantry-item__expiration pantry-item__expiration--expired'
+    }))
+
+    global.Date = RealDate
+  })
+
   it('opens the settings modal from the top-right entry and loads pantry categories only', async () => {
     const callFunction = vi
       .fn()
@@ -1601,6 +1674,139 @@ describe('pantry list page flow', () => {
     })
     expect(page.data.visibleItems.map((item) => item.name)).toEqual(['Rice'])
     expect(page.data.categoryViewItems.map((item) => item.label)).toEqual(['全部', 'dairy', 'dry'])
+  })
+
+  it('opens the pantry edit form modal from the visible list edit action and saves changes', async () => {
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'pantry-1',
+                name: 'Milk',
+                category: 'dairy',
+                location: 'fridge',
+                quantity: '1',
+                unit: '盒',
+                status: 'active',
+                notes: '冷藏'
+              }
+            ]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'dairy' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [{ name: 'fridge' }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            item: {
+              _id: 'pantry-1',
+              name: 'Milk',
+              category: 'dairy',
+              location: 'freezer',
+              quantity: '2',
+              unit: '盒',
+              status: 'active',
+              notes: '已换位置'
+            }
+          }
+        }
+      })
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      navigateTo: vi.fn(),
+      showModal: vi.fn(),
+      showToast: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    await page.handleEditItem({
+      currentTarget: {
+        dataset: {
+          pantryItemId: 'pantry-1'
+        }
+      }
+    })
+    await flushAsyncWork()
+
+    expect(global.wx.showModal).not.toHaveBeenCalled()
+    expect(page.data.showEditModal).toBe(true)
+    expect(page.data.editPantryItemId).toBe('pantry-1')
+    expect(page.data.editForm).toEqual(expect.objectContaining({
+      name: 'Milk',
+      category: 'dairy',
+      location: 'fridge',
+      quantity: '1',
+      unit: '盒',
+      notes: '冷藏'
+    }))
+    expect(page.data.editCategoryOptions).toEqual(['未设置', 'dairy'])
+    expect(page.data.editLocationOptions).toEqual(['未设置', 'fridge'])
+
+    await page.submitEditPantry({
+      detail: {
+        form: {
+          ...page.data.editForm,
+          location: 'freezer',
+          quantity: '2',
+          notes: '已换位置'
+        }
+      }
+    })
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenNthCalledWith(4, {
+      name: 'api',
+      data: {
+        action: 'updatePantryItem',
+        spaceId: 'space-1',
+        pantryItemId: 'pantry-1',
+        item: expect.objectContaining({
+          name: 'Milk',
+          location: 'freezer',
+          quantity: '2',
+          notes: '已换位置'
+        })
+      },
+      config: undefined
+    })
+    expect(page.data.showEditModal).toBe(false)
+    expect(page.data.visibleItems[0]).toEqual(expect.objectContaining({
+      name: 'Milk',
+      location: 'freezer',
+      quantityDisplay: '2 盒',
+      notesDisplay: '已换位置'
+    }))
   })
 
   it('does not delete pantry items when the delete confirmation is cancelled', async () => {

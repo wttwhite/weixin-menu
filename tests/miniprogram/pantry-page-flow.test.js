@@ -387,6 +387,72 @@ describe('pantry edit page flow', () => {
     expect(navigateBack).not.toHaveBeenCalled()
   })
 
+  it('marks the pantry list for refresh after saving the shared edit modal', async () => {
+    const callFunction = vi.fn().mockResolvedValue({
+      result: {
+        code: 0,
+        data: {
+          item: {
+            _id: 'pantry-1',
+            name: 'Milk',
+            category: 'dairy',
+            quantity: '1',
+            unit: 'box',
+            location: 'freezer',
+            status: 'active',
+            expirationDate: '2026-05-11'
+          }
+        }
+      }
+    })
+    const markNeedsRefreshOnNextShow = vi.fn()
+    global.wx = {
+      cloud: {
+        callFunction
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      redirectTo: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+    global.getCurrentPages = () => [
+      {
+        route: 'pages/pantry/index',
+        markNeedsRefreshOnNextShow
+      },
+      {
+        route: 'pages/pantry-edit/index'
+      }
+    ]
+
+    const page = await loadPage('../../miniprogram/pages/pantry-edit/index.js')
+    page.setData({
+      isEdit: true,
+      activeSpaceId: 'space-1',
+      pantryItemId: 'pantry-1',
+      loading: false,
+      loadErrorMessage: '',
+      editForm: {
+        ...page.data.editForm,
+        name: 'Milk',
+        location: 'freezer'
+      }
+    })
+
+    await page.submitEditModal({
+      detail: {
+        form: page.data.editForm
+      }
+    })
+
+    expect(markNeedsRefreshOnNextShow).toHaveBeenCalledTimes(1)
+  })
+
   it('uses configured dropdowns and stepper actions for pantry fields', async () => {
     const callFunction = vi
       .fn()

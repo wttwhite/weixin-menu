@@ -160,6 +160,14 @@ describe('recipe edit template', () => {
     expect(uploaderStyles).toMatch(/\.uploader__actions-overlay\s*\{[\s\S]*position:\s*absolute;[\s\S]*bottom:\s*0;/)
   })
 
+  it('prefers stable display urls over temporary local paths for uploaded images', () => {
+    const uploaderTemplate = readFileSync('miniprogram/components/image-uploader/index.wxml', 'utf8')
+
+    expect(uploaderTemplate).toContain(
+      'src="{{item.displayUrl || item.tempFileURL || item.localPath || item.fileId || item.cloudPath}}"'
+    )
+  })
+
   it('uses requested recipe form label font sizes', () => {
     const styles = readFileSync('miniprogram/pages/recipe-edit/index.wxss', 'utf8')
     const formRowLabelStyles = getStyleBlock(styles, '.form-row__label')

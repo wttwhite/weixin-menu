@@ -7,7 +7,7 @@
       wx:key="_id"
       class="{{item._id === coverImageId ? 'uploader__item uploader__item--cover' : 'uploader__item'}}"
     >
-      <image class="uploader__image" src="{{item.localPath || item.displayUrl || item.tempFileURL || item.fileId || item.cloudPath}}" mode="aspectFill" />
+      <image class="uploader__image" src="{{item.displayUrl || item.tempFileURL || item.localPath || item.fileId || item.cloudPath}}" mode="aspectFill" />
       <view wx:if="{{item._id === coverImageId}}" class="uploader__cover-badge">封面</view>
       <view class="uploader__actions-overlay">
         <view class="uploader__overlay-btn" data-image-id="{{item._id}}" bindtap="handleCover">封面</view>

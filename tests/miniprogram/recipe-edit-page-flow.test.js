@@ -546,6 +546,40 @@ describe('recipe edit page flow', () => {
     expect(page.data.ingredientViewItems[0].inputText).toBe('土豆 600g')
   })
 
+  it('keeps the space while typing a combined ingredient and amount', async () => {
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn()
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.onLoad({})
+
+    page.handleIngredientInput({
+      currentTarget: {
+        dataset: {
+          index: 0,
+          field: 'name'
+        }
+      },
+      detail: {
+        value: '土豆 '
+      }
+    })
+
+    expect(page.data.form.ingredients[0].name).toBe('土豆 ')
+    expect(page.data.ingredientViewItems[0].inputText).toBe('土豆 ')
+  })
+
   it('retries bootstrap on next onShow after initial load failure', async () => {
     const callFunction = vi
       .fn()
@@ -811,6 +845,70 @@ describe('recipe edit page flow', () => {
       config: undefined
     })
     expect(page.data.form.images).toEqual([])
+  })
+
+  it('resolves a stable display url after recipe image upload completes', async () => {
+    const getTempFileURL = vi.fn().mockResolvedValue({
+      fileList: [
+        {
+          fileID: 'cloud://img-1',
+          tempFileURL: 'https://tmp.example/img-1.jpg'
+        }
+      ]
+    })
+    global.wx = {
+      cloud: {
+        callFunction: vi.fn(),
+        getTempFileURL
+      },
+      showToast: vi.fn(),
+      navigateBack: vi.fn(),
+      showModal: vi.fn()
+    }
+    global.getApp = () => ({
+      globalData: {
+        activeSpaceId: 'space-1'
+      }
+    })
+
+    const page = await loadPage('../../miniprogram/pages/recipe-edit/index.js')
+    page.setData({
+      activeSpaceId: 'space-1',
+      form: {
+        ...page.data.form,
+        images: [
+          {
+            _id: 'local-1',
+            imageRole: 'cover',
+            uploadStatus: 'uploading',
+            localPath: '/tmp/cover.jpg'
+          }
+        ]
+      }
+    })
+
+    await page.handleImageUploaded({
+      detail: {
+        localId: 'local-1',
+        item: {
+          _id: 'img-1',
+          imageRole: 'cover',
+          uploadStatus: 'confirmed',
+          fileId: 'cloud://img-1'
+        }
+      }
+    })
+
+    expect(getTempFileURL).toHaveBeenCalledWith({
+      fileList: ['cloud://img-1']
+    })
+    expect(page.data.form.images[0]).toEqual(
+      expect.objectContaining({
+        _id: 'img-1',
+        fileId: 'cloud://img-1',
+        displayUrl: 'https://tmp.example/img-1.jpg'
+      })
+    )
   })
 
   it('blocks submit while there are uploading images so placeholders are not persisted', async () => {

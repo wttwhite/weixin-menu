@@ -114,7 +114,7 @@ function derivePantryStatus(input = {}) {
     return storedStatus
   }
 
-  if (relativeDays < 0) {
+  if (relativeDays <= 0) {
     return 'expired'
   }
 

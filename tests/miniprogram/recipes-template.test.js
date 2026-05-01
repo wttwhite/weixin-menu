@@ -162,11 +162,11 @@ describe('recipes page template styles', () => {
     const template = readFileSync('miniprogram/pages/recipes/index.wxml', 'utf8')
 
     expect(styles).toMatch(/\.cart-primary\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*color:\s*#fff;/)
-    expect(styles).toMatch(/\.cart-primary--disabled\s*\{[\s\S]*background:\s*var\(--brand-soft,\s*#d8eef3\);[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.cart-primary--disabled\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*opacity:\s*0\.68;[\s\S]*color:\s*#fff;/)
     expect(styles).toMatch(/\.plan-modal__date-chip--active\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*color:\s*#fff;/)
     expect(styles).toMatch(/\.plan-modal__meal-chip--active\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*color:\s*#fff;/)
     expect(styles).toMatch(/\.plan-modal__primary\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*color:\s*#fff;/)
-    expect(styles).toMatch(/\.plan-modal__primary--disabled\s*\{[\s\S]*background:\s*var\(--brand-soft,\s*#d8eef3\);[\s\S]*color:\s*#fff;/)
+    expect(styles).toMatch(/\.plan-modal__primary--disabled\s*\{[\s\S]*background:\s*var\(--brand,\s*#4f7d8a\);[\s\S]*opacity:\s*0\.68;[\s\S]*color:\s*#fff;/)
     expect(styles).toMatch(/\.plan-modal__meal-types\s*\{[\s\S]*flex-wrap:\s*nowrap;/)
     expect(styles).toMatch(/\.plan-modal__meal-chip\s*\{[\s\S]*flex:\s*1;/)
     expect(template).toMatch(/wx:if="\{\{selectedRecipesCount > 0\}}" class="plan-modal__primary" bindtap="submitPlanSelection"/)

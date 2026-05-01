@@ -1,5 +1,6 @@
 const { createPantryService } = require('../../services/pantry')
 const { ERROR_CODES } = require('../../shared/constants/error-codes')
+const { derivePantryStatus } = require('../../shared/domain/pantry')
 const { getActiveSpaceId } = require('../../utils/app-session')
 const { getErrorMessage } = require('../../utils/error')
 const { buildManagerOptionLabels, createEmptyPantryForm } = require('../../utils/pantry-form')
@@ -69,6 +70,13 @@ function createDateLabel(now = new Date()) {
   const month = now.getMonth() + 1
   const day = now.getDate()
   return `${year}/${month}/${day}`
+}
+
+function createTodayIso(now = new Date()) {
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function normalizeText(value) {
@@ -283,18 +291,25 @@ function buildExpirationDateClass(actualStatus = '', expirationDate = '') {
 }
 
 function buildDisplayItem(item = {}) {
-  const actualStatus = normalizeText(item.status) || 'active'
   const storedStatus = normalizeStoredStatus(item.storedStatus || item.status)
+  const expirationDate = normalizeText(item.expirationDate)
+  const actualStatus = expirationDate
+    ? derivePantryStatus({
+        status: storedStatus,
+        expirationDate,
+        now: createTodayIso()
+      })
+    : normalizeText(item.status) || storedStatus
   const storedMeta = actualStatus === 'expired'
     ? STORED_STATUS_META.expired
     : STORED_STATUS_META[storedStatus] || STORED_STATUS_META.active
   const freshnessMeta = FRESHNESS_META[actualStatus] || null
   const location = normalizeText(item.location)
   const notes = normalizeText(item.notes)
-  const expirationDate = normalizeText(item.expirationDate)
 
   return {
     ...item,
+    status: actualStatus,
     storedStatus,
     categoryKey: getCategoryKey(item.category),
     categoryLabel: getCategoryLabel(item.category),
@@ -635,6 +650,12 @@ Page({
     createForm: createEmptyPantryForm(),
     createCategoryOptions: ['未设置'],
     createLocationOptions: ['未设置'],
+    showEditModal: false,
+    submittingEdit: false,
+    editPantryItemId: '',
+    editForm: createEmptyPantryForm(),
+    editCategoryOptions: ['未设置'],
+    editLocationOptions: ['未设置'],
     floatingCreateLeft: 0,
     floatingCreateTop: 0,
     floatingCreateInitialized: false,
@@ -1079,6 +1100,118 @@ Page({
     } catch (error) {
       this.setData({
         submittingCreate: false
+      })
+      showOperationError(error)
+    }
+  },
+
+  async handleEditItem(event) {
+    const pantryItemId = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.pantryItemId || ''
+      : ''
+    if (!pantryItemId || !this.data.activeSpaceId) {
+      return
+    }
+
+    const currentItem = (this.data.items || []).find((item) => item && item._id === pantryItemId)
+    if (!currentItem) {
+      return
+    }
+
+    const initialForm = {
+      ...createEmptyPantryForm(),
+      ...currentItem,
+      status: normalizeStoredStatus(currentItem.storedStatus || currentItem.status)
+    }
+
+    this.setData({
+      showEditModal: true,
+      submittingEdit: false,
+      editPantryItemId: pantryItemId,
+      editForm: initialForm,
+      editCategoryOptions: buildManagerOptionLabels([], initialForm.category),
+      editLocationOptions: buildManagerOptionLabels([], initialForm.location)
+    })
+
+    const service = createPantryService()
+    try {
+      const [categoryResult, locationResult] = await Promise.all([
+        service.listPantryCategories(this.data.activeSpaceId).catch((error) => {
+          if (shouldTreatManagerListAsEmpty(error)) {
+            return { items: [] }
+          }
+          throw error
+        }),
+        service.listPantryLocations(this.data.activeSpaceId).catch((error) => {
+          if (shouldTreatManagerListAsEmpty(error)) {
+            return { items: [] }
+          }
+          throw error
+        })
+      ])
+
+      this.setData({
+        editCategoryOptions: buildManagerOptionLabels(categoryResult.items || [], initialForm.category),
+        editLocationOptions: buildManagerOptionLabels(locationResult.items || [], initialForm.location)
+      })
+    } catch (error) {
+      showOperationError(error)
+    }
+  },
+
+  handleEditFormChange(event) {
+    this.setData({
+      editForm: event && event.detail && event.detail.form
+        ? event.detail.form
+        : createEmptyPantryForm()
+    })
+  },
+
+  closeEditModal() {
+    this.setData({
+      showEditModal: false,
+      submittingEdit: false,
+      editPantryItemId: '',
+      editForm: createEmptyPantryForm(),
+      editCategoryOptions: ['未设置'],
+      editLocationOptions: ['未设置']
+    })
+  },
+
+  async submitEditPantry(event) {
+    if (this.data.submittingEdit || !this.data.activeSpaceId || !this.data.editPantryItemId) {
+      return
+    }
+
+    const form = event && event.detail && event.detail.form
+      ? event.detail.form
+      : this.data.editForm
+
+    this.setData({
+      submittingEdit: true,
+      editForm: form
+    })
+
+    try {
+      const result = await createPantryService().updatePantryItem(
+        this.data.activeSpaceId,
+        this.data.editPantryItemId,
+        form
+      )
+      const updatedItem = buildDisplayItem(result.item || { ...form, _id: this.data.editPantryItemId })
+      const nextItems = replaceItem(this.data.items || [], updatedItem)
+      this.closeEditModal()
+      this.syncDerivedState({
+        items: nextItems,
+        categorySourceValues: mergeCategorySourceValues(this.data.categorySourceValues || [], nextItems)
+      })
+      wx.showToast({
+        title: '已更新库存',
+        icon: 'success'
+      })
+    } catch (error) {
+      this.setData({
+        submittingEdit: false
       })
       showOperationError(error)
     }

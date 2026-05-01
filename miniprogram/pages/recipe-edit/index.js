@@ -73,9 +73,57 @@ function normalizeImageItems(images = []) {
       uploadStatus: item && item.uploadStatus ? item.uploadStatus : 'confirmed',
       fileId: item && item.fileId ? item.fileId : '',
       cloudPath: item && item.cloudPath ? item.cloudPath : '',
+      displayUrl: item && item.displayUrl ? item.displayUrl : '',
+      tempFileURL: item && item.tempFileURL ? item.tempFileURL : '',
       localPath: item && item.localPath ? item.localPath : ''
     }))
     .filter((item) => item._id)
+}
+
+function collectImageFileIds(images = []) {
+  return Array.from(
+    new Set(
+      (images || [])
+        .map((item) => (item && item.fileId ? item.fileId : ''))
+        .filter(Boolean)
+    )
+  )
+}
+
+async function resolveRecipeImageDisplayUrlMap(images = []) {
+  const fileIds = collectImageFileIds(images)
+  if (
+    !fileIds.length ||
+    typeof wx === 'undefined' ||
+    !wx.cloud ||
+    typeof wx.cloud.getTempFileURL !== 'function'
+  ) {
+    return {}
+  }
+
+  try {
+    const result = await wx.cloud.getTempFileURL({
+      fileList: fileIds
+    })
+    return ((result && result.fileList) || []).reduce((map, item) => {
+      const fileId = (item && (item.fileID || item.fileId)) || ''
+      const tempFileURL = (item && item.tempFileURL) || ''
+      if (fileId && tempFileURL) {
+        map[fileId] = tempFileURL
+      }
+      return map
+    }, {})
+  } catch (error) {
+    return {}
+  }
+}
+
+async function resolveRecipeImageDisplayUrls(images = []) {
+  const tempUrlMap = await resolveRecipeImageDisplayUrlMap(images)
+  return (images || []).map((item) => ({
+    ...item,
+    displayUrl: (item && tempUrlMap[item.fileId]) || (item && item.displayUrl) || ''
+  }))
 }
 
 function buildCategoryOptions(items = [], currentCategory = '') {
@@ -117,9 +165,13 @@ function buildRecommendationStarItems(score = '') {
 }
 
 function buildIngredientInputText(item = {}) {
-  const name = item && item.name ? String(item.name).trim() : ''
+  const rawName = item && item.name ? String(item.name) : ''
   const quantity = item && item.quantity ? String(item.quantity).trim() : ''
   const unit = item && item.unit ? String(item.unit).trim() : ''
+  if (!quantity && !unit) {
+    return rawName
+  }
+  const name = rawName.trim()
   const amountText = quantity || unit ? `${quantity}${unit}`.trim() : ''
   return [name, amountText].filter(Boolean).join(' ')
 }
@@ -445,11 +497,12 @@ Page({
         const filteredTagIds = (Array.isArray(item.tagIds) ? item.tagIds : []).filter((tagId) =>
           availableTagIdSet.has(tagId)
         )
+        const images = await resolveRecipeImageDisplayUrls(normalizeImageItems(item.images || []))
         nextData.form = {
           ...createEmptyForm(),
           ...item,
           tagIds: filteredTagIds,
-          images: normalizeImageItems(item.images || []),
+          images,
           ingredients: normalizeRows(item.ingredients, createEmptyIngredient),
           steps: normalizeRows(item.steps, createEmptyStep)
         }
@@ -929,18 +982,20 @@ Page({
       return
     }
 
+    const resolvedItems = await resolveRecipeImageDisplayUrls([uploadedItem])
+    const resolvedUploadedItem = resolvedItems[0] || uploadedItem
     const nextImages = (this.data.form.images || []).map((item) => {
       if (item._id !== localId) {
         return item
       }
       return {
-        ...uploadedItem
+        ...resolvedUploadedItem
       }
     })
 
     const nextCoverImageId =
-      uploadedItem.imageRole === 'cover'
-        ? uploadedItem._id
+      resolvedUploadedItem.imageRole === 'cover'
+        ? resolvedUploadedItem._id
         : this.data.form.coverImageId
 
     this.setData({

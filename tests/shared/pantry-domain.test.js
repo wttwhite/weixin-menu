@@ -26,6 +26,16 @@ describe('derivePantryStatus', () => {
     ).toBe('expired')
   })
 
+  it('marks items as expired on the expiration date itself', () => {
+    expect(
+      derivePantryStatus({
+        status: 'active',
+        expirationDate: '2026-04-10',
+        now: '2026-04-10'
+      })
+    ).toBe('expired')
+  })
+
   it('keeps empty or discarded items in their handled states', () => {
     expect(
       derivePantryStatus({

@@ -575,7 +575,8 @@ page {
 }
 
 .cart-primary--disabled {
-  background: var(--brand-soft, #d8eef3);
+  background: var(--brand, #4f7d8a);
+  opacity: 0.68;
   color: #fff;
 }
 
@@ -756,7 +757,8 @@ page {
 }
 
 .plan-modal__primary--disabled {
-  background: var(--brand-soft, #d8eef3);
+  background: var(--brand, #4f7d8a);
+  opacity: 0.68;
   color: #fff;
 }
 

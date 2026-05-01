@@ -132,18 +132,20 @@
 }
 
 .pantry-form-modal .quantity-stepper {
+  height: 74rpx;
+  box-sizing: border-box;
   background: #fff;
 }
 
 .pantry-form-modal .stepper-button,
 .pantry-form-modal .stepper-value {
-  height: 76rpx;
+  height: 72rpx;
   background: #fff;
 }
 
 .pantry-form-modal .stepper-button {
-  width: 76rpx;
-  min-width: 76rpx;
+  width: 72rpx;
+  min-width: 72rpx;
 }
 
 .pantry-form-modal .field-label {
@@ -162,6 +164,10 @@
 .field-picker-row .field-input,
 .field-picker-row .date-row__picker,
 .field-picker-row .category-picker__value {
+  margin-top: 0;
+}
+
+.pantry-form-modal .date-row__picker .field-input {
   margin-top: 0;
 }
 

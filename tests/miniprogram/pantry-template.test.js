@@ -52,8 +52,11 @@ describe('pantry page settings modal', () => {
     expect(template).toMatch(/pantry-item__header[\s\S]*pantry-item__name[\s\S]*usageStatusLabel/)
     expect(template).toContain('wx:if="{{item.showStatusBadge}}"')
     expect(template).toContain('{{item.usageActionIcon}}')
-    expect(template).toContain('delete-line-icon')
+    expect(template).toContain('catchtap="handleEditItem"')
+    expect(template).toContain('name="edit-1"')
+    expect(template).toContain('title="编辑库存"')
     expect(template).not.toContain('{{item.deleteActionIcon}}')
+    expect(template).not.toContain('delete-line-icon')
     expect(template).toContain('rail-item__content')
     expect(template).toContain('rail-item__count')
     expect(template.includes('pantry-item__thumb')).toBe(false)
@@ -147,7 +150,8 @@ describe('pantry page settings modal', () => {
     expect(styles).toMatch(/\.search-box__input\s*\{[\s\S]*height:\s*72rpx;/)
     expect(styles).toMatch(/\.search-box__clear\s*\{[\s\S]*width:\s*44rpx;/)
     expect(styles).toMatch(/\.management-card__more\s*\{(?:(?!padding:)[\s\S])*\}/)
-    expect(styles).toMatch(/\.delete-line-icon\s*\{[\s\S]*border:\s*2rpx solid #d14b4b;/)
+    expect(styles).toMatch(/\.item-action--edit\s*\{[\s\S]*background:\s*#eef6ff;/)
+    expect(styles).not.toContain('.delete-line-icon')
   })
 
   it('centers the pantry surface header vertically', () => {

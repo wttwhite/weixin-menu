@@ -131,8 +131,8 @@ describe('pantry form modal', () => {
 
     expect(styles).toMatch(/\.pantry-form-modal \.field-input,\s*\.pantry-form-modal \.category-picker__value\s*\{[\s\S]*height:\s*76rpx;/)
     expect(styles).toMatch(/\.pantry-form-modal \.field-input,\s*\.pantry-form-modal \.category-picker__value\s*\{[\s\S]*background:\s*#fff;/)
-    expect(styles).toMatch(/\.pantry-form-modal \.quantity-stepper\s*\{[\s\S]*background:\s*#fff;/)
-    expect(styles).toMatch(/\.pantry-form-modal \.stepper-button,\s*\.pantry-form-modal \.stepper-value\s*\{[\s\S]*height:\s*76rpx;/)
+    expect(styles).toMatch(/\.pantry-form-modal \.quantity-stepper\s*\{[\s\S]*height:\s*74rpx;[\s\S]*box-sizing:\s*border-box;[\s\S]*background:\s*#fff;/)
+    expect(styles).toMatch(/\.pantry-form-modal \.stepper-button,\s*\.pantry-form-modal \.stepper-value\s*\{[\s\S]*height:\s*72rpx;/)
     expect(styles).toMatch(/\.pantry-form-modal \.field-textarea\s*\{[\s\S]*background:\s*#fff;/)
   })
 
@@ -141,6 +141,7 @@ describe('pantry form modal', () => {
 
     expect(styles).toMatch(/\.field-picker-row\s*\{[\s\S]*margin-top:\s*10rpx;/)
     expect(styles).toMatch(/\.field-picker-row\s+\.field-input,\s*\.field-picker-row\s+\.date-row__picker,\s*\.field-picker-row\s+\.category-picker__value\s*\{[\s\S]*margin-top:\s*0;/)
+    expect(styles).toMatch(/\.pantry-form-modal \.date-row__picker \.field-input\s*\{[\s\S]*margin-top:\s*0;/)
   })
 
   it('opens category selector from the field and emits selected category back to the page', async () => {

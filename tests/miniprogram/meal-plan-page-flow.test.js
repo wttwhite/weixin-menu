@@ -346,6 +346,7 @@ describe('meal-plans page flow', () => {
     })
 
     const page = await loadPage('../../miniprogram/pages/meal-plans/index.js')
+    page.pendingSelectedDate = '2026-04-03'
     await page.loadMealPlans()
 
     expect(page.data.calendarItems.some((item) => item.date === '2026-04-03' && item.hasPlans)).toBe(true)

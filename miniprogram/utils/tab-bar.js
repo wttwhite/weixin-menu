@@ -21,6 +21,9 @@ function syncCurrentTabBar(page, selectedPath) {
   }
 
   tabBar.setSelected(selectedPath)
+  if (typeof tabBar.refreshTheme === 'function') {
+    tabBar.refreshTheme()
+  }
 }
 
 module.exports = {
