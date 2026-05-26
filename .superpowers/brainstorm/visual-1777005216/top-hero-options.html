@@ -1,0 +1,107 @@
+<style>
+  .compare-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:20px; }
+  .compare-card { border:1px solid rgba(20,20,20,.08); border-radius:24px; padding:18px; background:#fff; }
+  .compare-card.selected { outline:3px solid #3f7b68; }
+  .tagline { margin:0 0 10px; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#6f7f7b; }
+  .mock-stack { display:grid; gap:14px; }
+  .mini-label { margin:0 0 8px; font-size:12px; color:#667; font-weight:700; }
+  .hero-mock { border-radius:26px; overflow:hidden; padding:18px; min-height:164px; position:relative; box-shadow:0 14px 28px rgba(30,40,40,.08); }
+  .hero-mock h4 { margin:0; font-size:13px; letter-spacing:.16em; text-transform:uppercase; opacity:.78; }
+  .hero-mock h3 { margin:10px 0 0; font-size:28px; line-height:1.05; }
+  .hero-mock p { margin:10px 0 0; font-size:13px; line-height:1.5; max-width:80%; }
+  .chips { margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+  .chip { padding:8px 12px; border-radius:999px; font-size:12px; font-weight:700; }
+  .hero-a {
+    background:
+      radial-gradient(circle at 14% 16%, rgba(255,255,255,.52), transparent 18%),
+      radial-gradient(circle at 85% 24%, rgba(255,255,255,.34), transparent 16%),
+      linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0)),
+      linear-gradient(135deg, #96cdb3 0%, #6fa995 46%, #5c897b 100%);
+    color:#fff;
+  }
+  .hero-a .chip { background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.12); }
+  .hero-b {
+    background:
+      radial-gradient(circle at 82% 18%, rgba(255,255,255,.46), transparent 20%),
+      linear-gradient(135deg, #d9eef4 0%, #c4dfe7 42%, #a7c9d4 100%);
+    color:#24414a;
+  }
+  .hero-b::after {
+    content:"";
+    position:absolute; right:14px; bottom:14px; width:84px; height:84px;
+    border-radius:24px; background:rgba(255,255,255,.24);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.3);
+  }
+  .hero-b .chip { background:rgba(255,255,255,.62); color:#365560; }
+  .rec { margin-top:12px; font-size:13px; color:#456; line-height:1.45; }
+  @media (max-width: 900px) { .compare-grid { grid-template-columns:1fr; } }
+</style>
+
+<h2>顶部背景方向</h2>
+<p class="subtitle">保持“我的页”和“统计页”现有文案排布，只替换顶部卡片的背景语言。点击选择更接近你想要的方向。</p>
+
+<div class="compare-grid cards">
+  <div class="compare-card card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="tagline">Option A · 推荐</div>
+    <div class="mock-stack">
+      <div>
+        <div class="mini-label">我的页顶部</div>
+        <div class="hero-mock hero-a">
+          <h4>Profile Center</h4>
+          <h3>个人中心</h3>
+          <p>像计划页一样有轻盈空气感，但保留现在的标题、副标题和按钮关系。</p>
+          <div class="chips">
+            <div class="chip">家庭厨房</div>
+            <div class="chip">创建者</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mini-label">统计页顶部</div>
+        <div class="hero-mock hero-a">
+          <h4>Kitchen Analytics</h4>
+          <h3>关键指标</h3>
+          <p>延续同一套清新绿意背景，但给统计页更多秩序感和透明层次。</p>
+          <div class="chips">
+            <div class="chip">菜谱 12</div>
+            <div class="chip">库存 20</div>
+            <div class="chip">成员 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="rec">特点：最接近计划页气质，偏柔和、自然、轻透。我建议优先走这个方向。</p>
+  </div>
+
+  <div class="compare-card card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="tagline">Option B</div>
+    <div class="mock-stack">
+      <div>
+        <div class="mini-label">我的页顶部</div>
+        <div class="hero-mock hero-b">
+          <h4>Profile Center</h4>
+          <h3>个人中心</h3>
+          <p>更偏海盐空气感，颜色更亮、更安静，整体轻快但没有 A 那么像计划页。</p>
+          <div class="chips">
+            <div class="chip">家庭厨房</div>
+            <div class="chip">创建者</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="mini-label">统计页顶部</div>
+        <div class="hero-mock hero-b">
+          <h4>Kitchen Analytics</h4>
+          <h3>关键指标</h3>
+          <p>更偏数据看板感，清爽但理性，背景更干净，装饰更克制。</p>
+          <div class="chips">
+            <div class="chip">菜谱 12</div>
+            <div class="chip">库存 20</div>
+            <div class="chip">成员 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="rec">特点：更偏海风和纸面质感，适合想把统计页做得更清爽、更理性的情况。</p>
+  </div>
+</div>

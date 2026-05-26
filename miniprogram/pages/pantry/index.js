@@ -608,6 +608,26 @@ function shouldTreatManagerListAsEmpty(error) {
   return message === 'Pantry category not found' || message === 'Pantry location not found'
 }
 
+function consumePendingPantryRefresh() {
+  if (typeof getApp !== 'function') {
+    return false
+  }
+
+  const app = getApp()
+  const globalData = app && app.globalData ? app.globalData : null
+  const pending = globalData ? globalData.pendingPantryRefresh : null
+  if (!pending) {
+    return false
+  }
+
+  if (globalData) {
+    globalData.pendingPantryRefresh = null
+  }
+
+  const pendingSpaceId = normalizeText(pending.spaceId)
+  return !pendingSpaceId || pendingSpaceId === getActiveSpaceId()
+}
+
 Page({
   data: {
     loading: true,
@@ -891,6 +911,10 @@ Page({
   },
 
   shouldReuseLoadedState() {
+    if (consumePendingPantryRefresh()) {
+      return false
+    }
+
     if (this.forceRefreshOnNextShow) {
       this.forceRefreshOnNextShow = false
       return false
@@ -1121,7 +1145,8 @@ Page({
     const initialForm = {
       ...createEmptyPantryForm(),
       ...currentItem,
-      status: normalizeStoredStatus(currentItem.storedStatus || currentItem.status)
+      status: normalizeStoredStatus(currentItem.storedStatus || currentItem.status),
+      actualStatus: normalizeText(currentItem.status || currentItem.storedStatus) || 'active'
     }
 
     this.setData({

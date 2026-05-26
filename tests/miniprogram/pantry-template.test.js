@@ -28,6 +28,7 @@ describe('pantry page settings modal', () => {
     expect(template).toContain('bindtap="openSettingsModal"')
     expect(template).toContain('pantry-form-modal')
     expect(template).toContain('showCreateModal')
+    expect(template).toContain('status-readonly="{{true}}"')
     expect(template).toContain('management-card__search')
     expect(template).toContain('management-card__search-row')
     expect(template).toContain('floating-create-button')

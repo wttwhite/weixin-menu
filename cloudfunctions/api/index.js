@@ -346,8 +346,8 @@ function createRepository(options = {}) {
     }
   }
 
-  async function updateShoppingList(spaceId, shoppingListId, data) {
-    const existing = await getShoppingList(spaceId, shoppingListId)
+  async function updateShoppingList(spaceId, shoppingListId, data, options = {}) {
+    const existing = options.existing || await getShoppingList(spaceId, shoppingListId)
     if (!existing) {
       return null
     }
@@ -358,6 +358,29 @@ function createRepository(options = {}) {
       ...existing,
       ...data
     }
+  }
+
+  async function listShoppingItemsByListIds(spaceId, shoppingListIds = [], query = {}) {
+    const normalizedIds = Array.from(new Set((shoppingListIds || []).filter(Boolean)))
+    if (!normalizedIds.length) {
+      return []
+    }
+
+    const where = {
+      spaceId,
+      shoppingListId: db.command.in(normalizedIds),
+      deletedAt: typeof query.deletedAt === 'string' ? query.deletedAt : ''
+    }
+    let request = db
+      .collection(COLLECTIONS.SHOPPING_ITEMS)
+      .where(where)
+
+    if (typeof request.orderBy === 'function') {
+      request = request.orderBy('sortOrder', 'asc').orderBy('createdAt', 'asc')
+    }
+
+    const result = await request.get()
+    return result.data || []
   }
 
   async function listShoppingItems(spaceId, shoppingListId, query = {}) {
@@ -403,8 +426,8 @@ function createRepository(options = {}) {
     }
   }
 
-  async function updateShoppingItem(spaceId, shoppingListId, shoppingItemId, data) {
-    const existing = await getShoppingItem(spaceId, shoppingListId, shoppingItemId)
+  async function updateShoppingItem(spaceId, shoppingListId, shoppingItemId, data, options = {}) {
+    const existing = options.existing || await getShoppingItem(spaceId, shoppingListId, shoppingItemId)
     if (!existing) {
       return null
     }
@@ -900,6 +923,7 @@ function createRepository(options = {}) {
     listAllRecipes,
     listMealPlans,
     listShoppingLists,
+    listShoppingItemsByListIds,
     listShoppingItems,
     listSpaceMembers,
     listRecipeTags,

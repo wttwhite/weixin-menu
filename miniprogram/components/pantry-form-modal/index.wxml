@@ -54,7 +54,8 @@
               </view>
               <view class="detail-grid__item">
                 <view class="field-label field-label--tight">状态</view>
-                <picker class="picker-field" mode="selector" range="{{statusOptions}}" value="{{statusIndex}}" bindchange="handleUsageStatusSelect">
+                <view wx:if="{{statusReadonly}}" class="field-input field-input--picker field-input--readonly">{{statusDisplayText}}</view>
+                <picker wx:else class="picker-field" mode="selector" range="{{statusOptions}}" value="{{statusIndex}}" bindchange="handleUsageStatusSelect">
                   <view class="field-input field-input--picker">{{statusOptions[statusIndex]}}</view>
                 </picker>
               </view>

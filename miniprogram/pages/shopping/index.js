@@ -78,6 +78,18 @@ function buildShoppingProgress(items = []) {
   }
 }
 
+function deriveShoppingListStatus(status = '', progress = {}) {
+  const normalized = normalizeText(status) || 'open'
+  if (normalized === 'archived') {
+    return 'archived'
+  }
+  return progress.total > 0 && progress.checked === progress.total ? 'completed' : 'open'
+}
+
+function getShoppingListDisplayStatus(list = {}) {
+  return deriveShoppingListStatus(list.status, buildShoppingProgress(list.items || []))
+}
+
 function getStatusLabel(status = '') {
   const labels = {
     open: '进行中',
@@ -85,6 +97,21 @@ function getStatusLabel(status = '') {
     archived: '已归档'
   }
   return labels[normalizeText(status)] || '进行中'
+}
+
+function getStatusChangeToastTitle(previousStatus = '', nextStatus = '') {
+  const previous = normalizeText(previousStatus) || 'open'
+  const next = normalizeText(nextStatus) || 'open'
+  if (previous === next) {
+    return ''
+  }
+  if (next === 'completed') {
+    return '清单已完成'
+  }
+  if (next === 'open') {
+    return '已恢复进行中'
+  }
+  return ''
 }
 
 function getStatusClass(status = '') {
@@ -143,7 +170,7 @@ function decorateShoppingList(list = {}, collapsedIdSet = new Set()) {
   const items = (list.items || []).map((item) => decorateShoppingItem(item))
   const progress = buildShoppingProgress(items)
   const generatedCount = items.filter((item) => item.sourceType === 'generated').length
-  const status = normalizeText(list.status) || 'open'
+  const status = deriveShoppingListStatus(list.status, progress)
   const itemsCollapsed = Boolean(list && list._id && collapsedIdSet.has(list._id))
   const manualItems = items.filter((item) => item.sourceType !== 'generated')
   const generatedItems = items.filter((item) => item.sourceType === 'generated')
@@ -166,7 +193,8 @@ function decorateShoppingList(list = {}, collapsedIdSet = new Set()) {
     generatedItems,
     generatedSummaryText: `从计划生成，共 ${generatedCount} 项食材`,
     pendingCount: items.filter((item) => !item.isChecked).length,
-    manualItems
+    manualItems,
+    canArchive: status === 'completed'
   }
 }
 
@@ -322,6 +350,22 @@ function mergeManualDraftResults(items = [], savedItems = []) {
   })
 
   return nextItems
+}
+
+function markPendingPantryRefresh(spaceId = '') {
+  if (typeof getApp !== 'function') {
+    return false
+  }
+
+  const app = getApp()
+  if (!app || !app.globalData) {
+    return false
+  }
+
+  app.globalData.pendingPantryRefresh = {
+    spaceId: normalizeText(spaceId)
+  }
+  return true
 }
 
 Page({
@@ -567,14 +611,6 @@ Page({
     })
   },
 
-  handleListStatusChange(event) {
-    const nextIndex = Number(event.detail.value)
-    const option = STATUS_OPTIONS.filter((item) => item.key !== 'all')[nextIndex]
-    this.setData({
-      'listForm.status': option ? option.key : 'open'
-    })
-  },
-
   addListItemDraft() {
     this.setData({
       listItemDrafts: (this.data.listItemDrafts || []).concat(
@@ -732,7 +768,6 @@ Page({
       const listPayload = {
         name,
         listDate: normalizeText(this.data.listForm.listDate),
-        status: normalizeText(this.data.listForm.status) || 'open',
         notes: normalizeText(this.data.listForm.notes)
       }
 
@@ -745,6 +780,7 @@ Page({
         )
         savedList = updated.item || null
       } else {
+        listPayload.status = 'open'
         const created = await createShoppingService().createShoppingList(
           this.data.activeSpaceId,
           listPayload
@@ -776,6 +812,7 @@ Page({
           expectedUpdatedAt
         )
         expectedUpdatedAt = result && result.item ? result.item.updatedAt || expectedUpdatedAt : expectedUpdatedAt
+        savedList = result && result.item ? { ...(savedList || {}), ...result.item } : savedList
         if (result && result.shoppingItem) {
           savedShoppingItems.push(result.shoppingItem)
         }
@@ -884,14 +921,31 @@ Page({
             ...shoppingItem,
             isChecked: checked
           }
+      const updatedShoppingList = result && result.shoppingList ? result.shoppingList : null
+      const previousStatus = shoppingList.status || getShoppingListDisplayStatus(shoppingList)
+      let nextShoppingList = null
 
-      this.syncShoppingView({
-        shoppingLists: updateShoppingListItems(this.data.shoppingLists || [], shoppingListId, (item) => ({
+      const shoppingLists = updateShoppingListItems(this.data.shoppingLists || [], shoppingListId, (item) => {
+        nextShoppingList = {
           ...item,
+          ...(updatedShoppingList || {}),
           updatedAt: (result && result.shoppingListUpdatedAt) || updatedItem.updatedAt || item.updatedAt || '',
           items: replaceShoppingItem(item.items || [], updatedItem)
-        }))
+        }
+        return nextShoppingList
       })
+
+      this.syncShoppingView({
+        shoppingLists
+      })
+
+      const statusToastTitle = getStatusChangeToastTitle(previousStatus, getShoppingListDisplayStatus(nextShoppingList))
+      if (statusToastTitle) {
+        wx.showToast({
+          title: statusToastTitle,
+          icon: 'success'
+        })
+      }
     } catch (error) {
       wx.showToast({
         title: getErrorMessage(error),
@@ -1029,6 +1083,7 @@ Page({
 
     try {
       await createPantryService().createPantryItem(this.data.activeSpaceId, pantryEntryForm)
+      markPendingPantryRefresh(this.data.activeSpaceId)
       const toggleResult = await createShoppingService().toggleShoppingItemChecked(
         this.data.activeSpaceId,
         this.data.pantryEntryShoppingListId,
@@ -1043,6 +1098,7 @@ Page({
             _id: this.data.pantryEntryShoppingItemId,
             isChecked: true
           }
+      const updatedShoppingList = toggleResult && toggleResult.shoppingList ? toggleResult.shoppingList : null
       this.closePantryEntryModal()
       this.syncShoppingView({
         shoppingLists: updateShoppingListItems(
@@ -1050,6 +1106,7 @@ Page({
           this.data.pantryEntryShoppingListId,
           (item) => ({
             ...item,
+            ...(updatedShoppingList || {}),
             updatedAt: (toggleResult && toggleResult.shoppingListUpdatedAt) || updatedItem.updatedAt || item.updatedAt || '',
             items: replaceShoppingItem(item.items || [], updatedItem)
           })
@@ -1067,6 +1124,44 @@ Page({
     } finally {
       this.setData({
         submittingPantryEntry: false
+      })
+    }
+  },
+
+  async archiveShoppingList(event) {
+    const shoppingListId = event && event.currentTarget && event.currentTarget.dataset
+      ? event.currentTarget.dataset.shoppingListId || ''
+      : ''
+    const target = (this.data.shoppingLists || []).find((item) => item && item._id === shoppingListId)
+    if (!target || target.status !== 'completed' || !this.data.activeSpaceId) {
+      return
+    }
+
+    try {
+      const result = await createShoppingService().updateShoppingList(
+        this.data.activeSpaceId,
+        shoppingListId,
+        {
+          status: 'archived'
+        },
+        target.updatedAt || ''
+      )
+      const archivedList = result && result.item ? result.item : { ...target, status: 'archived' }
+      this.syncShoppingView({
+        shoppingLists: replaceShoppingList(this.data.shoppingLists || [], {
+          ...target,
+          ...archivedList,
+          items: target.items || []
+        })
+      })
+      wx.showToast({
+        title: '已归档',
+        icon: 'success'
+      })
+    } catch (error) {
+      wx.showToast({
+        title: getErrorMessage(error),
+        icon: 'none'
       })
     }
   }

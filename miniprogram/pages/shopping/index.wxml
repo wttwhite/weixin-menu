@@ -66,6 +66,19 @@
 
           <view class="shopping-list-card__actions">
             <view
+              wx:if="{{item.canArchive}}"
+              class="shopping-list-card__action shopping-list-card__action--archive"
+              data-shopping-list-id="{{item._id}}"
+              bindtap="archiveShoppingList"
+            >
+              <view class="shopping-list-card__element-icon shopping-list-card__element-icon--archive">
+                <view class="shopping-list-card__element-archive-lid"></view>
+                <view class="shopping-list-card__element-archive-body">
+                  <view class="shopping-list-card__element-archive-line"></view>
+                </view>
+              </view>
+            </view>
+            <view
               class="shopping-list-card__action shopping-list-card__action--edit"
               data-shopping-list-id="{{item._id}}"
               bindtap="openEditListModal"
@@ -195,11 +208,6 @@
           <view class="shopping-modal__field-label">日期</view>
           <picker mode="date" value="{{listForm.listDate || todayIso}}" bindchange="handleListDateChange">
             <view class="shopping-modal__picker">{{listForm.listDate || todayIso}}</view>
-          </picker>
-
-          <view class="shopping-modal__field-label">状态</view>
-          <picker mode="selector" range="{{statusTabs}}" range-key="label" value="{{listForm.status === 'completed' ? 2 : (listForm.status === 'archived' ? 3 : 1)}}" bindchange="handleListStatusChange">
-            <view class="shopping-modal__picker">{{listForm.status === 'completed' ? '已完成' : (listForm.status === 'archived' ? '已归档' : '进行中')}}</view>
           </picker>
 
           <view class="shopping-modal__field-label">备注</view>

@@ -2,10 +2,6 @@
   min-height: 100vh;
   padding: 28rpx 24rpx calc(env(safe-area-inset-bottom) + 180rpx);
   box-sizing: border-box;
-  background:
-    radial-gradient(circle at top, var(--surface-muted, #e8edf1), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, transparent 22%),
-    linear-gradient(180deg, var(--page-bg, #f6f7f8) 0%, var(--surface-muted, #e8edf1) 100%);
 }
 
 .meal-plan-editor,

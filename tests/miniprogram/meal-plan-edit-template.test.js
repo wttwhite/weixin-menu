@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+function getStyleBlock(styles, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`))
+  return match ? match[0] : ''
+}
+
 describe('meal-plan edit template', () => {
   it('renders grouped editor cards with searchable recipe selection and fixed footer actions', () => {
     const template = readFileSync('miniprogram/pages/meal-plan-edit/index.wxml', 'utf8')
@@ -31,5 +37,12 @@ describe('meal-plan edit template', () => {
     expect(styles).toMatch(/\.section-button--soft\s*\{[\s\S]*--td-button-default-bg-color:\s*var\(--surface-muted,/)
     expect(styles).toMatch(/\.footer-submit-btn\s*\{[\s\S]*--td-button-primary-bg-color:\s*var\(--surface-muted,/)
     expect(template).toContain('recipe-selector__close')
+  })
+
+  it('does not paint a page-level background on the editor page', () => {
+    const styles = readFileSync('miniprogram/pages/meal-plan-edit/index.wxss', 'utf8')
+    const pageStyles = getStyleBlock(styles, '.meal-plan-edit-page')
+
+    expect(pageStyles).not.toMatch(/background:/)
   })
 })

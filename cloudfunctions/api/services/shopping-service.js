@@ -6,6 +6,8 @@ const {
   normalizeShoppingListWrite
 } = require('../shared/domain/shopping')
 
+const AUTO_ARCHIVE_COMPLETED_AFTER_MS = 30 * 24 * 60 * 60 * 1000
+
 function toAppError(message, code, data = null) {
   const error = new Error(message)
   error.code = code
@@ -28,6 +30,90 @@ function resolveClock(options = {}) {
 
 function resolveServerInstant(options = {}) {
   return resolveClock(options).now().toISOString()
+}
+
+function shouldAutoArchiveCompletedList(list = {}, now = new Date()) {
+  if (!list || list.status !== 'completed') {
+    return false
+  }
+
+  const updatedAt = Date.parse(list.updatedAt || '')
+  if (!Number.isFinite(updatedAt)) {
+    return false
+  }
+
+  return now.getTime() - updatedAt >= AUTO_ARCHIVE_COMPLETED_AFTER_MS
+}
+
+function deriveShoppingListStatusFromItems(items = []) {
+  const activeItems = items || []
+  if (activeItems.length && activeItems.every((item) => Boolean(item && item.isChecked))) {
+    return 'completed'
+  }
+  return 'open'
+}
+
+function mergeShoppingItemsForStatus(items = [], updatedItem = null) {
+  const updatedId = updatedItem && updatedItem._id ? updatedItem._id : ''
+  if (!updatedId) {
+    return items || []
+  }
+
+  let matched = false
+  const merged = (items || []).map((item) => {
+    if (item && item._id === updatedId) {
+      matched = true
+      return {
+        ...item,
+        ...updatedItem
+      }
+    }
+    return item
+  })
+
+  if (!matched) {
+    merged.push(updatedItem)
+  }
+
+  return merged
+}
+
+function groupShoppingItemsByListId(items = []) {
+  const grouped = new Map()
+  ;(items || []).forEach((item) => {
+    const shoppingListId = normalizeId(item && item.shoppingListId)
+    if (!shoppingListId) {
+      return
+    }
+    if (!grouped.has(shoppingListId)) {
+      grouped.set(shoppingListId, [])
+    }
+    grouped.get(shoppingListId).push(item)
+  })
+  return grouped
+}
+
+async function listShoppingItemsByListId(spaceId, lists = [], repository = {}) {
+  const listIds = (lists || [])
+    .map((list) => normalizeId(list && list._id))
+    .filter(Boolean)
+  if (!listIds.length) {
+    return new Map()
+  }
+
+  if (typeof repository.listShoppingItemsByListIds === 'function') {
+    return groupShoppingItemsByListId(
+      await repository.listShoppingItemsByListIds(spaceId, listIds, { deletedAt: '' })
+    )
+  }
+
+  const entries = await Promise.all(
+    listIds.map(async (shoppingListId) => [
+      shoppingListId,
+      await repository.listShoppingItems(spaceId, shoppingListId, { deletedAt: '' })
+    ])
+  )
+  return new Map(entries)
 }
 
 function validateSpaceId(spaceId) {
@@ -108,17 +194,36 @@ async function assertShoppingListExists(spaceId, shoppingListId, repository = {}
   return existing
 }
 
-async function listShoppingLists(event = {}, context = {}, repository = {}) {
+async function listShoppingLists(event = {}, context = {}, repository = {}, options = {}) {
   validateSpaceId(event.spaceId)
+  const nowDate = resolveClock(options).now()
+  const now = nowDate.toISOString()
   const lists = await repository.listShoppingLists(event.spaceId, {
     deletedAt: ''
   })
+  const shoppingItemsByListId = await listShoppingItemsByListId(event.spaceId, lists || [], repository)
 
   const items = await Promise.all(
     (lists || []).map(async (list) => {
-      const shoppingItems = await repository.listShoppingItems(event.spaceId, list._id, { deletedAt: '' })
+      let currentList = list
+      const shoppingItems = shoppingItemsByListId.get(list._id) || []
+      const derivedStatus = deriveShoppingListStatusFromItems(shoppingItems)
+      if (currentList.status !== 'archived' && currentList.status !== derivedStatus) {
+        currentList = await repository.updateShoppingList(event.spaceId, currentList._id, {
+          status: derivedStatus,
+          updatedAt: now,
+          updatedBy: context.openid || ''
+        }, { existing: currentList }) || currentList
+      }
+      if (shouldAutoArchiveCompletedList(currentList, nowDate)) {
+        currentList = await repository.updateShoppingList(event.spaceId, currentList._id, {
+          status: 'archived',
+          updatedAt: now,
+          updatedBy: context.openid || ''
+        }, { existing: currentList }) || currentList
+      }
       return {
-        ...list,
+        ...currentList,
         items: shoppingItems,
         progress: buildShoppingProgress(shoppingItems)
       }
@@ -163,6 +268,7 @@ async function updateShoppingList(event = {}, context = {}, repository = {}, opt
   const now = resolveServerInstant(options)
   const input = event.shoppingList || {}
   let shoppingItem = null
+  let shouldRecalculateStatus = false
   const listPatch = {
     updatedAt: now,
     updatedBy: context.openid || ''
@@ -184,6 +290,7 @@ async function updateShoppingList(event = {}, context = {}, repository = {}, opt
     listPatch.status = normalizeShoppingListWrite({
       status: input.status
     }).status
+    shouldRecalculateStatus = listPatch.status !== 'archived'
   }
 
   if (Object.prototype.hasOwnProperty.call(input, 'notes')) {
@@ -195,6 +302,7 @@ async function updateShoppingList(event = {}, context = {}, repository = {}, opt
   const itemDraft = input.itemDraft
   if (itemDraft && typeof itemDraft === 'object') {
     const normalizedItem = validateShoppingItemDraft(itemDraft)
+    shouldRecalculateStatus = true
     const shoppingItemId = normalizeId(itemDraft.shoppingItemId)
     if (shoppingItemId) {
       const existingItem = await repository.getShoppingItem(event.spaceId, event.shoppingListId, shoppingItemId)
@@ -203,11 +311,17 @@ async function updateShoppingList(event = {}, context = {}, repository = {}, opt
       }
       assertExpectedUpdatedAt(existingItem.updatedAt, itemDraft.expectedUpdatedAt)
 
-      shoppingItem = await repository.updateShoppingItem(event.spaceId, event.shoppingListId, shoppingItemId, {
+      const itemPatch = {
         ...normalizedItem,
+        isChecked: Object.prototype.hasOwnProperty.call(itemDraft, 'isChecked')
+          ? normalizedItem.isChecked
+          : Boolean(existingItem.isChecked)
+      }
+      shoppingItem = await repository.updateShoppingItem(event.spaceId, event.shoppingListId, shoppingItemId, {
+        ...itemPatch,
         updatedAt: now,
         updatedBy: context.openid || ''
-      })
+      }, { existing: existingItem })
     } else {
       shoppingItem = await repository.createShoppingItem({
         spaceId: event.spaceId,
@@ -224,9 +338,24 @@ async function updateShoppingList(event = {}, context = {}, repository = {}, opt
     }
   }
 
-  const item = await repository.updateShoppingList(event.spaceId, event.shoppingListId, listPatch)
+  let item = await repository.updateShoppingList(event.spaceId, event.shoppingListId, listPatch, { existing: existingList })
   if (!item) {
     throw toAppError('Shopping list not found', ERROR_CODES.NOT_FOUND)
+  }
+
+  if (shouldRecalculateStatus && item.status !== 'archived') {
+    const shoppingItems = mergeShoppingItemsForStatus(
+      await repository.listShoppingItems(event.spaceId, event.shoppingListId, { deletedAt: '' }),
+      shoppingItem
+    )
+    const nextStatus = deriveShoppingListStatusFromItems(shoppingItems)
+    if (item.status !== nextStatus) {
+      item = await repository.updateShoppingList(event.spaceId, event.shoppingListId, {
+        status: nextStatus,
+        updatedAt: now,
+        updatedBy: context.openid || ''
+      }, { existing: item }) || item
+    }
   }
 
   return {
@@ -247,7 +376,7 @@ async function deleteShoppingList(event = {}, context = {}, repository = {}, opt
     deletedBy: context.openid || '',
     updatedAt: now,
     updatedBy: context.openid || ''
-  })
+  }, { existing: existingList })
 
   if (!deleted) {
     throw toAppError('Shopping list not found', ERROR_CODES.NOT_FOUND)
@@ -282,7 +411,7 @@ async function generateShoppingItemsFromPlan(event = {}, context = {}, repositor
       deletedBy: context.openid || '',
       updatedAt: now,
       updatedBy: context.openid || ''
-    })
+    }, { existing: existingItem })
   }
 
   const createdItems = []
@@ -304,7 +433,7 @@ async function generateShoppingItemsFromPlan(event = {}, context = {}, repositor
   await repository.updateShoppingList(event.spaceId, event.shoppingListId, {
     updatedAt: now,
     updatedBy: context.openid || ''
-  })
+  }, { existing: existingList })
 
   return {
     items: createdItems,
@@ -332,18 +461,25 @@ async function toggleShoppingItemChecked(event = {}, context = {}, repository = 
     isChecked: checked,
     updatedAt: now,
     updatedBy: context.openid || ''
-  })
+  }, { existing })
   if (!item) {
     throw toAppError('Shopping item not found', ERROR_CODES.NOT_FOUND)
   }
 
-  await repository.updateShoppingList(event.spaceId, event.shoppingListId, {
+  const shoppingItems = mergeShoppingItemsForStatus(
+    await repository.listShoppingItems(event.spaceId, event.shoppingListId, { deletedAt: '' }),
+    item
+  )
+  const nextStatus = deriveShoppingListStatusFromItems(shoppingItems)
+  const shoppingList = await repository.updateShoppingList(event.spaceId, event.shoppingListId, {
+    status: nextStatus,
     updatedAt: now,
     updatedBy: context.openid || ''
-  })
+  }, { existing: existingList })
 
   return {
     item,
+    shoppingList,
     shoppingListUpdatedAt: now
   }
 }

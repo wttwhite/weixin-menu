@@ -29,6 +29,7 @@ function createComponentInstance(componentConfig, initialProps = {}) {
       title: '添加库存',
       submitLabel: '添加库存',
       submitting: false,
+      statusReadonly: false,
       value: {},
       categoryOptions: ['未设置'],
       locationOptions: ['未设置'],
@@ -142,6 +143,35 @@ describe('pantry form modal', () => {
     expect(styles).toMatch(/\.field-picker-row\s*\{[\s\S]*margin-top:\s*10rpx;/)
     expect(styles).toMatch(/\.field-picker-row\s+\.field-input,\s*\.field-picker-row\s+\.date-row__picker,\s*\.field-picker-row\s+\.category-picker__value\s*\{[\s\S]*margin-top:\s*0;/)
     expect(styles).toMatch(/\.pantry-form-modal \.date-row__picker \.field-input\s*\{[\s\S]*margin-top:\s*0;/)
+  })
+
+  it('shows derived expired status as read-only without changing the stored status', async () => {
+    const template = readFileSync('miniprogram/components/pantry-form-modal/index.wxml', 'utf8')
+    expect(template).toContain('statusReadonly')
+
+    const componentConfig = await loadComponent()
+    const instance = createComponentInstance(componentConfig, {
+      visible: true,
+      statusReadonly: true,
+      value: {
+        name: 'Yogurt',
+        status: 'active',
+        actualStatus: 'expired',
+        expirationDate: '2026-04-01'
+      }
+    })
+
+    expect(instance.data.statusDisplayText).toBe('已过期')
+    expect(instance.data.statusIndex).toBe(0)
+
+    instance.handleUsageStatusSelect({
+      detail: {
+        value: 1
+      }
+    })
+
+    expect(instance.data.form.status).toBe('active')
+    expect(instance.triggered).toEqual([])
   })
 
   it('opens category selector from the field and emits selected category back to the page', async () => {

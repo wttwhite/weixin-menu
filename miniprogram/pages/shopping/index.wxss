@@ -327,6 +327,10 @@ page {
   color: #606266;
 }
 
+.shopping-list-card__action--archive {
+  color: #4b5563;
+}
+
 .shopping-list-card__action--danger {
   color: #f56c6c;
 }
@@ -402,6 +406,39 @@ page {
 
 .shopping-list-card__element-delete-line {
   display: none;
+}
+
+.shopping-list-card__element-archive-lid {
+  position: absolute;
+  left: 8rpx;
+  top: 9rpx;
+  width: 28rpx;
+  height: 8rpx;
+  border: 3rpx solid currentColor;
+  border-bottom: 0;
+  border-radius: 6rpx 6rpx 0 0;
+  box-sizing: border-box;
+}
+
+.shopping-list-card__element-archive-body {
+  position: absolute;
+  left: 6rpx;
+  top: 18rpx;
+  width: 32rpx;
+  height: 24rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 5rpx;
+  box-sizing: border-box;
+}
+
+.shopping-list-card__element-archive-line {
+  position: absolute;
+  left: 7rpx;
+  top: 7rpx;
+  width: 12rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: currentColor;
 }
 
 .shopping-list-card__progress {

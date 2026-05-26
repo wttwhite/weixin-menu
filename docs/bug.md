@@ -68,3 +68,13 @@
 dish-card **box-shadow**: **0 18rpx 30rpx rgba(102, 114, 138, 0.08)**;
 
 pantry-page、calendar-panel、plans-day-card去掉background；计划页面calendar-nav__button、calendar-nav__month、plan-card__icon、meal-plan-status-chip改成淡灰色背景；meal-plan-status-chip
+
+备份页面的import列时间带T的改成正常的时分秒
+
+库存编辑增加位置修改成功后返回库存页面，数据没有改变
+
+库存时间今天过期，但是状态还是正常，过期时间也没有改变颜色
+
+采购编辑清单弹框，竖向超出没有出来滚动条
+
+meal-plan-edit-page、profile-page去掉background

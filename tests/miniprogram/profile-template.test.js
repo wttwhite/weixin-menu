@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+function getStyleBlock(styles, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`))
+  return match ? match[0] : ''
+}
+
 describe('profile page template', () => {
   it('renders profile hero, space card, grouped actions, and management modals', () => {
     const template = readFileSync('miniprogram/pages/profile/index.wxml', 'utf8')
@@ -60,5 +66,12 @@ describe('profile page template', () => {
     expect(styles).toContain('var(--hero-soft-subtle')
     expect(styles).not.toContain('rgba(35, 49, 39, 0.92)')
     expect(styles).not.toContain('rgba(78, 109, 88, 0.84)')
+  })
+
+  it('does not paint a page-level background on profile page', () => {
+    const styles = readFileSync('miniprogram/pages/profile/index.wxss', 'utf8')
+    const pageStyles = getStyleBlock(styles, '.profile-page')
+
+    expect(pageStyles).not.toMatch(/background:/)
   })
 })

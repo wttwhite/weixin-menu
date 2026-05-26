@@ -60,6 +60,7 @@ describe('pantry edit template', () => {
     expect(template).toContain('style="{{themeStyle}}"')
     expect(template).toContain('showEditModal')
     expect(template).toContain('pantry-form-modal')
+    expect(template).toContain('status-readonly="{{true}}"')
     expect(template).toContain('bind:submit="submitEditModal"')
     expect(template).toContain('bind:change="handleEditFormChange"')
     expect(template.includes('`')).toBe(false)

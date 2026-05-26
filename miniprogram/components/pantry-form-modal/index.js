@@ -17,6 +17,15 @@ const STATUS_OPTIONS = [
   { label: '已丢弃', value: 'discarded' }
 ]
 
+const STATUS_DISPLAY_LABELS = {
+  active: '正常',
+  opened: '已开封',
+  expiring: '即将过期',
+  expired: '已过期',
+  empty: '已用完',
+  discarded: '已丢弃'
+}
+
 function getTodayDate() {
   const now = new Date()
   const year = now.getFullYear()
@@ -39,6 +48,20 @@ function buildNotesCount(form = {}) {
 function getStatusIndex(value = 'active') {
   const index = STATUS_OPTIONS.findIndex((item) => item.value === normalizeText(value))
   return index >= 0 ? index : 0
+}
+
+function getStatusDisplayText(form = {}, statusIndex = 0) {
+  const actualStatus = normalizeText(form.actualStatus)
+  if (STATUS_DISPLAY_LABELS[actualStatus]) {
+    return STATUS_DISPLAY_LABELS[actualStatus]
+  }
+
+  const storedStatus = normalizeText(form.status)
+  if (STATUS_DISPLAY_LABELS[storedStatus]) {
+    return STATUS_DISPLAY_LABELS[storedStatus]
+  }
+
+  return STATUS_OPTIONS[statusIndex] ? STATUS_OPTIONS[statusIndex].label : STATUS_OPTIONS[0].label
 }
 
 function buildCategorySelectorItems(categoryOptions = [], selectedCategoryIndex = 0) {
@@ -73,6 +96,10 @@ Component({
       type: Boolean,
       value: false
     },
+    statusReadonly: {
+      type: Boolean,
+      value: false
+    },
     value: {
       type: Object,
       value: {}
@@ -99,6 +126,7 @@ Component({
     unitOptionItems: buildUnitOptionItems(''),
     statusOptions: STATUS_OPTIONS.map((item) => item.label),
     statusIndex: 0,
+    statusDisplayText: STATUS_OPTIONS[0].label,
     notesCount: '0'
   },
 
@@ -110,6 +138,7 @@ Component({
 
       const form = cloneForm(value)
       const categoryIndex = getPickerIndex(categoryOptions || [], form.category)
+      const statusIndex = getStatusIndex(form.status)
       this.setData({
         today: getTodayDate(),
         form,
@@ -120,7 +149,8 @@ Component({
         showUnitSelector: false,
         unitDraft: normalizeText(form.unit),
         unitOptionItems: buildUnitOptionItems(form.unit),
-        statusIndex: getStatusIndex(form.status),
+        statusIndex,
+        statusDisplayText: getStatusDisplayText(form, statusIndex),
         notesCount: buildNotesCount(form)
       })
     }
@@ -137,6 +167,7 @@ Component({
 
     updateForm(nextForm = {}) {
       const categoryIndex = getPickerIndex(this.data.categoryOptions || [], nextForm.category)
+      const statusIndex = getStatusIndex(nextForm.status)
       this.setData({
         form: nextForm,
         notesCount: buildNotesCount(nextForm),
@@ -145,7 +176,8 @@ Component({
         categorySelectorItems: buildCategorySelectorItems(this.data.categoryOptions || [], categoryIndex),
         unitDraft: normalizeText(nextForm.unit),
         unitOptionItems: buildUnitOptionItems(nextForm.unit),
-        statusIndex: getStatusIndex(nextForm.status)
+        statusIndex,
+        statusDisplayText: getStatusDisplayText(nextForm, statusIndex)
       })
       this.emitFormChange(nextForm)
     },
@@ -293,6 +325,10 @@ Component({
     },
 
     handleUsageStatusSelect(event) {
+      if (this.properties.statusReadonly || this.data.statusReadonly) {
+        return
+      }
+
       const nextIndex = Number(event.detail.value)
       const nextStatus = STATUS_OPTIONS[nextIndex] ? STATUS_OPTIONS[nextIndex].value : 'active'
       this.updateForm({

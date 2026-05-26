@@ -4,10 +4,6 @@
   flex-direction: column;
   padding: 28rpx 24rpx calc(env(safe-area-inset-bottom) + 160rpx);
   box-sizing: border-box;
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.7), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.38), transparent 26%),
-    var(--page-bg);
 }
 
 .profile-hero {

@@ -127,6 +127,11 @@
   background: #fff;
 }
 
+.pantry-form-modal .field-input--readonly {
+  color: #667084;
+  background: #f3f5f8;
+}
+
 .pantry-form-modal .field-textarea {
   background: #fff;
 }

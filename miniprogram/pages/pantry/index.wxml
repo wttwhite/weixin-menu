@@ -198,6 +198,7 @@
     value="{{editForm}}"
     category-options="{{editCategoryOptions}}"
     location-options="{{editLocationOptions}}"
+    status-readonly="{{true}}"
     bind:change="handleEditFormChange"
     bind:close="closeEditModal"
     bind:submit="submitEditPantry"

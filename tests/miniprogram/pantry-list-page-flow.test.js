@@ -117,6 +117,81 @@ describe('pantry list page flow', () => {
     expect(callFunction).toHaveBeenCalledTimes(1)
   })
 
+  it('reloads pantry data once when another page marks the active space pending refresh', async () => {
+    const app = {
+      globalData: {
+        activeSpaceId: 'space-1',
+        pendingPantryRefresh: null
+      }
+    }
+    const callFunction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'pantry-1',
+                name: 'Milk',
+                category: 'dairy',
+                location: 'fridge',
+                quantity: '1',
+                unit: '盒',
+                status: 'active'
+              }
+            ],
+            filterOptions: {
+              categories: ['dairy'],
+              locations: ['fridge']
+            }
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        result: {
+          code: 0,
+          data: {
+            items: [
+              {
+                _id: 'pantry-2',
+                name: '豆瓣酱',
+                category: '调味料',
+                location: '橱柜',
+                quantity: '1',
+                unit: '瓶',
+                status: 'active'
+              }
+            ],
+            filterOptions: {
+              categories: ['调味料'],
+              locations: ['橱柜']
+            }
+          }
+        }
+      })
+    global.wx = {
+      cloud: { callFunction },
+      navigateTo: vi.fn(),
+      stopPullDownRefresh: vi.fn()
+    }
+    global.getApp = () => app
+
+    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+    page.onShow()
+    await flushAsyncWork()
+
+    app.globalData.pendingPantryRefresh = {
+      spaceId: 'space-1'
+    }
+    page.onShow()
+    await flushAsyncWork()
+
+    expect(callFunction).toHaveBeenCalledTimes(2)
+    expect(page.data.items.map((item) => item.name)).toEqual(['豆瓣酱'])
+    expect(app.globalData.pendingPantryRefresh).toBeNull()
+  })
+
   it('builds pantry rail categories and filters visible items by category, keyword, and processed toggle', async () => {
     const callFunction = vi
       .fn()
@@ -295,6 +370,29 @@ describe('pantry list page flow', () => {
   })
 
   it('formats quantity with expiration date and colors near or expired dates', async () => {
+    const RealDate = Date
+    class MockDate extends RealDate {
+      constructor(...args) {
+        if (args.length) {
+          super(...args)
+          return
+        }
+        super('2026-05-01T09:00:00.000Z')
+      }
+
+      getFullYear() {
+        return 2026
+      }
+
+      getMonth() {
+        return 4
+      }
+
+      getDate() {
+        return 1
+      }
+    }
+    global.Date = MockDate
     const callFunction = vi.fn().mockResolvedValue({
       result: {
         code: 0,
@@ -346,25 +444,29 @@ describe('pantry list page flow', () => {
       }
     })
 
-    const page = await loadPage('../../miniprogram/pages/pantry/index.js')
-    page.onShow()
-    await flushAsyncWork()
+    try {
+      const page = await loadPage('../../miniprogram/pages/pantry/index.js')
+      page.onShow()
+      await flushAsyncWork()
 
-    expect(page.data.items[0]).toEqual(expect.objectContaining({
-      quantityDisplay: '2 袋',
-      expirationDateText: '2026/08/01',
-      expirationDateClass: 'pantry-item__expiration'
-    }))
-    expect(page.data.items[1]).toEqual(expect.objectContaining({
-      quantityDisplay: '1 盒',
-      expirationDateText: '2026/05/10',
-      expirationDateClass: 'pantry-item__expiration pantry-item__expiration--soon'
-    }))
-    expect(page.data.items[2]).toEqual(expect.objectContaining({
-      quantityDisplay: '3 杯',
-      expirationDateText: '2026/04/01',
-      expirationDateClass: 'pantry-item__expiration pantry-item__expiration--expired'
-    }))
+      expect(page.data.items[0]).toEqual(expect.objectContaining({
+        quantityDisplay: '2 袋',
+        expirationDateText: '2026/08/01',
+        expirationDateClass: 'pantry-item__expiration'
+      }))
+      expect(page.data.items[1]).toEqual(expect.objectContaining({
+        quantityDisplay: '1 盒',
+        expirationDateText: '2026/05/10',
+        expirationDateClass: 'pantry-item__expiration pantry-item__expiration--soon'
+      }))
+      expect(page.data.items[2]).toEqual(expect.objectContaining({
+        quantityDisplay: '3 杯',
+        expirationDateText: '2026/04/01',
+        expirationDateClass: 'pantry-item__expiration pantry-item__expiration--expired'
+      }))
+    } finally {
+      global.Date = RealDate
+    }
   })
 
   it('derives expired display locally when a loaded item expires today but still has active status', async () => {
